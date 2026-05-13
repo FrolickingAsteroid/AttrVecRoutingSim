@@ -1,0 +1,3 @@
+/home/novak/Documents/Work/Thesis/Sim/build/CMakeFiles/Simulator.dir
+/home/novak/Documents/Work/Thesis/Sim/build/CMakeFiles/edit_cache.dir
+/home/novak/Documents/Work/Thesis/Sim/build/CMakeFiles/rebuild_cache.dir
