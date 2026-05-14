@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "graph/graph.hpp"
-#include "scheduler/calendar.hpp"
-#include "protocol/state/seq-window.hpp"
 #include "protocol/state/path-segment.hpp"
+#include "protocol/state/seq-window.hpp"
+#include "scheduler/calendar.hpp"
 #include "utils/data.hpp"
 
 namespace Protocol {
@@ -14,7 +14,7 @@ namespace Protocol {
     struct ProtocolGlobalState {
         using path = State::Path<A>;
         using window = State::SequenceWindow<A, Ord>;
-
+        using seq_attr = RoutingAlgebras::SeqAttr<A>;
 
         Graphs::Graph<A> &graph;
         std::vector<window> s;
@@ -27,6 +27,10 @@ namespace Protocol {
               s(graph_.V, window(N_)) {
         }
 
+        void Run() {
+            cal.run();
+        }
+
         void MsgReception(int u, int v, path p);
 
         void MsgAdvertisement(int u, int v, double delay, path p);
@@ -35,7 +39,7 @@ namespace Protocol {
 
         void DestinationAnnouncement(int t, int n, double period, int max);
     };
-}
+}// namespace Protocol
 
 #include "protocol/protocol.tpp"
 

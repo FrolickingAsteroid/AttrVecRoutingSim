@@ -8,24 +8,32 @@ namespace Protocol {
     void ProtocolGlobalState<A, Ord, Ext>::MsgReception(int u, int v, path p) {
         Ext extension;
 
-        RoutingAlgebras::SeqAttr<A> lw(std::get<2>(graph.adjListOut[u].at(v))); // Fetch link attr
-        RoutingAlgebras::SeqAttr<A> candidate = extension(lw, p.getAttr());
+        path old_opt_attr = s[u].GetBestAttr();
+        seq_attr lw(std::get<2>(graph.adjListOut[u].at(v)));// Fetch link attr
+        seq_attr candidate = extension(lw, p.getAttr());
 
         p.addAsEntry(u);
         p.addAttr(candidate);
+
+        if (cal.now() == 11 && u == 68) {
+            int summy = 1;
+        }
+
         std::optional<path> changed = s[u].CompareSetAttr(p);
 
         if (changed.has_value()) {
             data.record(cal.now(), u, s[u].GetBestAttr(), s[u].GetSetAttr());
+            if (path new_opt_attr = s[u].GetBestAttr(); old_opt_attr.attribute.a != new_opt_attr.attribute.a) {
+                data.record(cal.now(), u, new_opt_attr);
+            }
 
             for (auto &[r, edge]: graph.adjListIn[u]) {
-                if (auto &[delay, active, attr] = edge; active) {
+                if (auto &[delay, active, attr] = edge; active && r != v) {
                     this->MsgAdvertisement(
-                        r, // receiver
-                        u, // sender
-                        cal.now() + delay,
-                        *changed
-                    );
+                            r,// receiver
+                            u,// sender
+                            cal.now() + delay,
+                            *changed);
                 }
             }
         }
@@ -67,6 +75,6 @@ namespace Protocol {
             });
         }
     }
-}
+}// namespace Protocol
 
 #endif

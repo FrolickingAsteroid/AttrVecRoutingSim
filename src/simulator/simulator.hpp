@@ -20,8 +20,6 @@ namespace Simulator {
     protected:
         template<class A>
         static Graphs::Graph<A> ReadGraph(const std::string &filename) {
-            utils::Logger l;
-            l.log(utils::DEBUG, "Reading Graph");
             std::ifstream fileNetwork(filename);
 
             if (!fileNetwork.is_open()) {
@@ -46,6 +44,6 @@ namespace Simulator {
             return graph;
         }
     };
-} // namespace Simulator
+}// namespace Simulator
 
-#endif // SIMULATOR_HPP
+#endif// SIMULATOR_HPP

@@ -34,7 +34,7 @@ namespace Protocol::State {
 
         // else compare each resident path to the new candidate
         for (auto it = set_seq_attr.rbegin(); it != set_seq_attr.rend(); ++it) {
-            const auto& current = *it;
+            const auto &current = *it;
 
             //[TODO] replace == with tie logic related to string algebra
             if (current.attribute == n.attribute || ord(current.attribute, n.attribute)) {
@@ -45,13 +45,13 @@ namespace Protocol::State {
                     kept.push_back(n);
                     added = true;
                 }
-            } else{
+            } else {
                 kept.push_back(current);
-                if (!added && removed == false) {
-                    kept.push_back(n);
-                    added = true;
-                }
             }
+        }
+
+        if (!added && removed == false) {
+            kept.push_back(n);
         }
 
         // sort paths by sequence number (smallest obtains the best base attr)
@@ -76,5 +76,5 @@ namespace Protocol::State {
 
         return std::nullopt;
     }
-}
-#endif // SEQ_WINDOW_TPP
+}// namespace Protocol::State
+#endif// SEQ_WINDOW_TPP

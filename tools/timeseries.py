@@ -149,8 +149,8 @@ def plot_node_timeline(csv_file, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    csv_file = "/home/novak/Documents/Work/Thesis/Sim/data/output/tests/small/DelayLengths-one-neigh-5-2.csv"
-    node = 1
+    csv_file = "/home/novak/Documents/RPBOB/data/output/rocketfuel/3967/DelayLength_d0_rc3_set.csv"
+    node = 68
     output_file = f"node_{node}.png"
 
     plot_node_timeline(csv_file, node, output_file=output_file, ncols=3)

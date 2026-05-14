@@ -1,62 +1,80 @@
 #ifndef RPBOB_SIMULATION_HPP
 #define RPBOB_SIMULATION_HPP
 
-#include "simulator/simulator.hpp"
 #include "protocol/protocol.hpp"
+#include "simulator/simulator.hpp"
 #include "utils/logger.hpp"
 
 #include <cstddef>
-#include <fstream>
 #include <string>
 
-
 namespace Simulator {
+
     template<class A, class Ord, class Ext>
     class RpBOBSimulation : public Simulation {
     public:
         using protocol = Protocol::ProtocolGlobalState<A, Ord, Ext>;
-        utils::Logger l;
 
         RpBOBSimulation(const std::string &filename_,
                         std::size_t N_,
                         int dest_,
                         int max_,
-                        double period_) : filename(filename_),
-                                          graph(ReadGraph<A>(filename_)),
-                                          proto(graph, N_),
-                                          period(period_),
-                                          dest(dest_),
-                                          max(max_),
-                                          N(N_) {
+                        double period_,
+                        utils::RegisterType log_t_)
+            : filename(filename_),
+              graph(ReadGraph<A>(filename_)),
+              period(period_),
+              dest(dest_),
+              max(max_),
+              N(N_),
+              registrar(filename_, max_, dest_, log_t_) {
         }
 
         void setup() override {
-            proto.DestinationAnnouncement(
-                dest, 0,
-                period,
-                max
-            );
+            //pass
         }
 
         void run() override {
-            setup();
-            proto.cal.run();
+            if (dest < 0) {
+                runAllDestinations();
+            } else {
+                runDestination(dest);
+            }
+        }
 
-            l.log(utils::INFO, "Finished simulation");
-            proto.data.write_csv(filename, max, dest);
+        void runDestination(int t) {
+            l.log(utils::INFO, "Starting destination " + std::to_string(t));
+
+            protocol proto(graph, N);
+
+            proto.DestinationAnnouncement(t, 0, period, max);
+            proto.Run();
+
+            registrar.RegisterDestination(t, proto.data);
+
+            l.log(utils::INFO, "Finished destination " + std::to_string(t));
+        }
+
+        void runAllDestinations() {
+            for (int t = 0; t < graph.V; ++t) {
+                runDestination(t);
+            }
         }
 
     private:
         std::string filename;
 
         Graphs::Graph<A> graph;
-        protocol proto;
 
         double period;
         int dest;
         int max;
         std::size_t N;
+
+        utils::Logger l;
+        utils::Registrar<A> registrar;
     };
-} // namespace Simulator
+
+}// namespace Simulator
 
 #endif
