@@ -39,8 +39,8 @@ namespace Graphs {
         if (0 > v or v >= V) {
             throw std::out_of_range("In-Node  does not exist.");
         }
-        adjListOut[u][v].first = true;
-        adjListIn[v][u].first = true;
+        std::get<1>(adjListOut[u].at(v)) = true;
+        std::get<1>(adjListOut[v].at(u)) = true;
     }
 
     template<class S>
@@ -51,8 +51,8 @@ namespace Graphs {
         if (0 > v or v > V) {
             throw std::out_of_range("In-Node  does not exist.");
         }
-        adjListOut[u].at(v).first = false;
-        adjListIn[v].at(u).first = false;
+        std::get<1>(adjListOut[u].at(v)) = false;
+        std::get<1>(adjListOut[v].at(u)) = false;
     }
 
     template<class S>

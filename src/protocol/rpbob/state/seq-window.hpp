@@ -32,6 +32,6 @@ namespace Protocol::State {
 } // namespace Protocol::State
 
 
-#include "protocol/state/seq-window.tpp"
+#include "protocol/rpbob/state/seq-window.tpp"
 
 #endif // SEQ_WINDOW_HPP

@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "protocol/state/seq-window.hpp"
+#include "protocol/rpbob/state/seq-window.hpp"
 
 namespace Protocol::State {
     template<class A, class Ord>
@@ -37,14 +37,19 @@ namespace Protocol::State {
             const auto &current = *it;
 
             //[TODO] replace == with tie logic related to string algebra
+            // current attr < candidate attr
             if (current.attribute == n.attribute || ord(current.attribute, n.attribute)) {
                 kept.push_back(current);
                 removed = true;
+
+                // current attr > candidate attr
             } else if (ord(n.attribute, current.attribute)) {
                 if (!added) {
                     kept.push_back(n);
                     added = true;
                 }
+
+                // incomparable
             } else {
                 kept.push_back(current);
             }
@@ -54,7 +59,7 @@ namespace Protocol::State {
             kept.push_back(n);
         }
 
-        // sort paths by sequence number (smallest obtains the best base attr)
+        // sort paths by sequence number
         std::sort(kept.begin(), kept.end(),
                   [](const path &l, const path &r) {
                       return l.attribute.n < r.attribute.n;

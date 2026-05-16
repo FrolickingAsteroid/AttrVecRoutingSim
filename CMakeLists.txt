@@ -46,7 +46,7 @@ if(SIMULATOR_ENABLE_WARNINGS)
             $<$<CXX_COMPILER_ID:GNU,Clang>:
             -Wall
             -Wextra
-            -Wpedantic
+            #-Wpedantic
             -Wconversion
             -Wshadow
             >

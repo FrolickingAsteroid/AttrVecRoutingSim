@@ -2,7 +2,6 @@
 #define MP_PATH_SEGMENT_H
 
 #include <routing-algebras/sequenced-ra.hpp>
-#include <ns3/vector.h>
 #include <vector>
 
 

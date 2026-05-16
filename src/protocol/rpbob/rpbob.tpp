@@ -1,11 +1,11 @@
 #ifndef PROTOCOL_TPP
 #define PROTOCOL_TPP
 
-#include "protocol/protocol.hpp"
+#include "protocol/rpbob/rpbob.hpp"
 
 namespace Protocol {
     template<class A, class Ord, class Ext>
-    void ProtocolGlobalState<A, Ord, Ext>::MsgReception(int u, int v, path p) {
+    void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p) {
         Ext extension;
 
         path old_opt_attr = s[u].GetBestAttr();
@@ -40,7 +40,7 @@ namespace Protocol {
     }
 
     template<class A, class Ord, class Ext>
-    void ProtocolGlobalState<A, Ord, Ext>::MsgAdvertisement(int u, int v, double delay, path p) {
+    void RPBOB<A, Ord, Ext>::MsgAdvertisement(int u, int v, double delay, path p) {
         // to modify the captured copy inside the lambda
         // use mutable
         cal.schedule(delay, [u, v, p, this]() mutable {
@@ -49,12 +49,12 @@ namespace Protocol {
     }
 
     template<class A, class Ord, class Ext>
-    void ProtocolGlobalState<A, Ord, Ext>::LinkFailure(int u, int v) {
+    void RPBOB<A, Ord, Ext>::LinkFailure(int u, int v) {
         graph.deactivate(u, v);
     }
 
     template<class A, class Ord, class Ext>
-    void ProtocolGlobalState<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period, int max) {
+    void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period, int max) {
         path p(t, Ord::Neutral(n));
 
         for (auto &[r, edge]: graph.adjListIn[t]) {

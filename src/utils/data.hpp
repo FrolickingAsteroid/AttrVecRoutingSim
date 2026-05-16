@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "protocol/state/path-segment.hpp"
+#include "protocol/rpbob/state/path-segment.hpp"
 
 namespace utils {
 
