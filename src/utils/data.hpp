@@ -24,12 +24,12 @@ namespace utils {
         double time;
         int node;
 
-        Protocol::State::Path<A> opt_attr;
+        Protocol::Rpbob::Path<A> opt_attr;
     };
 
     template<class A>
     struct OptSetData : OptData<A> {
-        std::vector<Protocol::State::Path<A>> set_seq_attr;
+        std::vector<Protocol::Rpbob::Path<A>> set_seq_attr;
     };
 
     template<class A>
@@ -39,14 +39,14 @@ namespace utils {
 
         void record(double time,
                     int node,
-                    const Protocol::State::Path<A> &opt_attr) {
+                    const Protocol::Rpbob::Path<A> &opt_attr) {
             opt_entries.push_back(OptData<A>{time, node, opt_attr});
         }
 
         void record(double time,
                     int node,
-                    const Protocol::State::Path<A> &opt_attr,
-                    const std::vector<Protocol::State::Path<A>> &set_seq_attr) {
+                    const Protocol::Rpbob::Path<A> &opt_attr,
+                    const std::vector<Protocol::Rpbob::Path<A>> &set_seq_attr) {
             set_entries.push_back(OptSetData<A>{time, node, opt_attr, set_seq_attr});
         }
     };
@@ -54,17 +54,17 @@ namespace utils {
     template<class A>
     class Registrar {
     public:
-        using path = Protocol::State::Path<A>;
+        using path = Protocol::Rpbob::Path<A>;
 
         Registrar(const std::filesystem::path &input_,
                   int beacons_,
-                  int destination_,
-                  RegisterType type_)
+                  int destination_, std::size_t N_, double interval_, RegisterType type_) : input(input_),
+                                                                                            beacons(beacons_),
+                                                                                            destination(destination_),
+                                                                                            N(N_),
+                                                                                            interval(interval_),
+                                                                                            type(type_) {
 
-            : input(input_),
-              beacons(beacons_),
-              destination(destination_),
-              type(type_) {
             if (type == RegisterType::NodeStab && destination < 0) {
                 auto f = makeOutputPath("all", "stab");
                 all_stab.open(f);
@@ -92,6 +92,8 @@ namespace utils {
         std::filesystem::path input;
         int beacons;
         int destination;
+        std::size_t N;
+        double interval;
         RegisterType type;
 
         std::ofstream all_stab;
@@ -110,7 +112,11 @@ namespace utils {
             std::filesystem::create_directories(output_dir);
 
             std::string output_name =
-                    filename_stem.string() + "_" + (dest == "all" ? "all" : "d" + dest) + "_rc" + std::to_string(beacons) + "_" + suffix + ".csv";
+                    filename_stem.string() + "_" + (dest == "all" ? "all" : "d" + dest) +
+                    "_N" + std::to_string(N) +
+                    "_p" + std::to_string(interval).substr(0, std::to_string(interval).find(".") + 1 + 1) +
+                    "_rc" + std::to_string(beacons) +
+                    "_" + suffix + ".csv";
 
             return output_dir / output_name;
         }

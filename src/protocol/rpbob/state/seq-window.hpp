@@ -7,7 +7,7 @@
 #include "path-segment.hpp"
 
 
-namespace Protocol::State {
+namespace Protocol::Rpbob {
     template<class A, class Ord>
     class SequenceWindow {
     public:
@@ -29,9 +29,9 @@ namespace Protocol::State {
         std::vector<path> set_seq_attr;
         path best_attr;
     };
-} // namespace Protocol::State
+}// namespace Protocol::RPBOB::State
 
 
 #include "protocol/rpbob/state/seq-window.tpp"
 
-#endif // SEQ_WINDOW_HPP
+#endif// SEQ_WINDOW_HPP

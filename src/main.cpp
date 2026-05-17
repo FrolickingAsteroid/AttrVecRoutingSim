@@ -4,12 +4,12 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <memory>
 
-#include "simulator/simulator.hpp"
 #include "simulator/rpbob-simulator.hpp"
+#include "simulator/simulator.hpp"
 #include "utils/data.hpp"
 
 
@@ -27,14 +27,13 @@ utils::RegisterType ParseR(const std::string &s) {
 }
 
 std::unique_ptr<Simulator::Simulation> make_simulation(
-    const std::string &kind,
-    const std::string &filename,
-    std::size_t N, int dest, int max,
-    double period, utils::RegisterType reg)
-{
+        const std::string &kind,
+        const std::string &filename,
+        std::size_t N, int dest, int max,
+        double period, utils::RegisterType reg) {
     if (kind == "seq-length") {
         return std::make_unique<
-            Simulator::RpBOBSimulation<int, OSL, ESL>>(
+                Simulator::RpBOBSimulation<int, OSL, ESL>>(
                 filename, N, dest, max, period, reg);
     }
     throw std::runtime_error("unknown protocol kind: " + kind);
@@ -52,8 +51,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    utils::Logger l;
-
     std::string filename = argv[1];
     std::string kind = argv[2];
     std::string destination_arg = argv[3];
@@ -66,7 +63,7 @@ int main(int argc, char **argv) {
     if (destination_arg == "all") {
         dest = -1;
     } else {
-        dest= std::stoi(destination_arg);
+        dest = std::stoi(destination_arg);
     }
 
     auto sim = make_simulation(kind, filename, N, dest, max, period, reg);

@@ -5,6 +5,7 @@
 ##               network data sets that serve as input to the simulator.
 
 # Public Library
+import math
 import os
 
 import matplotlib.pyplot as plt
@@ -91,8 +92,13 @@ for Attribute in [
 
     fileTestNetwork.close()
 
-print("")
-pos = nx.circular_layout(graph)
-nx.draw_networkx(graph, pos)
 
-plt.show()
+max_edge = max(graph.edges(data="Delay"), key=lambda e: e[2])
+u, v, max_delay = max_edge
+print(f"\n\tLargest edge delay: {max_delay} on edge ({u},{v})")
+
+all_shortest = dict(nx.all_pairs_dijkstra_path_length(graph, weight="Delay"))
+max_path_delay = max(
+    all_shortest[u][v] for u in all_shortest for v in all_shortest[u] if u != v
+)
+print(f"\n\tLargest path delay: {max_path_delay}")

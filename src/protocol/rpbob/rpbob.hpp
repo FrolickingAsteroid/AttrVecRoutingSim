@@ -1,22 +1,22 @@
 #ifndef RPBOB_HPP
 #define RPBOB_HPP
 
-#include <vector>
 #include "protocol/rpbob/state/path-segment.hpp"
 #include "protocol/rpbob/state/seq-window.hpp"
+#include <vector>
 
 #include "protocol/protocol.hpp"
 
-namespace Protocol {
+namespace Protocol::Rpbob {
     template<class A, class Ord, class Ext>
-    struct RPBOB :  IProtocol<A>{
+    struct RPBOB : IProtocol<A> {
 
         using IProtocol<A>::graph;
         using IProtocol<A>::cal;
         using IProtocol<A>::data;
 
-        using path = State::Path<A>;
-        using window = State::SequenceWindow<A, Ord>;
+        using path = Path<A>;
+        using window = SequenceWindow<A, Ord>;
         using seq_attr = RoutingAlgebras::SeqAttr<A>;
 
         std::vector<window> s;
@@ -33,7 +33,7 @@ namespace Protocol {
 
         void DestinationAnnouncement(int t, int n, double period, int max);
     };
-}// namespace Protocol
+}// namespace Protocol::Rpbob
 
 #include "protocol/rpbob/rpbob.tpp"
 

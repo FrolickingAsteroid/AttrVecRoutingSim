@@ -3,7 +3,7 @@
 
 #include "protocol/rpbob/rpbob.hpp"
 
-namespace Protocol {
+namespace Protocol::Rpbob {
     template<class A, class Ord, class Ext>
     void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p) {
         Ext extension;
@@ -14,10 +14,6 @@ namespace Protocol {
 
         p.addAsEntry(u);
         p.addAttr(candidate);
-
-        if (cal.now() == 11 && u == 68) {
-            int summy = 1;
-        }
 
         std::optional<path> changed = s[u].CompareSetAttr(p);
 
@@ -75,6 +71,6 @@ namespace Protocol {
             });
         }
     }
-}// namespace Protocol
+}// namespace Protocol::Rpbob
 
 #endif

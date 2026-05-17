@@ -6,12 +6,13 @@
 #include "utils/logger.hpp"
 
 #include <cstddef>
-#include <string>
 #include <numeric>
+#include <string>
+
+using namespace Protocol::Rpbob;
 
 namespace Simulator {
 
-    // simulator/rpbob-simulator.hpp
     template<class A, class Ord, class Ext>
     class RpBOBSimulation : public Simulation {
     public:
@@ -19,7 +20,7 @@ namespace Simulator {
                         int dest_, int max_, double period_,
                         utils::RegisterType log_t_)
             : graph(ReadGraph<A>(filename)),
-              registrar(filename, max_, dest_, log_t_),
+              registrar(filename, max_, dest_, N_, period_, log_t_),
               period(period_), dest(dest_), max(max_), N(N_) {}
 
         void setup() override {
@@ -32,13 +33,14 @@ namespace Simulator {
         }
 
         void run() override {
-            for (int t : targets) {
-                Protocol::RPBOB<A,Ord,Ext> proto(graph, N);
+            for (int t: targets) {
+                RPBOB<A, Ord, Ext> proto(graph, N);
                 proto.DestinationAnnouncement(t, 0, period, max);
                 proto.Run();
                 registrar.RegisterDestination(t, proto.data);
             }
         }
+
     private:
         Graphs::Graph<A> graph;
         utils::Registrar<A> registrar;

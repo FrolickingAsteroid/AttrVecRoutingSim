@@ -5,7 +5,7 @@
 
 #include "protocol/rpbob/state/seq-window.hpp"
 
-namespace Protocol::State {
+namespace Protocol::Rpbob {
     template<class A, class Ord>
     const typename SequenceWindow<A, Ord>::path &
     SequenceWindow<A, Ord>::GetBestAttr() const {

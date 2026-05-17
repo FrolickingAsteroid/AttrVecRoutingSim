@@ -5,7 +5,7 @@
 #include <vector>
 
 
-namespace Protocol::State {
+namespace Protocol::Rpbob {
     template<class A>
     struct Path {
         RoutingAlgebras::SeqAttr<A> attribute;
@@ -36,6 +36,6 @@ namespace Protocol::State {
             return !(*this == other);
         }
     };
-} // namespace ProtocolState
+}// namespace Protocol::RPBOB::State
 
 #endif

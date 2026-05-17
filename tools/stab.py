@@ -37,7 +37,7 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
     ccdf_plot = np.r_[1.0, ccdf]
 
     plt.figure(figsize=(5.5, 3.8))
-    plt.step(x_plot, ccdf_plot, where="post", label=f"RPBOB SP ({avg_time:.2f})")
+    plt.step(x_plot, ccdf_plot, where="post", label=f"RPBOB SP ({avg_time:.2f} ms)")
 
     plt.title(f"Stabilisation time per node (AS{network})")
     plt.xlabel("Time [ms]")
@@ -56,12 +56,15 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
 
 if __name__ == "__main__":
     TESTDIR = "../data/output/rocketfuel/3967"
-    FILE = "DelayLength_all_rc2_stab.csv"
+    FILE = "DelayLength_all_N0_p2.0_rc10_stab.csv"
 
     cwd = os.getcwd()
 
     plot_dir = Path(cwd) / "plots"
     plot_dir.mkdir(exist_ok=True)
-    output_file = plot_dir / f"{FILE.split('.')[0]}_ccdf.png"
+    output_file = (
+        plot_dir / f"{TESTDIR.split('/')[-1]}_{FILE.rsplit('.', 1)[0]}_ccdf.png"
+    )
 
     plot_stab_ccdf(f"{TESTDIR}/{FILE}", Path(TESTDIR).stem, output_file)
+    print(f"Output file: {output_file}")
