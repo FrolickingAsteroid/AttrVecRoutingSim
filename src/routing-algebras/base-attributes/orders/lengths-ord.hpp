@@ -3,15 +3,17 @@
 
 #include <climits>
 
-namespace RoutingAlgebras {
-    typedef struct TotalOrderLength {
-        static constexpr int null = INT_MAX;
-        static constexpr int neutral = 0;
+namespace RoutingAlgebras
+{
+typedef struct TotalOrderLength {
+    static constexpr int null = INT_MAX;
+    static constexpr int neutral = 0;
 
-        bool operator()(int l, int r) const {
-            return (l <= r);
-        }
-    } TOL;
+    bool operator()(int l, int r) const
+    {
+	return (l <= r);
+    }
+} TOL;
 } // namespace RoutingAlgebras
 
-#endif// LENGTH_ORDER_H
+#endif // LENGTH_ORDER_H

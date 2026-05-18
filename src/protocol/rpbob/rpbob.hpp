@@ -1,39 +1,40 @@
 #ifndef RPBOB_HPP
 #define RPBOB_HPP
 
+#include "protocol/protocol.hpp"
 #include "protocol/rpbob/state/path-segment.hpp"
 #include "protocol/rpbob/state/seq-window.hpp"
 #include <vector>
 
-#include "protocol/protocol.hpp"
+namespace Protocol::Rpbob
+{
+template <class A, class Ord, class Ext> struct RPBOB : IProtocol<A, Path<A> > {
+    using Base = IProtocol<A, Path<A> >;
+    using Base::graph;
+    using Base::cal;
+    using Base::data;
 
-namespace Protocol::Rpbob {
-    template<class A, class Ord, class Ext>
-    struct RPBOB : IProtocol<A> {
+    using path = Path<A>;
+    using window = SequenceWindow<A, Ord>;
+    using seq_attr = RoutingAlgebras::SeqAttr<A>;
 
-        using IProtocol<A>::graph;
-        using IProtocol<A>::cal;
-        using IProtocol<A>::data;
+    std::vector<window> s;
 
-        using path = Path<A>;
-        using window = SequenceWindow<A, Ord>;
-        using seq_attr = RoutingAlgebras::SeqAttr<A>;
+    explicit RPBOB(Graphs::Graph<A> &graph_, std::size_t N_)
+	    : Base(graph_)
+	    , s(graph_.V, window(N_))
+    {
+    }
 
-        std::vector<window> s;
+    void MsgReception(int u, int v, path p);
 
-        explicit RPBOB(Graphs::Graph<A> &graph_, std::size_t N_)
-            : IProtocol<A>(graph_),
-              s(graph_.V, window(N_)) {}
+    void MsgAdvertisement(int u, int v, double delay, path p);
 
-        void MsgReception(int u, int v, path p);
+    void LinkFailure(int u, int v);
 
-        void MsgAdvertisement(int u, int v, double delay, path p);
-
-        void LinkFailure(int u, int v);
-
-        void DestinationAnnouncement(int t, int n, double period, int max);
-    };
-}// namespace Protocol::Rpbob
+    void DestinationAnnouncement(int t, int n, double period, int max);
+};
+} // namespace Protocol::Rpbob
 
 #include "protocol/rpbob/rpbob.tpp"
 

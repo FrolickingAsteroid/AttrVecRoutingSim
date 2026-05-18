@@ -4,46 +4,52 @@
 #include <string>
 
 #include "graph/graph.hpp"
-#include "utils/logger.hpp"
 
-namespace Simulator {
-    class Simulation {
-    public:
-        virtual ~Simulation() = default;
+namespace Simulator
+{
+struct ISimulation {
+	virtual ~ISimulation() = default;
+	virtual void setup() = 0;
+	virtual void run() = 0;
+};
 
-        virtual void setup() = 0;
+template <class A, class R> struct Simulation : ISimulation {
+	utils::Registrar<R> registrar;
 
-        virtual void run() = 0;
-
-        //virtual void printResults() const = 0;
+	Simulation(const std::string &filename, int max_, int dest_,
+		   double period_, utils::RegisterType log_t_)
+		: registrar(filename, max_, dest_, period_, log_t_)
+	{
+	}
 
     protected:
-        template<class A>
-        static Graphs::Graph<A> ReadGraph(const std::string &filename) {
-            std::ifstream fileNetwork(filename);
+	static Graphs::Graph<A> ReadGraph(const std::string &filename)
+	{
+		std::ifstream fileNetwork(filename);
 
-            if (!fileNetwork.is_open()) {
-                throw std::runtime_error("Could not open network file: " + filename);
-            }
+		if (!fileNetwork.is_open()) {
+			throw std::runtime_error(
+				"Could not open network file: " + filename);
+		}
 
-            int V;
-            int u;
-            int v;
+		int V;
+		int u;
+		int v;
 
-            double delay;
-            A attr;
+		double delay;
+		A attr;
 
-            fileNetwork >> V;
+		fileNetwork >> V;
 
-            Graphs::Graph<A> graph(V);
+		Graphs::Graph<A> graph(V);
 
-            while (fileNetwork >> u >> v >> delay >> attr) {
-                graph.addEdge(u, v, delay, attr);
-            }
+		while (fileNetwork >> u >> v >> delay >> attr) {
+			graph.addEdge(u, v, delay, attr);
+		}
 
-            return graph;
-        }
-    };
-}// namespace Simulator
+		return graph;
+	}
+};
+} // namespace Simulator
 
-#endif// SIMULATOR_HPP
+#endif // SIMULATOR_HPP

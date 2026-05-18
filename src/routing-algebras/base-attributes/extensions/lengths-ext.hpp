@@ -1,16 +1,16 @@
 #ifndef LENGTHS_EXTENSION_H
 #define LENGTHS_EXTENSION_H
 
-namespace RoutingAlgebras {
+namespace RoutingAlgebras
+{
 
-    typedef struct LengthExtension {
+typedef struct LengthExtension {
+    int operator()(int l, int r) const
+    {
+	int sum = l + r;
+	return sum;
+    }
+} LE;
+} // namespace RoutingAlgebras
 
-        int operator()(int l, int r) const {
-            int sum = l + r;
-            return sum;
-        }
-    } LE;
-}// namespace RoutingAlgebras
-
-
-#endif// LENGTHS_EXTENSION_H
+#endif // LENGTHS_EXTENSION_H
