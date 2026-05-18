@@ -55,7 +55,7 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
 
 if __name__ == "__main__":
     TESTDIR = "../data/output/rocketfuel/3967"
-    FILE = "DelayLength_all_p1.0_rc3_stab.csv"
+    FILE = "DelayLength_all_p4.0_rc3_stab.csv"
 
     cwd = os.getcwd()
 

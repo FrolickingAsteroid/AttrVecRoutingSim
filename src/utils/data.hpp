@@ -1,31 +1,14 @@
-// utils/data.hpp
 #ifndef DATA_HPP
 #define DATA_HPP
 
 #include <filesystem>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <unordered_map>
 #include <vector>
 #include <optional>
 
+#include "utils/helpers.hpp"
+
 namespace utils
 {
-template <class T>
-std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
-{
-	os << "[";
-	for (std::size_t i = 0; i < v.size(); ++i) {
-		if (i > 0)
-			os << " ";
-		os << v[i];
-	}
-	os << "]";
-	return os;
-}
-
 enum class RegisterType { Set, NodeStab };
 
 template <class R> struct Entry {
@@ -62,16 +45,12 @@ template <class R> class Registrar {
 		, type(type_)
 	{
 		if (type == RegisterType::NodeStab && destination < 0) {
-			auto f = makeOutputPath("all", "stab");
-			all_stab.open(f);
-			if (!all_stab.is_open())
-				throw std::runtime_error(
-					"Could not open file: " + f.string());
+			all_stab = makeFile("all", "stab");
 			all_stab << "dest,node,stab_time\n";
 		}
 	}
 
-	void RegisterDestination(int dest, const Data<R> &data)
+	void RegisterDestination(const int dest, const Data<R> &data)
 	{
 		if (type == RegisterType::Set) {
 			RegisterSet(dest, data);
@@ -110,44 +89,12 @@ template <class R> class Registrar {
 		return output_dir / name;
 	}
 
-	void RegisterSet(int dest, const Data<R> &data) const
+	std::ofstream makeFile(const std::string &dest,
+			       const std::string &suffix) const
 	{
-		auto out =
-			openFile(makeOutputPath(std::to_string(dest), "set"));
-		out << "time,node,value,set\n";
-		for (auto &e : data.entries) {
-			out << e.time << "," << e.node << ","
-			    << "\"" << e.value << "\",";
-			if (e.set)
-				out << "\"" << *e.set << "\"";
-			out << "\n";
-		}
-	}
-
-	void WriteNodeStabRows(int dest, const Data<R> &data,
-			       std::ostream &out) const
-	{
-		std::unordered_map<int, double> last_change;
-		for (auto &e : data.entries) {
-			if (e.set == std::nullopt) {
-				last_change[e.node] = e.time;
-			}
-		}
-		for (auto &[node, time] : last_change) {
-			out << dest << "," << node << "," << time << "\n";
-		}
-	}
-
-	void RegisterNodeStab(int dest, const Data<R> &data)
-	{
-		if (destination < 0) {
-			WriteNodeStabRows(dest, data, all_stab);
-			return;
-		}
-		auto out =
-			openFile(makeOutputPath(std::to_string(dest), "stab"));
-		out << "dest,node,stab_time\n";
-		WriteNodeStabRows(dest, data, out);
+		const std::filesystem::path file = makeOutputPath(dest, suffix);
+		auto out = openFile(file);
+		return out;
 	}
 
 	static std::ofstream openFile(const std::filesystem::path &f)
@@ -158,7 +105,15 @@ template <class R> class Registrar {
 						 f.string());
 		return out;
 	}
+
+	void RegisterSet(int dest, const Data<R> &data) const;
+
+	void WriteStab(int dest, const Data<R> &data, std::ostream &out) const;
+
+	void RegisterNodeStab(int dest, const Data<R> &data);
 };
 
 } // namespace utils
+
+#include "utils/data.tpp"
 #endif
