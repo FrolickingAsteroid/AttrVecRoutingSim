@@ -17,6 +17,12 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 	b beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
+	// bootstrap periodic propagation on every node
+	if (n == 0) {
+		for (int u = 0; u < graph.V; ++u)
+			SchedulePropagation(u, max);
+	}
+
 	for (auto &[r, edge] : graph.adjListIn[t]) {
 		if (auto &[delay, active, attr] = edge; active) {
 			cal.schedule(cal.now() + delay,
@@ -50,7 +56,6 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 	beacon.addAsEntry(u);
 	beacon.addAttr(candidate);
 	s[u].Insert(beacon);
-	//SchedulePropagation(u, 3);
 }
 
 template <class A, class Ord, class Ext>
@@ -58,7 +63,7 @@ void BECING<A, Ord, Ext>::SchedulePropagation(int u, int max)
 {
 	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
 
-	if (cal.now() < 5)
+	if (cal.now() < max)
 		cal.schedule(cal.now() + DPropInterval, [this, u, max]() {
 			this->SchedulePropagation(u, max);
 		});
@@ -68,6 +73,8 @@ template <class A, class Ord, class Ext>
 void BECING<A, Ord, Ext>::Propagate(int u)
 {
 	auto selected = s[u].BeaconsToPropagate(cal.now());
+	if (selected.empty())
+		return;
 
 	data.record(cal.now(), u, selected.at(0), selected);
 

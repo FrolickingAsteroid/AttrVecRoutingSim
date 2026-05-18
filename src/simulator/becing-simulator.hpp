@@ -45,7 +45,7 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 			BECING<A, Ord, Ext> proto(graph);
 			proto.DestinationAnnouncement(t, 0, period, max);
 			proto.Run();
-			// registrar.RegisterDestination(t, proto.data);
+			registrar.RegisterDestination(t, proto.data);
 		}
 	}
 

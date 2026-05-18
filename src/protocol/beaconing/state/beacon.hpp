@@ -10,7 +10,7 @@ template <class A> struct Beacon {
 	A attribute;
 	std::vector<int> path;
 
-	static constexpr double expiration = 10.0; //(no idea)
+	static constexpr double expiration = 100000.0; //(no idea)
 
 	double timeout;
 
@@ -55,6 +55,12 @@ template <class A> struct Beacon {
 	bool operator!=(const Beacon<A> &other) const
 	{
 		return !(*this == other);
+	}
+
+	friend std::ostream &operator<<(std::ostream &os, const Beacon<A> &b)
+	{
+		os << "(" << b.attribute << ")";
+		return os;
 	}
 };
 } // namespace Protocol::Beaconing
