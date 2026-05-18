@@ -7,53 +7,55 @@
 namespace Protocol::Beaconing
 {
 template <class A> struct Beacon {
-    RoutingAlgebras::SeqAttr<A> attribute;
-    std::vector<int> path;
+	A attribute;
+	std::vector<int> path;
 
-    static constexpr int expiration = 10; //(no idea)
+	static constexpr double expiration = 10.0; //(no idea)
 
-    double timeout;
+	double timeout;
 
-    Beacon(int e, RoutingAlgebras::SeqAttr<A> a)
-	    : attribute(a)
-    {
-	addAsEntry(e);
-    }
+	Beacon() = default;
 
-    bool expired(double now)
-    {
-	return now > timeout;
-    }
+	Beacon(int e, A a)
+		: attribute(a)
+	{
+		addAsEntry(e);
+	}
 
-    void setTimeout(double time_)
-    {
-	timeout = time + expiration;
-    }
+	bool expired(double now)
+	{
+		return now > timeout;
+	}
 
-    void addAsEntry(const int &entry)
-    {
-	path.insert(path.begin(), entry);
-    }
+	void setTimeout(double time)
+	{
+		timeout = time + expiration;
+	}
 
-    RoutingAlgebras::SeqAttr<A> getAttr()
-    {
-	return attribute;
-    }
+	void addAsEntry(const int &entry)
+	{
+		path.insert(path.begin(), entry);
+	}
 
-    void addAttr(const RoutingAlgebras::SeqAttr<A> &attr)
-    {
-	attribute = attr;
-    }
+	A getAttr()
+	{
+		return attribute;
+	}
 
-    bool operator==(const Beacon<A> &other) const
-    {
-	return attribute == other.attribute && path == other.path;
-    }
+	void addAttr(const A &attr)
+	{
+		attribute = attr;
+	}
 
-    bool operator!=(const Beacon<A> &other) const
-    {
-	return !(*this == other);
-    }
+	bool operator==(const Beacon<A> &other) const
+	{
+		return attribute == other.attribute && path == other.path;
+	}
+
+	bool operator!=(const Beacon<A> &other) const
+	{
+		return !(*this == other);
+	}
 };
 } // namespace Protocol::Beaconing
 

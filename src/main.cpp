@@ -9,6 +9,7 @@
 #include <string>
 
 #include "simulator/rpbob-simulator.hpp"
+#include "simulator/becing-simulator.hpp"
 #include "simulator/simulator.hpp"
 #include "utils/data.hpp"
 
@@ -35,6 +36,10 @@ make_simulation(const std::string &kind, const std::string &filename,
 		return std::make_unique<
 			Simulator::RpBOBSimulation<int, OSL, ESL> >(
 			filename, N, max, dest, period, reg);
+	} else if (kind == "beacon-length") {
+		return std::make_unique<
+			Simulator::BECINGSimulation<int, TOL, LE> >(
+			filename, max, dest, period, reg);
 	}
 	throw std::runtime_error("unknown protocol kind: " + kind);
 }
