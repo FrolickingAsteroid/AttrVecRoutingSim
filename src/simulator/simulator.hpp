@@ -17,8 +17,10 @@ template <class A, class R> struct Simulation : ISimulation {
 	utils::Registrar<R> registrar;
 
 	Simulation(const std::string &filename, int max_, int dest_,
-		   double period_, utils::RegisterType log_t_)
-		: registrar(filename, max_, dest_, period_, log_t_)
+		   double period_, utils::RegisterType log_t_,
+		   const char *proto_)
+		: registrar(filename, max_, dest_, period_, log_t_,
+			    std::string(proto_))
 	{
 	}
 

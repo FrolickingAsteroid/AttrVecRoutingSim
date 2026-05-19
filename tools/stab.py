@@ -45,7 +45,7 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
     plt.legend(fontsize=10)
 
     ax = plt.gca()
-    ax.set_xlim([0, max(x)])
+    ax.set_xlim([0, 100])
 
     if output_file:
         plt.savefig(output_file, dpi=200, bbox_inches="tight")
@@ -54,16 +54,19 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
 
 
 if __name__ == "__main__":
-    TESTDIR = "../data/output/rocketfuel/3967"
-    FILE = "DelayLength_all_p4.0_rc3_stab.csv"
+    PROTO = "beaconing"
+    TESTDIR = f"../data/output/rocketfuel/3967/{PROTO}"
+    FILE = "DelayLength_all_p2.0_rc1_stab.csv"
 
     cwd = os.getcwd()
 
-    plot_dir = Path(cwd) / "plots"
+    plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
     output_file = (
         plot_dir / f"{TESTDIR.split('/')[-1]}_{FILE.rsplit('.', 1)[0]}_ccdf.png"
     )
 
-    plot_stab_ccdf(f"{TESTDIR}/{FILE}", Path(TESTDIR).stem, output_file)
+    AS = os.path.basename(os.path.dirname(Path(TESTDIR)))
+
+    plot_stab_ccdf(f"{TESTDIR}/{FILE}", AS, output_file)
     print(f"Output file: {output_file}")

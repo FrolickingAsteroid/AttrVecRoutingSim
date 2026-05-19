@@ -6,61 +6,74 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> b)
+template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
 {
-	for (auto &existing : candidates) {
-		if (existing.path == b.path) {
-			existing = b;
+	Ord ord;
+
+	auto it = std::find_if(candidates.begin(), candidates.end(),
+			       [&bea](const Beacon<A> &e) {
+				       return e.path == bea.path;
+			       });
+
+	if (it != candidates.end()) {
+		if (!ord(bea.attribute, it->attribute)) {
+			it->timeout = bea.timeout;
 			return;
 		}
+		candidates.erase(it);
 	}
-	candidates.push_back(b);
+
+	auto pos = std::lower_bound(
+		candidates.begin(), candidates.end(), bea,
+		[&ord](const Beacon<A> &e, const Beacon<A> &val) {
+			return ord(e.attribute, val.attribute);
+		});
+
+	candidates.insert(pos, bea);
+
+	if (candidates.front() != best_candidate)
+		best_candidate = candidates.front();
+}
+
+template <class A, class Ord> bool BeaconStore<A, Ord>::IsEmpty()
+{
+	return candidates.empty();
+}
+
+template <class A, class Ord> void BeaconStore<A, Ord>::Remove(double now)
+{
+	if (IsEmpty()) {
+		return;
+	}
+
+	candidates.erase(
+		std::remove_if(candidates.begin(), candidates.end(),
+			       [now](beacon &b) { return b.expired(now); }),
+		candidates.end());
 }
 
 template <class A, class Ord>
 std::vector<Beacon<A> > BeaconStore<A, Ord>::BeaconsToPropagate(double now)
 {
-	Ord ord;
-	std::vector<Beacon<A> > sorted = candidates;
-	std::sort(sorted.begin(), sorted.end(),
-		  [ord](const Beacon<A> &a, const Beacon<A> &b) {
-			  return ord(a.attribute, b.attribute);
-		  });
+	Remove(now);
+	if (IsEmpty())
+		return {};
+	return SelectBeacons();
+}
 
-	if (static_cast<int>(sorted.size()) > CandidateSetSize)
-		sorted.resize(CandidateSetSize);
-
-	// filter expired
-	std::vector<Beacon<A> > fresh;
-	fresh.reserve(sorted.size());
-	for (auto &b : sorted) {
-		if (!b.expired(now)) {
-			fresh.push_back(b);
-		}
+template <class A, class Ord>
+std::vector<Beacon<A> > BeaconStore<A, Ord>::SelectBeacons()
+{
+	if ((int)candidates.size() <= BestSetSize) {
+		return candidates;
 	}
-	return SelectBeacons(fresh);
-}
-
-template <class A, class Ord>
-std::vector<Beacon<A> > BeaconStore<A, Ord>::BeaconsToRegister(double now) const
-{
-	return BeaconsToPropagate(now);
-}
-
-template <class A, class Ord>
-std::vector<Beacon<A> >
-BeaconStore<A, Ord>::SelectBeacons(const std::vector<Beacon<A> > &beacons)
-{
-	if ((int)beacons.size() <= BestSetSize)
-		return beacons;
-
 	// take the "BestSetSize - 1" shortest (sorted by length)
-	std::vector<Beacon<A> > result(beacons.begin(),
-				       beacons.begin() + BestSetSize - 1);
+	std::vector<Beacon<A> > result(candidates.begin(),
+				       candidates.begin() + BestSetSize - 1);
 
 	return result;
 }
 
-} // namespace Protocol::Beaconing
+}
 
 #endif

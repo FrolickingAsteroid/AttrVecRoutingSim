@@ -17,10 +17,10 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 	b beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
-	// bootstrap periodic propagation on every node
+	// periodic propagation on every node, independent of beaconing
 	if (n == 0) {
 		for (int u = 0; u < graph.V; ++u)
-			SchedulePropagation(u, max);
+			SchedulePropagation(u, period * max);
 	}
 
 	for (auto &[r, edge] : graph.adjListIn[t]) {
@@ -45,6 +45,9 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 template <class A, class Ord, class Ext>
 void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 {
+	if (u == 22) {
+		int dummy = 1;
+	}
 	if (beacon.expired(cal.now())) {
 		return;
 	}
@@ -52,10 +55,15 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 
 	seq_attr lw(std::get<2>(graph.adjListOut[u].at(v)));
 	seq_attr candidate = extension(lw, beacon.getAttr());
+	b old_best = s[u].best_candidate;
 
 	beacon.addAsEntry(u);
 	beacon.addAttr(candidate);
 	s[u].Insert(beacon);
+
+	if (old_best != s[u].best_candidate) {
+		data.record(cal.now(), u, s[u].best_candidate, s[u].candidates);
+	}
 }
 
 template <class A, class Ord, class Ext>
@@ -63,7 +71,7 @@ void BECING<A, Ord, Ext>::SchedulePropagation(int u, int max)
 {
 	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
 
-	if (cal.now() < max)
+	if (cal.now() + DPropInterval < max)
 		cal.schedule(cal.now() + DPropInterval, [this, u, max]() {
 			this->SchedulePropagation(u, max);
 		});
@@ -73,17 +81,18 @@ template <class A, class Ord, class Ext>
 void BECING<A, Ord, Ext>::Propagate(int u)
 {
 	auto selected = s[u].BeaconsToPropagate(cal.now());
+
 	if (selected.empty())
 		return;
 
-	data.record(cal.now(), u, selected.at(0), selected);
+	// data.record(cal.now(), u, selected.at(0), selected);
 
 	for (auto &[v, edge] : this->graph.adjListOut[u]) {
 		if (auto &[delay, active, attr] = edge; active) {
 			for (auto beacon : selected) {
 				cal.schedule(cal.now() + delay,
 					     [this, u, v, beacon]() mutable {
-						     this->MsgReception(u, v,
+						     this->MsgReception(v, u,
 									beacon);
 					     });
 			}

@@ -11,7 +11,7 @@ namespace Protocol::Beaconing
 template <class A, class Ord, class Ext>
 struct BECING : IProtocol<A, Beacon<A> > {
 	// https://github.com/scionproto/scion/blob/control/config/config.go#L37
-	static constexpr double DPropInterval = 5000; // 5 seconds each
+	static constexpr double DPropInterval = 1; // 5 seconds each
 	static constexpr double DefaultRegistrationInterval = 5000;
 
 	using Base = IProtocol<A, Beacon<A> >;

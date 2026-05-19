@@ -37,12 +37,14 @@ template <class R> struct Data {
 template <class R> class Registrar {
     public:
 	Registrar(const std::filesystem::path &input_, int beacons_,
-		  int destination_, double interval_, RegisterType type_)
+		  int destination_, double interval_, RegisterType type_,
+		  const std::string &proto_)
 		: input(input_)
 		, beacons(beacons_)
 		, destination(destination_)
 		, interval(interval_)
 		, type(type_)
+		, proto(proto_)
 	{
 		if (type == RegisterType::NodeStab && destination < 0) {
 			all_stab = makeFile("all", "stab");
@@ -66,6 +68,7 @@ template <class R> class Registrar {
 	double interval;
 	RegisterType type;
 	std::ofstream all_stab;
+	std::string proto;
 
 	std::filesystem::path makeOutputPath(const std::string &dest,
 					     const std::string &suffix) const
@@ -75,7 +78,7 @@ template <class R> class Registrar {
 		auto dataset_id = p.parent_path().filename();
 		auto dataset_fam = p.parent_path().parent_path().filename();
 		auto output_dir = std::filesystem::path("data") / "output" /
-				  dataset_fam / dataset_id;
+				  dataset_fam / dataset_id / proto;
 
 		std::filesystem::create_directories(output_dir);
 

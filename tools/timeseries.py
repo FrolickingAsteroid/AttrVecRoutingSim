@@ -1,38 +1,96 @@
 #!/usr/bin/env python3
 
 import math
+import os
 import re
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-PAIR_RE = re.compile(r"\((-?\d+)\s*[;,]\s*(-?\d+)\)")
+ATTR_RE = re.compile(r"\(\s*(-?\d+(?:\.\d+)?)\s*(?:[;,]\s*(-?\d+(?:\.\d+)?)\s*)?\)")
 
 
 def parse_attr(s):
-    """
-    Parses '(n;a)' or '(n,a)' into (n, a).
-    """
-    m = PAIR_RE.search(str(s))
+    m = ATTR_RE.search(str(s))
     if not m:
         raise ValueError(f"Could not parse attribute: {s}")
 
-    return int(m.group(1)), int(m.group(2))
+    first = float(m.group(1))
+    second = m.group(2)
+
+    if second is None:
+        return (first,)
+
+    return first, float(second)
 
 
 def parse_set(s):
-    """
-    Parses '[(0;1) (1;1) (2;3)]' into [(0,1), (1,1), (2,3)].
-    """
     s = str(s)
 
-    return [(int(n), int(a)) for n, a in PAIR_RE.findall(s)]
+    pairs = []
+    for m in ATTR_RE.finditer(s):
+        first = float(m.group(1))
+        second = m.group(2)
+
+        if second is None:
+            pairs.append((first,))
+        else:
+            pairs.append((first, float(second)))
+
+    return pairs
 
 
-def plot_node_timeline(csv_file, node, output_file=None, ncols=3):
+def print_node_data(csv_file, node):
     df = pd.read_csv(csv_file)
-
     df_node = df[df["node"] == node].copy()
+
+    if df_node.empty:
+        raise ValueError(f"No data found for node {node}")
+
+    df_nonempty_set = df_node[
+        df_node["set"].notna()
+        & (df_node["set"].astype(str).str.strip() != "")
+        & (df_node["set"].astype(str).str.lower().str.strip() != "none")
+    ]
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(df_nonempty_set)
+
+    return df_node
+
+
+def plot_timeseries(df_node, node, output_file=None):
+    if df_node.empty:
+        raise ValueError(f"No data found for node {node}")
+
+    df_node = df_node.copy()
+    df_node["attr"] = df_node["value"].apply(parse_attr)
+    df_node["length"] = df_node["attr"].apply(lambda x: x[1])
+
+    df_node = df_node.sort_values("time")
+
+    plt.figure(figsize=(6.0, 3.6))
+    plt.step(
+        df_node["time"],
+        df_node["length"],
+        where="post",
+        linewidth=1.6,
+        marker="o",
+        markersize=4,
+    )
+
+    plt.xlabel("Time")
+    plt.ylabel("Length")
+    plt.title(f"Node {node}")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if output_file:
+        plt.savefig(output_file, dpi=200, bbox_inches="tight")
+        print(f"saved to {output_file}")
+
+
+def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
     if df_node.empty:
         raise ValueError(f"No data found for node {node}")
@@ -149,8 +207,19 @@ def plot_node_timeline(csv_file, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    csv_file = "/home/novak/Documents/RPBOB/data/output/rocketfuel/3967/DelayLength_d0_rc3_set.csv"
-    node = 68
-    output_file = f"node_{node}.png"
+    PROTO = "beaconing"
+    TESTDIR = f"../data/output/rocketfuel/3967/{PROTO}"
+    FILE = "DelayLength_d21_p2.0_rc100_set.csv"
+    node = 53
 
-    plot_node_timeline(csv_file, node, output_file=output_file, ncols=3)
+    cwd = os.getcwd()
+
+    plot_dir = Path("../data/plots")
+    plot_dir.mkdir(exist_ok=True)
+    output_file = (
+        plot_dir / f"{TESTDIR.split('/')[-1]}_{FILE.rsplit('.', 1)[0]}_node_{node}.png"
+    )
+
+    df_node = print_node_data(f"{TESTDIR}/{FILE}", node)
+    plot_timeseries(df_node, node, output_file=output_file)
+    # plot_node_timeline(df_node, node, output_file=output_file, ncols=3)

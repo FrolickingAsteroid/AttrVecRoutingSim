@@ -21,7 +21,7 @@ class RpBOBSimulation : public Simulation<A, Path<A> > {
 
 	RpBOBSimulation(const std::string &filename, std::size_t N_, int max_,
 			int dest_, double period_, utils::RegisterType log_t_)
-		: Base(filename, max_, dest_, period_, log_t_)
+		: Base(filename, max_, dest_, period_, log_t_, "rpbob")
 		, graph(ReadGraph(filename))
 		, period(period_)
 		, dest(dest_)

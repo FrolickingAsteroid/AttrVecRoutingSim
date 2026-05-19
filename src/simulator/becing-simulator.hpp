@@ -21,7 +21,7 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 
 	BECINGSimulation(const std::string &filename, int max_, int dest_,
 			 double period_, utils::RegisterType log_t_)
-		: Base(filename, max_, dest_, period_, log_t_)
+		: Base(filename, max_, dest_, period_, log_t_, "beaconing")
 		, graph(ReadGraph(filename))
 		, period(period_)
 		, dest(dest_)

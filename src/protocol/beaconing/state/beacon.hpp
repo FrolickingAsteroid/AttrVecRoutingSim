@@ -1,7 +1,7 @@
 #ifndef BEACON_HPP
 #define BEACON_HPP
 
-#include <routing-algebras/sequenced-ra.hpp>
+#include <iomanip>
 #include <vector>
 
 namespace Protocol::Beaconing
@@ -10,7 +10,7 @@ template <class A> struct Beacon {
 	A attribute;
 	std::vector<int> path;
 
-	static constexpr double expiration = 100000.0; //(no idea)
+	static constexpr double expiration = 44.0 * 2.0; //(no idea)
 
 	double timeout;
 
@@ -22,12 +22,12 @@ template <class A> struct Beacon {
 		addAsEntry(e);
 	}
 
-	bool expired(double now)
+	bool expired(const double now) const
 	{
 		return now > timeout;
 	}
 
-	void setTimeout(double time)
+	void setTimeout(const double time)
 	{
 		timeout = time + expiration;
 	}
@@ -59,7 +59,15 @@ template <class A> struct Beacon {
 
 	friend std::ostream &operator<<(std::ostream &os, const Beacon<A> &b)
 	{
-		os << "(" << b.attribute << ")";
+		auto old_flags = os.flags();
+		auto old_precision = os.precision();
+
+		os << "(" << std::fixed << std::setprecision(2) << b.timeout
+		   << ", " << b.attribute << ")";
+
+		os.flags(old_flags);
+		os.precision(old_precision);
+
 		return os;
 	}
 };

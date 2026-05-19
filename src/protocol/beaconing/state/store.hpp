@@ -8,22 +8,33 @@ namespace Protocol::Beaconing
 {
 template <class A, class Ord> struct BeaconStore {
 	static constexpr int CandidateSetSize = 100;
-	static constexpr int BestSetSize = 20;
+	static constexpr int BestSetSize = 5;
 
-	std::vector<Beacon<A> > candidates;
+	using beacon = Beacon<A>;
+
+	std::vector<beacon> candidates;
+	beacon best_candidate;
+
+	BeaconStore()
+		: best_candidate(beacon(-1, Ord::Null()))
+	{
+	}
 
 	// Insertion seems to be unbounded
-	void Insert(Beacon<A> b);
+	void Insert(beacon bea);
+
+	// https://github.com/scionproto/scion/blob/master/control/beaconing/propagator.go#L110
+	bool IsEmpty();
+
+	void Remove(double now);
 
 	// https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L156
-	std::vector<Beacon<A> > BeaconsToPropagate(double now);
+	std::vector<beacon> BeaconsToPropagate(double now);
 
 	// https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L131
-	std::vector<Beacon<A> > BeaconsToRegister(double now) const;
 
 	// https://github.com/scionproto/scion/blob/master/control/beacon/selection_algo.go
-	std::vector<Beacon<A> >
-	SelectBeacons(const std::vector<Beacon<A> > &beacons);
+	std::vector<beacon> SelectBeacons();
 };
 } // namespace Protocol::Beaconing
 

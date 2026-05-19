@@ -18,6 +18,11 @@ typedef struct TotalOrderLength {
 	{
 		return neutral;
 	}
+
+	static int Null()
+	{
+		return null;
+	}
 } TOL;
 } // namespace RoutingAlgebras
 
