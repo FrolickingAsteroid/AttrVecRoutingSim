@@ -65,7 +65,7 @@ utils::RegisterType ParseRegisterType(const std::string &s)
 	if (s == "stab") {
 		return utils::RegisterType::NodeStab;
 	}
-	throw std::runtime_error("unknown register mode: " + s);
+	throw std::runtime_error("unknown data collection: " + s);
 }
 
 int ParseDestination(const std::string &s)

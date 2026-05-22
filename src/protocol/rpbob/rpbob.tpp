@@ -28,6 +28,7 @@ void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p)
 			data.record(cal.now(), u, new_opt_attr);
 		}
 
+		auto old_seq = cal.getSeq();
 		for (auto &[r, edge] : graph.adjListIn[u]) {
 			if (auto &[delay, active, attr] = edge;
 			    active && r != v) {
@@ -37,6 +38,8 @@ void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p)
 						       *changed);
 			}
 		}
+		auto new_seq = cal.getSeq();
+		data.record(cal.now(), u, "propagate", new_seq - old_seq);
 	}
 }
 
@@ -59,7 +62,7 @@ void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 						 int max)
 {
 	path p(t, Ord::Neutral(n));
-
+	auto old_seq = cal.getSeq();
 	for (auto &[r, edge] : graph.adjListIn[t]) {
 		if (auto &[delay, active, attr] = edge; active) {
 			cal.schedule(cal.now() + delay,
@@ -68,6 +71,9 @@ void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 				     });
 		}
 	}
+	auto new_seq = cal.getSeq();
+	data.record(cal.now(), t, "announcement", new_seq - old_seq);
+
 
 	// schedule next routing computation
 

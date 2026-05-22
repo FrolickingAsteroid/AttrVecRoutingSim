@@ -25,6 +25,7 @@ template <class A, class R> struct Simulation : ISimulation {
 	}
 
     protected:
+
 	static Graphs::Graph<A> ReadGraph(const std::string &filename)
 	{
 		std::ifstream fileNetwork(filename);

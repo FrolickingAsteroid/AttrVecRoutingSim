@@ -23,6 +23,7 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 			SchedulePropagation(u, period * max);
 	}
 
+	auto old_seq = cal.getSeq();
 	for (auto &[r, edge] : graph.adjListIn[t]) {
 		if (auto &[delay, active, attr] = edge; active) {
 			cal.schedule(cal.now() + delay,
@@ -31,6 +32,8 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 				     });
 		}
 	}
+	auto new_seq = cal.getSeq();
+	data.record(cal.now(), t, "announcement", new_seq - old_seq);
 
 	// schedule next routing computation
 	n += 1;
@@ -62,7 +65,7 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 	s[u].Insert(beacon);
 
 	if (old_best != s[u].best_candidate) {
-		data.record(cal.now(), u, s[u].best_candidate, s[u].candidates);
+		data.record(cal.now(), u, s[u].best_candidate);
 	}
 }
 
@@ -86,7 +89,7 @@ void BECING<A, Ord, Ext>::Propagate(int u)
 		return;
 
 	// data.record(cal.now(), u, selected.at(0), selected);
-
+	auto old_seq = cal.getSeq();
 	for (auto &[v, edge] : this->graph.adjListOut[u]) {
 		if (auto &[delay, active, attr] = edge; active) {
 			for (auto beacon : selected) {
@@ -98,7 +101,9 @@ void BECING<A, Ord, Ext>::Propagate(int u)
 			}
 		}
 	}
+	auto new_seq = cal.getSeq();
+	data.record(cal.now(), u, "propagate", new_seq - old_seq);
 }
 
-} // namespace Protocol::Beaconing
+}
 #endif

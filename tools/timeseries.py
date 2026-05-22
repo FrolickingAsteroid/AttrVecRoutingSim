@@ -97,7 +97,7 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
     print(df_node)
 
     # Parse strings
-    df_node["opt_pair"] = df_node["opt"].apply(parse_attr)
+    df_node["opt_pair"] = df_node["value"].apply(parse_attr)
     df_node["set_pairs"] = df_node["set"].apply(parse_set)
 
     # Each row is one snapshot, even if time repeats
@@ -183,11 +183,6 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
-
-        # ax.spines["top"].set_visible(False)
-        # ax.spines["right"].set_visible(False)
-        # ax.spines["left"].set_visible(False)
-
         ax.set_xticks(sorted(set(all_n)))
 
     for ax in axes[nt:]:
@@ -207,9 +202,9 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    PROTO = "beaconing"
+    PROTO = "rpbob"
     TESTDIR = f"../data/output/rocketfuel/3967/{PROTO}"
-    FILE = "DelayLength_d21_p2.0_rc100_set.csv"
+    FILE = "AdvDelayLength_d21_p3.0_rc_set.csv"
     node = 53
 
     cwd = os.getcwd()
@@ -221,5 +216,5 @@ if __name__ == "__main__":
     )
 
     df_node = print_node_data(f"{TESTDIR}/{FILE}", node)
-    plot_timeseries(df_node, node, output_file=output_file)
-    # plot_node_timeline(df_node, node, output_file=output_file, ncols=3)
+    # plot_timeseries(df_node, node, output_file=output_file)
+    plot_node_timeline(df_node, node, output_file=output_file, ncols=3)

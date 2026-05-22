@@ -11,6 +11,14 @@ namespace utils
 {
 enum class RegisterType { Set, NodeStab };
 
+struct MsgEntry {
+	double time;
+	int node;
+
+	std::string kind; // "announcement" or "propagate"
+	uint64_t msg_count;
+};
+
 template <class R> struct Entry {
 	double time;
 	int node;
@@ -21,6 +29,7 @@ template <class R> struct Entry {
 
 template <class R> struct Data {
 	std::vector<Entry<R> > entries;
+	std::vector<MsgEntry> cnt;
 
 	void record(double time, int node, const R &value)
 	{
@@ -31,6 +40,12 @@ template <class R> struct Data {
 		    const std::vector<R> &values)
 	{
 		entries.push_back({ time, node, value, values });
+	}
+
+	void record(double time, int node, const std::string &kind,
+		    uint64_t count)
+	{
+		cnt.push_back({ time, node, kind, count });
 	}
 };
 
@@ -50,6 +65,8 @@ template <class R> class Registrar {
 			all_stab = makeFile("all", "stab");
 			all_stab << "dest,node,stab_time\n";
 		}
+		all_overhead = makeFile("all", "msgCount");
+		all_overhead << "dest,time,node,kind,msg_count\n";
 	}
 
 	void RegisterDestination(const int dest, const Data<R> &data)
@@ -58,6 +75,7 @@ template <class R> class Registrar {
 			RegisterSet(dest, data);
 		} else if (type == RegisterType::NodeStab) {
 			RegisterNodeStab(dest, data);
+			RegisterMsgCnt(dest, data);
 		}
 	}
 
@@ -68,6 +86,7 @@ template <class R> class Registrar {
 	double interval;
 	RegisterType type;
 	std::ofstream all_stab;
+	std::ofstream all_overhead;
 	std::string proto;
 
 	std::filesystem::path makeOutputPath(const std::string &dest,
@@ -111,9 +130,13 @@ template <class R> class Registrar {
 
 	void RegisterSet(int dest, const Data<R> &data) const;
 
-	void WriteStab(int dest, const Data<R> &data, std::ostream &out) const;
+	void RegisterMsgCnt(int dest, const Data<R> &data);
 
 	void RegisterNodeStab(int dest, const Data<R> &data);
+
+	void WriteStab(int dest, const Data<R> &data, std::ostream &out);
+
+	void WriteMsgCnt(int dest, const Data<R> &data, std::ostream &out);
 };
 
 } // namespace utils

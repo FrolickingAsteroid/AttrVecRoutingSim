@@ -13,11 +13,13 @@ void Registrar<R>::RegisterSet(const int dest, const Data<R> &data) const
 	out << "time,node,value,set\n";
 
 	for (auto &e : data.entries) {
-		out << e.time << "," << e.node << ","
-		    << "\"" << e.value << "\",";
-		if (e.set)
-			out << "\"" << *e.set << "\"";
-		out << "\n";
+		if (e.set != std::nullopt) {
+			out << e.time << "," << e.node << ","
+			    << "\"" << e.value << "\",";
+			if (e.set)
+				out << "\"" << *e.set << "\"";
+			out << "\n";
+		}
 	}
 }
 
@@ -35,8 +37,31 @@ void Registrar<R>::RegisterNodeStab(const int dest, const Data<R> &data)
 }
 
 template <class R>
+void Registrar<R>::RegisterMsgCnt(const int dest, const Data<R> &data)
+{
+	if (destination < 0) {
+		WriteMsgCnt(dest, data, all_overhead);
+		return;
+	}
+
+	auto out = makeFile(std::to_string(dest), "msgCount");
+	out << "dest,node,msg_cnt\n";
+	WriteMsgCnt(dest, data, out);
+}
+
+template <class R>
+void Registrar<R>::WriteMsgCnt(const int dest, const Data<R> &data,
+			       std::ostream &out)
+{
+	for (auto &e : data.cnt) {
+		out << dest << "," << e.time << "," << e.node << "," << e.kind
+		    << "," << e.msg_count << "\n";
+	}
+}
+
+template <class R>
 void Registrar<R>::WriteStab(const int dest, const Data<R> &data,
-			     std::ostream &out) const
+			     std::ostream &out)
 {
 	std::unordered_map<int, double> last_change;
 	for (auto &e : data.entries) {
@@ -48,5 +73,6 @@ void Registrar<R>::WriteStab(const int dest, const Data<R> &data,
 		out << dest << "," << node << "," << time << "\n";
 	}
 }
+
 }
 #endif

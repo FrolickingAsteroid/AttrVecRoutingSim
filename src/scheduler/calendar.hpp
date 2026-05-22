@@ -29,6 +29,11 @@ class Calendar {
 		return current_time;
 	}
 
+	std::uint64_t getSeq() const
+	{
+		return next_seq;
+	}
+
 	void run()
 	{
 		while (!q.empty()) {
