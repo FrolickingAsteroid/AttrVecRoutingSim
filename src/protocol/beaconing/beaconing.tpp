@@ -14,11 +14,8 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 	b beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
-	auto old_seq = cal.getSeq();
-	this->Send(t, beacon);
-	auto new_seq = cal.getSeq();
-
-	data.record(cal.now(), t, "announcement", new_seq - old_seq);
+	uint64_t cnt = this->Send(t, beacon);
+	data.record(cal.now(), t, "announcement", cnt);
 
 	// schedule next routing computation
 	n += 1;
@@ -71,13 +68,12 @@ void BECING<A, Ord, Ext>::Propagate(int u)
 		return;
 
 	data.record(cal.now(), u, selected.at(0), selected);
-	auto old_seq = cal.getSeq();
 
+	uint64_t cnt = 0;
 	for (auto beacon : selected)
-		this->Send(u, beacon);
+		cnt += this->Send(u, beacon);
 
-	auto new_seq = cal.getSeq();
-	data.record(cal.now(), u, "propagate", new_seq - old_seq);
+	data.record(cal.now(), u, "propagate", cnt);
 }
 
 }

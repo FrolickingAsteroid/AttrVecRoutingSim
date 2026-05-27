@@ -28,10 +28,8 @@ void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p)
 			data.record(cal.now(), u, new_opt_attr);
 		}
 
-		auto old_seq = cal.getSeq();
-		this->Send(u,*changed);
-		auto new_seq = cal.getSeq();
-		data.record(cal.now(), u, "propagate", new_seq - old_seq);
+		uint64_t cnt = this->Send(u, p);
+		data.record(cal.now(), u, "propagate", cnt);
 	}
 }
 
@@ -41,10 +39,8 @@ void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 {
 	path p(t, Ord::Neutral(n));
 
-	auto old_seq = cal.getSeq();
-	this->Send(t, p);
-	auto new_seq = cal.getSeq();
-	data.record(cal.now(), t, "announcement", new_seq - old_seq);
+	uint64_t cnt = this->Send(t, p);
+	data.record(cal.now(), t, "announcement", cnt);
 
 	// schedule next routing computation
 	n += 1;

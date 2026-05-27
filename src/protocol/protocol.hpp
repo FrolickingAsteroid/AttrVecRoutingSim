@@ -29,18 +29,22 @@ template <class A, class R> struct IProtocol {
 		graph.deactivate(u, v);
 	}
 
-	void Send(int t, R msg)
+	uint64_t Send(int t, R msg)
 	{
+		uint64_t count = 0;
 		for (auto &[r, edge] : graph.adjListIn[t]) {
 			auto &[delay, active, attr] = edge;
 
 			if (!active)
 				continue;
 
-			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
-				this->MsgReception(r, t, msg);
-			});
+			cal.schedule(cal.now() + delay,
+				     [this, r, t, msg]() mutable {
+					     this->MsgReception(r, t, msg);
+				     });
+			count++;
 		}
+		return count;
 	}
 
 	virtual void MsgReception(int u, int v, R msg) = 0;
