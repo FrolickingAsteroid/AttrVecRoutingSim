@@ -29,32 +29,10 @@ void RPBOB<A, Ord, Ext>::MsgReception(int u, int v, path p)
 		}
 
 		auto old_seq = cal.getSeq();
-		for (auto &[r, edge] : graph.adjListIn[u]) {
-			if (auto &[delay, active, attr] = edge;
-			    active && r != v) {
-				this->MsgAdvertisement(r, // receiver
-						       u, // sender
-						       cal.now() + delay,
-						       *changed);
-			}
-		}
+		this->Send(u,*changed);
 		auto new_seq = cal.getSeq();
 		data.record(cal.now(), u, "propagate", new_seq - old_seq);
 	}
-}
-
-template <class A, class Ord, class Ext>
-void RPBOB<A, Ord, Ext>::MsgAdvertisement(int u, int v, double delay, path p)
-{
-	cal.schedule(delay, [u, v, p, this]() mutable {
-		this->MsgReception(u, v, p);
-	});
-}
-
-template <class A, class Ord, class Ext>
-void RPBOB<A, Ord, Ext>::LinkFailure(int u, int v)
-{
-	graph.deactivate(u, v);
 }
 
 template <class A, class Ord, class Ext>
@@ -62,21 +40,13 @@ void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 						 int max)
 {
 	path p(t, Ord::Neutral(n));
+
 	auto old_seq = cal.getSeq();
-	for (auto &[r, edge] : graph.adjListIn[t]) {
-		if (auto &[delay, active, attr] = edge; active) {
-			cal.schedule(cal.now() + delay,
-				     [r, t, p, this]() mutable {
-					     this->MsgReception(r, t, p);
-				     });
-		}
-	}
+	this->Send(t, p);
 	auto new_seq = cal.getSeq();
 	data.record(cal.now(), t, "announcement", new_seq - old_seq);
 
-
 	// schedule next routing computation
-
 	n += 1;
 	double d = period * n;
 	if (n < max) {
@@ -85,6 +55,6 @@ void RPBOB<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 		});
 	}
 }
-} // namespace Protocol::Rpbob
+}
 
 #endif

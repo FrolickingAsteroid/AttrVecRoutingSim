@@ -9,7 +9,7 @@ project(Simulator
 # C++ standard
 # ------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -28,12 +28,35 @@ add_executable(Simulator
 )
 
 # ------------------------------------------------------------
+# External header-only libraries
+# ------------------------------------------------------------
+
+add_library(tabulate INTERFACE)
+add_library(argparse INTERFACE)
+
+target_include_directories(tabulate
+        INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+
+target_include_directories(argparse
+        INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+
+# ------------------------------------------------------------
 # Include paths
 # ------------------------------------------------------------
+
 
 target_include_directories(Simulator
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(Simulator
+        PRIVATE
+        tabulate
 )
 
 # ------------------------------------------------------------
@@ -48,7 +71,6 @@ if(SIMULATOR_ENABLE_WARNINGS)
             -Wextra
             #-Wpedantic
             -Wconversion
-            -Wshadow
             >
             $<$<CXX_COMPILER_ID:MSVC>:
             /W4

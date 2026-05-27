@@ -94,7 +94,6 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
     if df_node.empty:
         raise ValueError(f"No data found for node {node}")
-    print(df_node)
 
     # Parse strings
     df_node["opt_pair"] = df_node["value"].apply(parse_attr)
@@ -202,10 +201,10 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    PROTO = "rpbob"
-    TESTDIR = f"../data/output/rocketfuel/3967/{PROTO}"
-    FILE = "AdvDelayLength_d21_p3.0_rc_set.csv"
-    node = 53
+    PROTO = "beaconing"
+    TESTDIR = f"../data/output/rocketfuel/1221/{PROTO}"
+    FILE = "DelayLength_d0_p60.0_rc1_set.csv"
+    node = 26
 
     cwd = os.getcwd()
 
@@ -217,4 +216,4 @@ if __name__ == "__main__":
 
     df_node = print_node_data(f"{TESTDIR}/{FILE}", node)
     # plot_timeseries(df_node, node, output_file=output_file)
-    plot_node_timeline(df_node, node, output_file=output_file, ncols=3)
+    # plot_node_timeline(df_node, node, output_file=output_file, ncols=3)

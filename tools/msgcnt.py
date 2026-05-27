@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from asyncio.tasks import sleep
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -16,10 +17,41 @@ plt.rcParams.update(
 )
 
 
-def make_ccdf(x):
+def make_ccdf(data):
+    x = np.sort(np.asarray(data))
     n = len(x)
+
+    if n == 0:
+        return np.array([]), np.array([])
+
     ccdf = 1.0 - np.arange(0, n) / n
-    return np.r_[0, x], np.r_[1.0, ccdf]
+
+    x_plot = np.r_[0, x]
+    ccdf_plot = np.r_[1.0, ccdf]
+
+    return x_plot, ccdf_plot
+
+
+def load_msg_counts_until_stab(csv_msg, csv_stab):
+    msg = pd.read_csv(csv_msg)
+    stab = pd.read_csv(csv_stab)
+
+    # Last stabilization time per destination
+    stab_time = stab.groupby("dest")["stab_time"].max()
+    print(stab_time)
+
+    counts = []
+
+    for dest, T in stab_time.items():
+        mask = (
+            (msg["dest"] == dest)
+            & (msg["time"] <= T)
+            & (msg["kind"].isin(["announcement", "propagate"]))
+        )
+
+        counts.append(msg.loc[mask, "msg_count"].sum())
+
+    return np.sort(np.asarray(counts))
 
 
 def load_wave_counts(csv_file, period):
@@ -31,6 +63,10 @@ def load_wave_counts(csv_file, period):
     wave_counts = []
     for _, ann_row in announcements.iterrows():
         t0 = ann_row["time"]
+
+        if t0 > 50:
+            continue
+
         dest = ann_row["dest"]
         direct = ann_row["msg_count"]
         mask = (
@@ -44,15 +80,11 @@ def load_wave_counts(csv_file, period):
     return np.sort(np.array(wave_counts))
 
 
-def plot_msgCnt_ccdf(base_dir, file_name, network, output_dir, period):
-    protos = ["beaconing", "rpbob"]
-    colors = ["steelblue", "darkorange"]
+def plot_msgCnt_ccdf(series, network, output_file, period):
 
     plt.figure(figsize=(5.5, 3.8))
-    for proto, color in zip(protos, colors):
-        csv_file = Path(base_dir) / proto / file_name
-
-        data = load_wave_counts(csv_file, period)
+    for csv_msg, csv_stab, label in series:
+        data = load_msg_counts_until_stab(csv_msg, csv_stab)
 
         x_plot, ccdf_plot = make_ccdf(data)
         avg = round(np.mean(data), 0)
@@ -61,8 +93,7 @@ def plot_msgCnt_ccdf(base_dir, file_name, network, output_dir, period):
             x_plot,
             ccdf_plot,
             where="post",
-            color=color,
-            label=f"{proto} (avg {avg:.0f})",
+            label=f"{label} (avg {avg:.0f})",
         )
     plt.title(f"Messages per Routing Computation (AS{network})")
     plt.xlabel("Number of Messages")
@@ -74,18 +105,38 @@ def plot_msgCnt_ccdf(base_dir, file_name, network, output_dir, period):
     plt.legend(fontsize=9)
     plt.tight_layout()
 
-    stem = Path(file_name).stem
-    out = Path(output_dir) / f"{stem}_wave_ccdf.png"
-    plt.savefig(out, dpi=200, bbox_inches="tight")
-    print(f"Output file: {out}")
+    plt.savefig(output_file, dpi=200, bbox_inches="tight")
 
 
 if __name__ == "__main__":
-    BASE_DIR = "../data/output/rocketfuel/3967"
-    FILE = "DelayLength_all_p3.0_rc10_msgCount.csv"
+    NETWORK = "1221"
+
+    FILE_1 = "DelayLength_all_p60.0_rc1_msgCount.csv"
+    FILE_2 = "DelayHops_all_p60.0_rc1_stab.csv"
+
+    base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
+
+    series = [
+        # base_dir / "rpbob" / FILE_1, "RPBOB SP"),
+        (
+            base_dir / "beaconing" / FILE_1,
+            base_dir / "beaconing" / FILE_2,
+            "Beaconing SP",
+        ),
+        (
+            base_dir / "rpbob" / FILE_1,
+            base_dir / "rpbob" / FILE_2,
+            "RPBOB SP",
+        ),
+        # (base_dir / "rpbob" / FILE_2, "RPBOB Hop Count"),
+        # (base_dir / "beaconing" / FILE_2, "Beaconing Hop Count"),
+    ]
 
     plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
 
-    AS = os.path.basename(Path(BASE_DIR))
-    plot_msgCnt_ccdf(BASE_DIR, FILE, AS, plot_dir, period=3)
+    output_file = plot_dir / f"AS{NETWORK}_Lengths_msgCount_ccdf_all.png"
+
+    plot_msgCnt_ccdf(series, NETWORK, output_file, period=60)
+
+    print(f"Output file: {output_file}")

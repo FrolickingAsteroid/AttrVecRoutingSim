@@ -63,7 +63,7 @@ template <class R> class Registrar {
 	{
 		if (type == RegisterType::NodeStab && destination < 0) {
 			all_stab = makeFile("all", "stab");
-			all_stab << "dest,node,stab_time\n";
+			all_stab << "dest,node,stab_time,metric\n";
 		}
 		all_overhead = makeFile("all", "msgCount");
 		all_overhead << "dest,time,node,kind,msg_count\n";

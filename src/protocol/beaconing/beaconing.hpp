@@ -11,8 +11,7 @@ namespace Protocol::Beaconing
 template <class A, class Ord, class Ext>
 struct BECING : IProtocol<A, Beacon<A> > {
 	// https://github.com/scionproto/scion/blob/control/config/config.go#L37
-	static constexpr double DPropInterval = 1; // 5 seconds each
-	static constexpr double DefaultRegistrationInterval = 5000;
+	static constexpr double DPropInterval = 60; //
 
 	using Base = IProtocol<A, Beacon<A> >;
 	using Base::graph;
@@ -33,12 +32,12 @@ struct BECING : IProtocol<A, Beacon<A> > {
 
 	void DestinationAnnouncement(int t, int n, double period,
 				     int max) override;
-	void LinkFailure(int u, int v) override;
-	void MsgReception(int u, int v, b beacon);
-	void SchedulePropagation(int u, int max);
+
+	void MsgReception(int u, int v, b beacon) override;
+	void SchedulePropagation(int u, double d_prop, int max);
 	void Propagate(int u);
 };
-} // namespace Protocol::Beaconing
+}
 
 #include "protocol/beaconing/beaconing.tpp"
 

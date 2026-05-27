@@ -10,7 +10,7 @@ template <class A> struct Beacon {
 	A attribute;
 	std::vector<int> path;
 
-	static constexpr double expiration = 44.0 * 2.0; //(no idea)
+	static constexpr double expiration = 1000000000; //(no idea)
 
 	double timeout;
 
@@ -63,7 +63,7 @@ template <class A> struct Beacon {
 		auto old_precision = os.precision();
 
 		os << "(" << std::fixed << std::setprecision(2) << b.timeout
-		   << ", " << b.attribute << ")";
+		   << "; " << b.attribute << ")";
 
 		os.flags(old_flags);
 		os.precision(old_precision);

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import csv
 import os
 from pathlib import Path
 
@@ -22,21 +23,27 @@ plt.rcParams.update(
 )
 
 
-def plot_stab_ccdf(csv_file, network, output_file=None):
-    df = pd.read_csv(csv_file)
-    x = np.sort(df["stab_time"].to_numpy())
-    n = len(x)
-
-    avg_time = np.mean(x)
-
-    ccdf = 1.0 - np.arange(0, n) / n
-
-    # prepend starting point
-    x_plot = np.r_[0, x]
-    ccdf_plot = np.r_[1.0, ccdf]
-
+def plot_stab_ccdf(series, network, output_file=None):
     plt.figure(figsize=(5.5, 3.8))
-    plt.step(x_plot, ccdf_plot, where="post", label=f"RPBOB SP ({avg_time:.2f} ms)")
+    max_x = 0
+
+    for csv_file, label in series:
+        print(f"{csv_file}")
+        df = pd.read_csv(csv_file)
+
+        x = np.sort(df["stab_time"].to_numpy())
+        n = len(x)
+
+        avg_time = np.mean(x)
+        ccdf = 1.0 - np.arange(0, n) / n
+
+        x_plot = np.r_[0, x]
+        ccdf_plot = np.r_[1.0, ccdf]
+
+        plt.step(x_plot, ccdf_plot, where="post", label=f"{label} ({avg_time:.2f} ms)")
+        if np.max(x) > max_x:
+            max_x = np.max(x)
+            print(f"\tMaximum delay: {max_x}\n")
 
     plt.title(f"Stabilisation time per node (AS{network})")
     plt.xlabel("Time [ms]")
@@ -44,29 +51,31 @@ def plot_stab_ccdf(csv_file, network, output_file=None):
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
 
-    ax = plt.gca()
-    ax.set_xlim([0, 100])
-
-    if output_file:
-        plt.savefig(output_file, dpi=200, bbox_inches="tight")
-    else:
-        plt.show()
+    plt.xlim([0, max_x])
+    plt.ylim([0, 1.1])
+    plt.savefig(output_file, dpi=200, bbox_inches="tight")
 
 
 if __name__ == "__main__":
-    PROTO = "beaconing"
-    TESTDIR = f"../data/output/rocketfuel/3967/{PROTO}"
-    FILE = "DelayLength_all_p2.0_rc1_stab.csv"
+    NETWORK = "1221"
 
-    cwd = os.getcwd()
+    FILE_1 = "DelayLength_all_p60.0_rc1_stab.csv"
+    # FILE_2 = "DelayHops_all_p60.0_rc1_stab.csv"
+
+    base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
+
+    series = [
+        (base_dir / "rpbob" / FILE_1, "RPBOB SP"),
+        (base_dir / "beaconing" / FILE_1, "Beaconing SP"),
+        # (base_dir / "rpbob" / FILE_2, "RPBOB Hop Count"),
+        # (base_dir / "beaconing" / FILE_2, "Beaconing Hop Count"),
+    ]
 
     plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
-    output_file = (
-        plot_dir / f"{TESTDIR.split('/')[-1]}_{FILE.rsplit('.', 1)[0]}_ccdf.png"
-    )
 
-    AS = os.path.basename(os.path.dirname(Path(TESTDIR)))
+    output_file = plot_dir / f"AS{NETWORK}_Lengths_ccdf_all.png"
 
-    plot_stab_ccdf(f"{TESTDIR}/{FILE}", AS, output_file)
+    plot_stab_ccdf(series, NETWORK, output_file)
+
     print(f"Output file: {output_file}")

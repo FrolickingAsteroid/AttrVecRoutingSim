@@ -13,93 +13,34 @@
 #include <string>
 #include <string_view>
 
+#include <argparse/argparse.hpp>
+
 using namespace RoutingAlgebras;
 
 namespace
 {
 
+namespace term
+{
+constexpr const char *bold = "\033[1m";
+constexpr const char *cyan = "\033[36m";
+constexpr const char *yellow = "\033[33m";
+constexpr const char *reset = "\033[0m";
+}
+
 struct SimulationConfig {
 	std::string network_file;
-	std::string protocol_kind;
+	std::string protocol;
 	int destination;
+
 	std::size_t window_size;
 	int max_beacons;
+
 	double period;
+	double dprop;
+
 	utils::RegisterType register_type;
 };
-
-void PrintUsage(const char *program)
-{
-	std::cerr
-		<< "usage:\n"
-		<< "  " << program
-		<< " <path/to/network-file> <protocol> <destination|all> <N> "
-		   "<max-beacons> <period> <reg>\n\n"
-
-		<< "protocol:\n"
-		<< "  seq-length      RPBOB / sequenced length protocol\n"
-		<< "  beacon-length   Beaconing baseline with length metric\n\n"
-
-		<< "destination:\n"
-		<< "  all             run for all destinations\n"
-		<< "  <node-id>        run for one destination\n\n"
-
-		<< "reg:\n"
-		<< "  set             record path set each time it changes\n"
-		<< "  stab            record node stabilization times\n\n"
-
-		<< "examples:\n"
-		<< "  " << program
-		<< " network.tsv seq-length all 5 100 5.0 set\n"
-		<< "  " << program
-		<< " network.tsv seq-length 0 5 100 5.0 stab\n"
-		<< "  " << program
-		<< " network.tsv beacon-length all 0 100 5.0 stab\n";
-}
-
-utils::RegisterType ParseRegisterType(const std::string &s)
-{
-	if (s == "set") {
-		return utils::RegisterType::Set;
-	}
-	if (s == "stab") {
-		return utils::RegisterType::NodeStab;
-	}
-	throw std::runtime_error("unknown data collection: " + s);
-}
-
-int ParseDestination(const std::string &s)
-{
-	if (s == "all") {
-		return -1;
-	}
-	return std::stoi(s);
-}
-
-SimulationConfig ParseArgs(int argc, char **argv)
-{
-	if (argc != 8) {
-		throw std::runtime_error("invalid number of arguments");
-	}
-
-	SimulationConfig cfg;
-	cfg.network_file = argv[1];
-	cfg.protocol_kind = argv[2];
-	cfg.destination = ParseDestination(argv[3]);
-	cfg.window_size = std::stoul(argv[4]);
-	cfg.max_beacons = std::stoi(argv[5]);
-	cfg.period = std::stod(argv[6]);
-	cfg.register_type = ParseRegisterType(argv[7]);
-
-	if (cfg.max_beacons <= 0) {
-		throw std::runtime_error("max-beacons must be positive");
-	}
-	if (cfg.period <= 0.0) {
-		throw std::runtime_error("period must be positive");
-	}
-
-	return cfg;
-}
 
 std::unique_ptr<Simulator::ISimulation>
 MakeSeqLengthSimulation(const SimulationConfig &cfg)
@@ -113,21 +54,20 @@ std::unique_ptr<Simulator::ISimulation>
 MakeBeaconLengthSimulation(const SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::BECINGSimulation<int, TOL, LE> >(
-		cfg.network_file, cfg.max_beacons, cfg.destination, cfg.period,
-		cfg.register_type);
+		cfg.network_file, cfg.max_beacons, cfg.destination, cfg.dprop,
+		cfg.period, cfg.register_type);
 }
 
 std::unique_ptr<Simulator::ISimulation>
 MakeSimulation(const SimulationConfig &cfg)
 {
-	if (cfg.protocol_kind == "seq-length") {
+	if (cfg.protocol == "seq-length") {
 		return MakeSeqLengthSimulation(cfg);
 	}
-	if (cfg.protocol_kind == "beacon-length") {
+	if (cfg.protocol == "beacon-length") {
 		return MakeBeaconLengthSimulation(cfg);
 	}
-
-	throw std::runtime_error("unknown protocol kind: " + cfg.protocol_kind);
+	throw std::runtime_error("unknown protocol: " + cfg.protocol);
 }
 
 void RunSimulation(const SimulationConfig &cfg)
@@ -137,9 +77,130 @@ void RunSimulation(const SimulationConfig &cfg)
 	sim->run();
 }
 
-} // namespace
+utils::RegisterType ParseRegisterType(const std::string &s)
+{
+	if (s == "set") {
+		return utils::RegisterType::Set;
+	}
+	if (s == "stab") {
+		return utils::RegisterType::NodeStab;
+	}
+	throw std::runtime_error("unknown data collection: " + s);
+}
 
-int main(int argc, char **argv)
+int ParseDest(const std::string &s)
+{
+	if (s == "all") {
+		return -1;
+	}
+	return std::stoi(s);
+}
+
+SimulationConfig ParseArgs(int argc, const char **argv)
+{
+	SimulationConfig cfg;
+	argparse::ArgumentParser parser(argc, argv);
+
+	parser.add_argument("--network_file")
+		.set_metavar("network.tsv")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::REQUIRED)
+		.set_help("Path to the network file");
+
+	parser.add_argument("--protocol")
+		.set_metavar("proto")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::REQUIRED)
+		.set_help(std::string(term::bold) + "Protocol to run: " +
+			  term::reset + term::cyan + "rpbob" + term::reset +
+			  ", " + term::cyan + "beaconing" + term::reset + ", " +
+			  term::cyan + "bgp\n" + term::reset);
+
+	parser.add_argument("--destination")
+		.set_metavar("all/id")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::REQUIRED)
+		.set_help(
+			std::string(term::bold) +
+			"node that will announce itself as the destination:\n" +
+			term::reset + term::yellow + "\t\t - node id\n" +
+			"\t\t - all\n" + term::reset);
+
+	parser.add_argument("--max")
+		.set_metavar("m")
+		.set_type(argparse::ArgTypes::INT)
+		.set_flags(argparse::ArgFlags::NONE)
+		.set_help(
+			std::string(term::bold) +
+			"For rpbob/beaconing: " + term::reset +
+			"Maximum number of periodic destination announcements\n");
+
+	parser.add_argument("--param")
+		.set_metavar("N/delay prop")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::NONE)
+		.set_help(std::string(term::bold) +
+			  "Protocol-dependent parameter:\n" + term::reset +
+			  term::yellow + "\t\t - rpbob: " + term::reset +
+			  "window size " + term::cyan + "N\n" + term::reset +
+			  term::yellow + "\t\t - beaconing: " + term::reset +
+			  "propagation delay " + term::cyan + "d_prop\n" +
+			  term::reset);
+
+	parser.add_argument("--period")
+		.set_metavar("delta")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::NONE)
+		.set_help(std::string(term::bold) +
+			  "For rpbob/beaconing: " + term::reset +
+			  "periodicity of destination announcements\n");
+
+	parser.add_argument("--reg")
+		.set_metavar("data")
+		.set_type(argparse::ArgTypes::STRING)
+		.set_flags(argparse::ArgFlags::REQUIRED)
+		.set_help(std::string(term::bold) +
+			  "Type of Data to be collected:\n" + term::reset +
+			  +term::yellow + "\t\t - stab: " + term::reset +
+			  "stabilization times of each node\n" + +term::reset +
+			  term::yellow + "\t\t - set: " + term::reset +
+			  "evolution of the set of paths at each node\n" +
+			  term::reset);
+
+	try {
+		auto args = parser.parse_args();
+
+		cfg.network_file = args.at("--network_file").as<std::string>();
+		cfg.protocol = args.at("--protocol").as<std::string>();
+		cfg.destination =
+			ParseDest(args.at("--destination").as<std::string>());
+
+		cfg.max_beacons = args.at("--max").as<int>();
+		cfg.period = std::stod(args.at("--period").as<std::string>());
+		cfg.register_type =
+			ParseRegisterType(args.at("--reg").as<std::string>());
+
+		const auto param = args.at("--param").as<std::string>();
+
+		if (cfg.protocol == "beacon-length") {
+			cfg.window_size = 0;
+			cfg.dprop = std::stod(param);
+		} else if (cfg.protocol == "rpbob" ||
+			   cfg.protocol == "seq-length") {
+			cfg.window_size = std::stoul(param);
+			cfg.dprop = 0.0;
+		}
+	} catch (const std::runtime_error &err) {
+		std::cerr << err.what() << std::endl;
+		std::exit(1);
+	}
+
+	return cfg;
+}
+
+}
+
+int main(int argc, const char **argv)
 {
 	const SimulationConfig cfg = ParseArgs(argc, argv);
 	RunSimulation(cfg);

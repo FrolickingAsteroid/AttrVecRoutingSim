@@ -6,33 +6,36 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
+template <class A, class Ord>
+void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
 {
 	Ord ord;
 
-	auto it = std::find_if(candidates.begin(), candidates.end(),
-			       [&bea](const Beacon<A> &e) {
-				       return e.path == bea.path;
-			       });
+	auto better = [&ord](const A &a, const A &b) {
+		return ord(a, b) && !ord(b, a);
+	};
 
-	if (it != candidates.end()) {
-		if (!ord(bea.attribute, it->attribute)) {
-			it->timeout = bea.timeout;
-			return;
-		}
-		candidates.erase(it);
+	auto same_path = std::find_if(candidates.begin(), candidates.end(),
+	    [&bea](const Beacon<A> &e) {
+		return e.path == bea.path;
+	    });
+
+	if (same_path != candidates.end()) {
+		if (bea.timeout > same_path->timeout)
+			same_path->timeout = bea.timeout;
+
+		return;
 	}
 
-	auto pos = std::lower_bound(
-		candidates.begin(), candidates.end(), bea,
-		[&ord](const Beacon<A> &e, const Beacon<A> &val) {
-			return ord(e.attribute, val.attribute);
-		});
+	auto pos = candidates.begin();
+
+	while (pos != candidates.end() &&
+	       !better(bea.attribute, pos->attribute)) {
+		++pos;
+	       }
 
 	candidates.insert(pos, bea);
-
-	if (candidates.front() != best_candidate)
-		best_candidate = candidates.front();
+	best_candidate = candidates.front();
 }
 
 template <class A, class Ord> bool BeaconStore<A, Ord>::IsEmpty()
@@ -69,7 +72,7 @@ std::vector<Beacon<A> > BeaconStore<A, Ord>::SelectBeacons()
 	}
 	// take the "BestSetSize - 1" shortest (sorted by length)
 	std::vector<Beacon<A> > result(candidates.begin(),
-				       candidates.begin() + BestSetSize - 1);
+				       candidates.begin() + BestSetSize);
 
 	return result;
 }

@@ -7,6 +7,8 @@
 #include "protocol/beaconing/beaconing.hpp"
 #include "simulator/simulator.hpp"
 
+#include "utils/ui/monitor.hpp"
+
 using namespace Protocol::Beaconing;
 
 namespace Simulator
@@ -20,9 +22,11 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 	using Base::registrar;
 
 	BECINGSimulation(const std::string &filename, int max_, int dest_,
-			 double period_, utils::RegisterType log_t_)
+			 double d_prop_, double period_,
+			 utils::RegisterType log_t_)
 		: Base(filename, max_, dest_, period_, log_t_, "beaconing")
 		, graph(ReadGraph(filename))
+		, d_prop(d_prop_)
 		, period(period_)
 		, dest(dest_)
 		, max(max_)
@@ -44,13 +48,26 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 		for (int t : targets) {
 			BECING<A, Ord, Ext> proto(graph);
 			proto.DestinationAnnouncement(t, 0, period, max);
-			proto.Run();
+
+			// periodic propagation on every node,
+			// independent destination announcement
+			for (int u : targets) {
+				proto.SchedulePropagation(u, d_prop, max);
+			}
+
+			{
+				// LiveMonitor<A, Ord> monitor(proto.s, proto.cal);
+				// monitor.start();
+				proto.Run();
+			}
+
 			registrar.RegisterDestination(t, proto.data);
 		}
 	}
 
     private:
 	Graphs::Graph<A> graph;
+	double d_prop;
 	double period;
 	int dest, max;
 	std::vector<int> targets;

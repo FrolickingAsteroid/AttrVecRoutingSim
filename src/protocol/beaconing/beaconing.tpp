@@ -3,13 +3,10 @@
 
 #include "protocol/beaconing/beaconing.hpp"
 
+#include <iostream>
+
 namespace Protocol::Beaconing
 {
-template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::LinkFailure(int u, int v)
-{
-	graph.deactivate(u, v);
-}
 template <class A, class Ord, class Ext>
 void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 						  int max)
@@ -17,22 +14,10 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 	b beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
-	// periodic propagation on every node, independent of beaconing
-	if (n == 0) {
-		for (int u = 0; u < graph.V; ++u)
-			SchedulePropagation(u, period * max);
-	}
-
 	auto old_seq = cal.getSeq();
-	for (auto &[r, edge] : graph.adjListIn[t]) {
-		if (auto &[delay, active, attr] = edge; active) {
-			cal.schedule(cal.now() + delay,
-				     [r, t, beacon, this]() mutable {
-					     this->MsgReception(r, t, beacon);
-				     });
-		}
-	}
+	this->Send(t, beacon);
 	auto new_seq = cal.getSeq();
+
 	data.record(cal.now(), t, "announcement", new_seq - old_seq);
 
 	// schedule next routing computation
@@ -48,9 +33,6 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 template <class A, class Ord, class Ext>
 void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 {
-	if (u == 22) {
-		int dummy = 1;
-	}
 	if (beacon.expired(cal.now())) {
 		return;
 	}
@@ -70,13 +52,13 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 }
 
 template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::SchedulePropagation(int u, int max)
+void BECING<A, Ord, Ext>::SchedulePropagation(int u, double d_prop, int max)
 {
 	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
 
-	if (cal.now() + DPropInterval < max)
-		cal.schedule(cal.now() + DPropInterval, [this, u, max]() {
-			this->SchedulePropagation(u, max);
+	if (cal.now() + d_prop < 500)
+		cal.schedule(cal.now() + d_prop, [this, u, d_prop, max]() {
+			this->SchedulePropagation(u, d_prop, max);
 		});
 }
 
@@ -88,19 +70,12 @@ void BECING<A, Ord, Ext>::Propagate(int u)
 	if (selected.empty())
 		return;
 
-	// data.record(cal.now(), u, selected.at(0), selected);
+	data.record(cal.now(), u, selected.at(0), selected);
 	auto old_seq = cal.getSeq();
-	for (auto &[v, edge] : this->graph.adjListOut[u]) {
-		if (auto &[delay, active, attr] = edge; active) {
-			for (auto beacon : selected) {
-				cal.schedule(cal.now() + delay,
-					     [this, u, v, beacon]() mutable {
-						     this->MsgReception(v, u,
-									beacon);
-					     });
-			}
-		}
-	}
+
+	for (auto beacon : selected)
+		this->Send(u, beacon);
+
 	auto new_seq = cal.getSeq();
 	data.record(cal.now(), u, "propagate", new_seq - old_seq);
 }

@@ -32,7 +32,7 @@ void Registrar<R>::RegisterNodeStab(const int dest, const Data<R> &data)
 	}
 
 	auto out = makeFile(std::to_string(dest), "stab");
-	out << "dest,node,stab_time\n";
+	out << "dest,node,stab_time,metri\n";
 	WriteStab(dest, data, out);
 }
 
@@ -63,14 +63,20 @@ template <class R>
 void Registrar<R>::WriteStab(const int dest, const Data<R> &data,
 			     std::ostream &out)
 {
-	std::unordered_map<int, double> last_change;
-	for (auto &e : data.entries) {
+	std::unordered_map<int, std::pair<double, R> > last_change;
+
+	for (const auto &e : data.entries) {
 		if (e.set == std::nullopt) {
-			last_change[e.node] = e.time;
+			last_change.insert_or_assign(
+				e.node,
+				std::pair<double, R>{ e.time, e.value });
 		}
 	}
-	for (auto &[node, time] : last_change) {
-		out << dest << "," << node << "," << time << "\n";
+
+	for (const auto &[node, tv] : last_change) {
+		const auto &[time, value] = tv;
+		out << dest << "," << node << "," << time << "," << value
+		    << "\n";
 	}
 }
 

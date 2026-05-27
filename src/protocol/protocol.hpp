@@ -24,7 +24,27 @@ template <class A, class R> struct IProtocol {
 		cal.run();
 	}
 
-	virtual void LinkFailure(int u, int v) = 0;
+	void LinkFailure(int u, int v)
+	{
+		graph.deactivate(u, v);
+	}
+
+	void Send(int t, R msg)
+	{
+		for (auto &[r, edge] : graph.adjListIn[t]) {
+			auto &[delay, active, attr] = edge;
+
+			if (!active)
+				continue;
+
+			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
+				this->MsgReception(r, t, msg);
+			});
+		}
+	}
+
+	virtual void MsgReception(int u, int v, R msg) = 0;
+
 	virtual void DestinationAnnouncement(int t, int n, double period,
 					     int max) = 0;
 };

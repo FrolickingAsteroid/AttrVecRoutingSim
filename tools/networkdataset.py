@@ -6,7 +6,7 @@ import os
 
 import networkx as nx
 
-AS = "3967"
+AS = "1221"
 TOPDIR = "../data/topologies/rocketfuel"
 TESTDIR = "../data/datasets/rocketfuel"
 
