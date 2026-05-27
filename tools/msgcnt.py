@@ -83,6 +83,7 @@ def load_wave_counts(csv_file, period):
 def plot_msgCnt_ccdf(series, network, output_file, period):
 
     plt.figure(figsize=(5.5, 3.8))
+    max_x = 0
     for csv_msg, csv_stab, label in series:
         data = load_msg_counts_until_stab(csv_msg, csv_stab)
 
@@ -95,11 +96,15 @@ def plot_msgCnt_ccdf(series, network, output_file, period):
             where="post",
             label=f"{label} (avg {avg:.0f})",
         )
+
+        if np.max(x_plot) > max_x:
+            max_x = np.max(x_plot)
     plt.title(f"Messages per Routing Computation (AS{network})")
     plt.xlabel("Number of Messages")
     plt.ylabel("CCDF")
 
-    plt.ylim([0, 1.05])
+    plt.xlim([0, max_x])
+    plt.ylim([0, 1.1])
     plt.grid(True, alpha=0.3)
 
     plt.legend(fontsize=9)

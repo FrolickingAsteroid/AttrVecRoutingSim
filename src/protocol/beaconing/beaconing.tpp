@@ -43,6 +43,12 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 	beacon.addAttr(candidate);
 	s[u].Insert(beacon);
 
+	if (u == 12) {
+		b best = s[u].best_candidate;
+	}
+
+
+
 	if (old_best != s[u].best_candidate) {
 		data.record(cal.now(), u, s[u].best_candidate);
 	}

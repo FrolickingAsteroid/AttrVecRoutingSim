@@ -51,16 +51,11 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 
 			// periodic propagation on every node,
 			// independent destination announcement
-			for (int u : targets) {
+			for (int u = 0; u < graph.V; ++u) {
 				proto.SchedulePropagation(u, d_prop, max);
 			}
 
-			{
-				// LiveMonitor<A, Ord> monitor(proto.s, proto.cal);
-				// monitor.start();
-				proto.Run();
-			}
-
+			proto.Run();
 			registrar.RegisterDestination(t, proto.data);
 		}
 	}

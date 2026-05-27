@@ -201,7 +201,7 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    PROTO = "rpbob"
+    PROTO = "beaconing"
     TESTDIR = f"../data/output/rocketfuel/1221/{PROTO}"
     FILE = "DelayLength_d0_p60.0_rc1_set.csv"
     node = 12

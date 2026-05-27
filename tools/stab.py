@@ -51,7 +51,7 @@ def plot_stab_ccdf(series, network, output_file=None):
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
 
-    plt.xlim([0, max_x])
+    # plt.xlim([0, max_x])
     plt.ylim([0, 1.1])
     plt.savefig(output_file, dpi=200, bbox_inches="tight")
 
