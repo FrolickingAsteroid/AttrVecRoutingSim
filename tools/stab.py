@@ -59,8 +59,11 @@ def plot_stab_ccdf(series, network, output_file=None):
 if __name__ == "__main__":
     NETWORK = "1221"
 
-    FILE_1 = "DelayLength_all_N40_p60.0_rc1_stab.csv"
-    FILE_2 = "DelayLength_all_dprop5.0_p60.0_rc1_stab.csv"
+    dprop = "dprop15.5"
+    N = "N40"
+
+    FILE_1 = f"DelayLength_all_{N}_p60.0_rc1_stab.csv"
+    FILE_2 = f"DelayLength_all_{dprop}_p60.0_rc1_stab.csv"
 
     base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
 
@@ -74,7 +77,7 @@ if __name__ == "__main__":
     plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
 
-    output_file = plot_dir / f"AS{NETWORK}_Lengths_ccdf_all.png"
+    output_file = plot_dir / f"AS{NETWORK}_Lengths_ccdf_{dprop}_{N}_all.png"
 
     plot_stab_ccdf(series, NETWORK, output_file)
 

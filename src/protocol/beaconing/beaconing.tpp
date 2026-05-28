@@ -43,12 +43,6 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 	beacon.addAttr(candidate);
 	s[u].Insert(beacon);
 
-	if (u == 12) {
-		b best = s[u].best_candidate;
-	}
-
-
-
 	if (old_best != s[u].best_candidate) {
 		data.record(cal.now(), u, s[u].best_candidate);
 	}
@@ -59,7 +53,7 @@ void BECING<A, Ord, Ext>::SchedulePropagation(int u, double d_prop, int max)
 {
 	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
 
-	if (cal.now() + d_prop < 500)
+	if (cal.now() + d_prop < 1000)
 		cal.schedule(cal.now() + d_prop, [this, u, d_prop, max]() {
 			this->SchedulePropagation(u, d_prop, max);
 		});

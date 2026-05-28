@@ -38,7 +38,6 @@ def load_msg_counts_until_stab(csv_msg, csv_stab):
 
     # Last stabilization time per destination
     stab_time = stab.groupby("dest")["stab_time"].max()
-    print(stab_time)
 
     counts = []
 
@@ -116,31 +115,35 @@ def plot_msgCnt_ccdf(series, network, output_file, period):
 if __name__ == "__main__":
     NETWORK = "1221"
 
-    FILE_1 = "DelayLength_all_p60.0_rc1_msgCount.csv"
-    FILE_2 = "DelayHops_all_p60.0_rc1_stab.csv"
+    dprop = "dprop15.5"
+    N = "N40"
+
+    FILE_1 = f"DelayLength_all_{dprop}_p60.0_rc1_msgCount.csv"
+    FILE_2 = f"DelayLength_all_{N}_p60.0_rc1_msgCount.csv"
+
+    STAB_1 = f"DelayLength_all_{dprop}_p60.0_rc1_stab.csv"
+    STAB_2 = f"DelayLength_all_{N}_p60.0_rc1_stab.csv"
+
 
     base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
 
     series = [
-        # base_dir / "rpbob" / FILE_1, "RPBOB SP"),
         (
             base_dir / "beaconing" / FILE_1,
-            base_dir / "beaconing" / FILE_2,
+            base_dir / "beaconing" / STAB_1,
             "Beaconing SP",
         ),
         (
-            base_dir / "rpbob" / FILE_1,
             base_dir / "rpbob" / FILE_2,
+            base_dir / "rpbob" / STAB_2,
             "RPBOB SP",
         ),
-        # (base_dir / "rpbob" / FILE_2, "RPBOB Hop Count"),
-        # (base_dir / "beaconing" / FILE_2, "Beaconing Hop Count"),
     ]
 
     plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
 
-    output_file = plot_dir / f"AS{NETWORK}_Lengths_msgCount_ccdf_all.png"
+    output_file = plot_dir / f"AS{NETWORK}_Lengths_msgCount_{dprop}_{N}_ccdf_all.png"
 
     plot_msgCnt_ccdf(series, NETWORK, output_file, period=60)
 
