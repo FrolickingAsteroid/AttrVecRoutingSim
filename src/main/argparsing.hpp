@@ -117,6 +117,53 @@ inline void PrintUsage(const char *prog)
 		<< "  --reg            data to collect: stab or set\n\n";
 }
 
+inline std::string GetOr(const Args &args, const std::string &key,
+			 const std::string &fallback = "---")
+{
+	auto it = args.find(key);
+	if (it == args.end())
+		return fallback;
+
+	return it->second;
+}
+
+inline void PrintArgs(const Args &args)
+{
+	tabulate::Table table;
+
+	table.add_row(Row({ "Argument", "Value" }));
+	table.add_row(Row({ "network file", GetOr(args, "--network_file") }));
+	table.add_row(Row({ "protocol", GetOr(args, "--protocol") }));
+	table.add_row(Row({ "destination", GetOr(args, "--destination") }));
+	table.add_row(Row({ "max beacons", GetOr(args, "--max") }));
+	table.add_row(Row({ "param", GetOr(args, "--param") }));
+	table.add_row(Row({ "period", GetOr(args, "--period") }));
+	table.add_row(Row({ "register", GetOr(args, "--reg") }));
+
+	table[0].format()
+		.font_style({ tabulate::FontStyle::bold })
+		.font_color(tabulate::Color::yellow);
+
+	std::cout << "\033[H\033[J";
+	std::cout << cyan("\nSimulation arguments\n");
+	std::cout << table << "\n";
+}
+
+inline void PrintSummary(std::chrono::milliseconds elapsed)
+{
+	tabulate::Table table;
+	table.add_row(Row({ "Parameter", "value" }));
+
+	table.add_row(Row(
+		{ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
+	table[0].format()
+		.font_style({ tabulate::FontStyle::bold })
+		.font_color(tabulate::Color::yellow);
+
+	std::cout << cyan("\nSimulation summary:\n");
+	std::cout << table << "\n";
+}
+
 inline Args ParseNamedArgs(int argc, const char **argv)
 {
 	Args args;
@@ -185,6 +232,7 @@ inline SimulationConfig ParseArgs(int argc, const char **argv)
 		throw std::runtime_error("unknown protocol: " + cfg.protocol);
 	}
 
+	PrintArgs(args);
 	return cfg;
 }
 
