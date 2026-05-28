@@ -24,7 +24,7 @@ option(SIMULATOR_ENABLE_WARNINGS "Enable compiler warnings" ON)
 # ------------------------------------------------------------
 
 add_executable(Simulator
-        src/main.cpp
+        src/main/main.cpp
 )
 
 # ------------------------------------------------------------

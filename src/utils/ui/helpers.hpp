@@ -1,8 +1,20 @@
 #ifndef HELPERS_HPP
 #define HELPERS_HPP
 
+#include <tabulate/tabulate.hpp>
+
 namespace utils::ui
 {
+
+tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
+{
+	tabulate::Table::Row_t row;
+
+	for (const auto &cell : cells)
+		row.emplace_back(cell);
+
+	return row;
+}
 
 namespace colors
 {
