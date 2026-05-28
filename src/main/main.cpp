@@ -59,21 +59,20 @@ std::string ParamValue(const SimulationConfig &cfg)
 // 	std::cout << table << "\n";
 // }
 
-// void PrintSummary(std::chrono::milliseconds elapsed)
-// {
-// 	tabulate::Table table;
-//
-// 	table.add_row(Row({ "Result", "Value" }));
-// 	table.add_row(Row(
-// 		{ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
-//
-// 	table[0].format()
-// 		.font_style({ tabulate::FontStyle::bold })
-// 		.font_color(tabulate::Color::yellow);
-//
-// 	std::cout << cyan("\nSimulation summary\n");
-// 	std::cout << table << "\n";
-// }
+void PrintSummary(std::chrono::milliseconds elapsed)
+{
+	tabulate::Table table;
+	table.add_row(Row({ "Parameter", "value" }));
+
+	table.add_row(Row(
+		{ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
+	table[0].format()
+		.font_style({ tabulate::FontStyle::bold })
+		.font_color(tabulate::Color::yellow);
+
+	std::cout << cyan("\nSimulation summary:\n");
+	std::cout << table << "\n";
+}
 
 int main(int argc, const char **argv)
 {
@@ -88,12 +87,14 @@ int main(int argc, const char **argv)
 		const auto end = chrono::steady_clock::now();
 
 		const auto elapsed =
-			chrono::duration_cast<chrono::milliseconds>(
-				end - start);
+			chrono::duration_cast<chrono::milliseconds>(end -
+								    start);
+
+		PrintSummary(elapsed);
 
 		return 0;
 	} catch (const std::exception &err) {
-		std::cerr << "error: "<<err.what() << '\n';
+		std::cerr << "error: " << err.what() << '\n';
 		return 1;
 	}
 }
