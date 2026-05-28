@@ -51,7 +51,7 @@ def plot_stab_ccdf(series, network, output_file=None):
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
 
-    # plt.xlim([0, max_x])
+    plt.xlim([0, max_x])
     plt.ylim([0, 1.1])
     plt.savefig(output_file, dpi=200, bbox_inches="tight")
 
@@ -59,14 +59,14 @@ def plot_stab_ccdf(series, network, output_file=None):
 if __name__ == "__main__":
     NETWORK = "1221"
 
-    FILE_1 = "DelayLength_all_p60.0_rc1_stab.csv"
-    # FILE_2 = "DelayHops_all_p60.0_rc1_stab.csv"
+    FILE_1 = "DelayLength_all_N40_p60.0_rc1_stab.csv"
+    FILE_2 = "DelayLength_all_dprop5.0_p60.0_rc1_stab.csv"
 
     base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
 
     series = [
         (base_dir / "rpbob" / FILE_1, "RPBOB SP"),
-        (base_dir / "beaconing" / FILE_1, "Beaconing SP"),
+        (base_dir / "beaconing" / FILE_2, "Beaconing SP"),
         # (base_dir / "rpbob" / FILE_2, "RPBOB Hop Count"),
         # (base_dir / "beaconing" / FILE_2, "Beaconing Hop Count"),
     ]

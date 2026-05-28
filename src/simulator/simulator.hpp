@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 
+#include "utils/register/data.hpp"
 #include "graph/graph.hpp"
 
 namespace Simulator
@@ -18,14 +19,14 @@ template <class A, class R> struct Simulation : ISimulation {
 
 	Simulation(const std::string &filename, int max_, int dest_,
 		   double period_, utils::RegisterType log_t_,
-		   const char *proto_)
+		   const char *proto_, const std::string &param_name_,
+		   const std::string &param_value_)
 		: registrar(filename, max_, dest_, period_, log_t_,
-			    std::string(proto_))
+			    std::string(proto_), param_name_, param_value_)
 	{
 	}
 
     protected:
-
 	static Graphs::Graph<A> ReadGraph(const std::string &filename)
 	{
 		std::ifstream fileNetwork(filename);

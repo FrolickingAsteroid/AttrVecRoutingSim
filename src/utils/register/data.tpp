@@ -1,10 +1,24 @@
 #ifndef DATA_TPP
 #define DATA_TPP
 
-#include "utils/data.hpp"
+#include "utils/register/data.hpp"
 
 namespace utils
 {
+
+template <class T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
+{
+	os << "[";
+	for (std::size_t i = 0; i < v.size(); ++i) {
+		if (i > 0)
+			os << " ";
+		os << v[i];
+	}
+	os << "]";
+	return os;
+}
+
 template <class R>
 void Registrar<R>::RegisterSet(const int dest, const Data<R> &data) const
 {
@@ -32,7 +46,7 @@ void Registrar<R>::RegisterNodeStab(const int dest, const Data<R> &data)
 	}
 
 	auto out = makeFile(std::to_string(dest), "stab");
-	out << "dest,node,stab_time,metri\n";
+	out << "dest,node,stab_time,metric\n";
 	WriteStab(dest, data, out);
 }
 

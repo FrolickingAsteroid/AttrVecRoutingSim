@@ -24,7 +24,10 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 	BECINGSimulation(const std::string &filename, int max_, int dest_,
 			 double d_prop_, double period_,
 			 utils::RegisterType log_t_)
-		: Base(filename, max_, dest_, period_, log_t_, "beaconing")
+		: Base(filename, max_, dest_, period_, log_t_, "beaconing",
+		       "dprop",
+		       std::to_string(d_prop_).substr(
+			       0, std::to_string(d_prop_).find('.') + 2))
 		, graph(ReadGraph(filename))
 		, d_prop(d_prop_)
 		, period(period_)
@@ -50,7 +53,7 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 			proto.DestinationAnnouncement(t, 0, period, max);
 
 			// periodic propagation on every node,
-			// independent destination announcement
+			// independent of destination announcement
 			for (int u = 0; u < graph.V; ++u) {
 				proto.SchedulePropagation(u, d_prop, max);
 			}

@@ -4,8 +4,7 @@
 #include <filesystem>
 #include <vector>
 #include <optional>
-
-#include "utils/helpers.hpp"
+#include <fstream>
 
 namespace utils
 {
@@ -53,13 +52,16 @@ template <class R> class Registrar {
     public:
 	Registrar(const std::filesystem::path &input_, int beacons_,
 		  int destination_, double interval_, RegisterType type_,
-		  const std::string &proto_)
+		  const std::string &proto_, const std::string &param_name_,
+		  const std::string &param_value_)
 		: input(input_)
 		, beacons(beacons_)
 		, destination(destination_)
 		, interval(interval_)
 		, type(type_)
 		, proto(proto_)
+		, param_name(param_name_)
+		, param_value(param_value_)
 	{
 		if (type == RegisterType::NodeStab && destination < 0) {
 			all_stab = makeFile("all", "stab");
@@ -88,6 +90,8 @@ template <class R> class Registrar {
 	std::ofstream all_stab;
 	std::ofstream all_overhead;
 	std::string proto;
+	std::string param_name;
+	std::string param_value;
 
 	std::filesystem::path makeOutputPath(const std::string &dest,
 					     const std::string &suffix) const
@@ -100,13 +104,14 @@ template <class R> class Registrar {
 				  dataset_fam / dataset_id / proto;
 
 		std::filesystem::create_directories(output_dir);
+		std::string interval_ = std::to_string(interval).substr(
+			0, std::to_string(interval).find('.') + 2);
 
-		std::string name =
-			stem.string() + "_" +
-			(dest == "all" ? "all" : "d" + dest) + "_p" +
-			std::to_string(interval).substr(
-				0, std::to_string(interval).find('.') + 2) +
-			"_rc" + std::to_string(beacons) + "_" + suffix + ".csv";
+		std::string name = stem.string() + "_" +
+				   (dest == "all" ? "all" : "d" + dest) + "_" +
+				   param_name + param_value + "_p" + interval_ +
+				   +"_rc" + std::to_string(beacons) + "_" +
+				   suffix + ".csv";
 
 		return output_dir / name;
 	}
@@ -141,5 +146,5 @@ template <class R> class Registrar {
 
 } // namespace utils
 
-#include "utils/data.tpp"
+#include "utils/register/data.tpp"
 #endif
