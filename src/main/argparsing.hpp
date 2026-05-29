@@ -19,8 +19,8 @@
 #include <iostream>
 
 using namespace RoutingAlgebras;
-using namespace std;
 using namespace utils::ui;
+using namespace std;
 
 using Args = std::unordered_map<std::string, std::string>;
 
@@ -42,6 +42,12 @@ struct SimulationConfig {
 	// data collection type
 	utils::RegisterType register_type;
 };
+
+// ---------------------------------------------------------------------------- *
+//
+// Factory design pattern
+//
+// ---------------------------------------------------------------------------- *
 
 template <class A, class Ord, class Ext>
 std::unique_ptr<Simulator::ISimulation>
@@ -76,24 +82,11 @@ MakeSimulation(const SimulationConfig &cfg)
 	throw std::runtime_error("unknown protocol: " + cfg.protocol);
 }
 
-inline utils::RegisterType ParseRegisterType(const std::string &s)
-{
-	if (s == "set") {
-		return utils::RegisterType::Set;
-	}
-	if (s == "stab") {
-		return utils::RegisterType::NodeStab;
-	}
-	throw std::runtime_error("unknown data collection: " + s);
-}
-
-inline int ParseDest(const std::string &s)
-{
-	if (s == "all") {
-		return -1;
-	}
-	return std::stoi(s);
-}
+// ---------------------------------------------------------------------------- *
+//
+// Inline helper print functions
+//
+// ---------------------------------------------------------------------------- *
 
 inline void PrintUsage(const char *prog)
 {
@@ -135,9 +128,9 @@ inline void PrintArgs(const Args &args)
 	table.add_row(Row({ "network file", GetOr(args, "--network_file") }));
 	table.add_row(Row({ "protocol", GetOr(args, "--protocol") }));
 	table.add_row(Row({ "destination", GetOr(args, "--destination") }));
-	table.add_row(Row({ "max beacons", GetOr(args, "--max") }));
+	table.add_row(Row({ "nº of destination announcements", GetOr(args, "--max") }));
 	table.add_row(Row({ "param", GetOr(args, "--param") }));
-	table.add_row(Row({ "period", GetOr(args, "--period") }));
+	table.add_row(Row({ "periodicity of dest. ann. (ms)", GetOr(args, "--period") }));
 	table.add_row(Row({ "register", GetOr(args, "--reg") }));
 
 	table[0].format()
@@ -162,6 +155,31 @@ inline void PrintSummary(std::chrono::milliseconds elapsed)
 
 	std::cout << cyan("\nSimulation summary:\n");
 	std::cout << table << "\n";
+}
+
+// ---------------------------------------------------------------------------- *
+//
+// Inline helper parsing functions
+//
+// ---------------------------------------------------------------------------- *
+
+inline utils::RegisterType ParseRegisterType(const std::string &s)
+{
+	if (s == "set") {
+		return utils::RegisterType::Set;
+	}
+	if (s == "stab") {
+		return utils::RegisterType::NodeStab;
+	}
+	throw std::runtime_error("unknown data collection: " + s);
+}
+
+inline int ParseDest(const std::string &s)
+{
+	if (s == "all") {
+		return -1;
+	}
+	return std::stoi(s);
 }
 
 inline Args ParseNamedArgs(int argc, const char **argv)

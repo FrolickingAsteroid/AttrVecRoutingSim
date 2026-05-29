@@ -124,7 +124,6 @@ if __name__ == "__main__":
     STAB_1 = f"DelayLength_all_{dprop}_p60.0_rc1_stab.csv"
     STAB_2 = f"DelayLength_all_{N}_p60.0_rc1_stab.csv"
 
-
     base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
 
     series = [
