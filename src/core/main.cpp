@@ -1,11 +1,11 @@
-#include "main/argparsing.hpp"
+#include "core/argparsing.hpp"
 
 #include <chrono>
 
 using namespace std;
 using namespace config;
 
-int main(int argc, const char **argv)
+int main(int argc, char *const *argv)
 {
 	try {
 		const auto cfg = ParseArgs(argc, argv);

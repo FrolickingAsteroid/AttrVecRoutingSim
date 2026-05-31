@@ -114,7 +114,7 @@ std::size_t Compute_N(const std::string &filename, double Delta)
 	return N;
 }
 
-void printDelays(std::vector<std::pair<int, double> > &results,
+inline void printDelays(std::vector<std::pair<int, double> > &results,
 		 const std::string &filename, double D)
 {
 	struct winsize w{};

@@ -6,7 +6,7 @@
 namespace utils::ui
 {
 
-tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
+inline tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
 {
 	tabulate::Table::Row_t row;
 
@@ -16,7 +16,7 @@ tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
 	return row;
 }
 
-void clear()
+inline void clear()
 {
 	std::cout << "\033[H\033[J";
 }
@@ -30,21 +30,21 @@ constexpr const char *reset = "\033[0m";
 constexpr const char *green = "\033[35m";
 }
 
-std::string bold(const std::string &s)
+inline std::string bold(const std::string &s)
 {
 	return std::string(colors::bold) + s + colors::reset;
 }
 
-std::string cyan(const std::string &s)
+inline std::string cyan(const std::string &s)
 {
 	return std::string(colors::cyan) + s + colors::reset;
 }
 
-std::string yellow(const std::string &s)
+inline std::string yellow(const std::string &s)
 {
 	return std::string(colors::yellow) + s + colors::reset;
 }
-std::string green(const std::string &s)
+inline std::string green(const std::string &s)
 {
 	return std::string(colors::green) + s + colors::reset;
 }

@@ -24,7 +24,8 @@ option(SIMULATOR_ENABLE_WARNINGS "Enable compiler warnings" ON)
 # ------------------------------------------------------------
 
 add_executable(Simulator
-        src/main/main.cpp
+        src/core/main.cpp
+        src/core/argparsing.cpp
 )
 
 # ------------------------------------------------------------
@@ -32,14 +33,8 @@ add_executable(Simulator
 # ------------------------------------------------------------
 
 add_library(tabulate INTERFACE)
-add_library(argparse INTERFACE)
 
 target_include_directories(tabulate
-        INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/external
-)
-
-target_include_directories(argparse
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/external
 )
