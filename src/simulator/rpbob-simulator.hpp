@@ -13,17 +13,16 @@ namespace Simulator
 {
 
 template <class A, class Ord, class Ext>
-class RpBOBSimulation : public Simulation<A, Path<A> > {
+class RpBOBSimulation : public Simulation<Path<A> > {
     public:
-	using Base = Simulation<A, Path<A> >;
-	using Base::ReadGraph;
+	using Base = Simulation<Path<A> >;
 	using Base::registrar;
 
 	RpBOBSimulation(const std::string &filename, std::size_t N_, int max_,
 			int dest_, double period_, utils::RegisterType log_t_)
 		: Base(filename, max_, dest_, period_, log_t_, "rpbob", "N",
 		       std::to_string(N_))
-		, graph(ReadGraph(filename))
+		, graph(Graphs::Graph<A>::readGraph(filename))
 		, period(period_)
 		, dest(dest_)
 		, max(max_)

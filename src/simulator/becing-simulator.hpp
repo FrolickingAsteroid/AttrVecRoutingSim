@@ -15,10 +15,9 @@ namespace Simulator
 {
 
 template <class A, class Ord, class Ext>
-class BECINGSimulation : public Simulation<A, Beacon<A> > {
+class BECINGSimulation : public Simulation<Beacon<A> > {
     public:
-	using Base = Simulation<A, Beacon<A> >;
-	using Base::ReadGraph;
+	using Base = Simulation<Beacon<A> >;
 	using Base::registrar;
 
 	BECINGSimulation(const std::string &filename, int max_, int dest_,
@@ -28,7 +27,7 @@ class BECINGSimulation : public Simulation<A, Beacon<A> > {
 		       "dprop",
 		       std::to_string(d_prop_).substr(
 			       0, std::to_string(d_prop_).find('.') + 2))
-		, graph(ReadGraph(filename))
+		, graph(Graphs::Graph<A>::readGraph(filename))
 		, d_prop(d_prop_)
 		, period(period_)
 		, dest(dest_)

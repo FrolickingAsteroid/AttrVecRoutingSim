@@ -1,5 +1,5 @@
-#ifndef HELPERS_HPP
-#define HELPERS_HPP
+#ifndef APPEARANCE_HPP
+#define APPEARANCE_HPP
 
 #include <tabulate/tabulate.hpp>
 
@@ -16,12 +16,18 @@ tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
 	return row;
 }
 
+void clear()
+{
+	std::cout << "\033[H\033[J";
+}
+
 namespace colors
 {
 constexpr const char *bold = "\033[1m";
 constexpr const char *cyan = "\033[36m";
 constexpr const char *yellow = "\033[33m";
 constexpr const char *reset = "\033[0m";
+constexpr const char *green = "\033[35m";
 }
 
 std::string bold(const std::string &s)
@@ -38,5 +44,10 @@ std::string yellow(const std::string &s)
 {
 	return std::string(colors::yellow) + s + colors::reset;
 }
+std::string green(const std::string &s)
+{
+	return std::string(colors::green) + s + colors::reset;
+}
+
 }
 #endif

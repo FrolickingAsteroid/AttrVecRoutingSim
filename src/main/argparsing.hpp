@@ -7,8 +7,9 @@
 #include "simulator/simulator.hpp"
 #include "simulator/becing-simulator.hpp"
 #include "simulator/rpbob-simulator.hpp"
+#include "utils/helpers/helpers.hpp"
 
-#include "utils/ui/helpers.hpp"
+#include "utils/ui/appearance.hpp"
 #include "utils/register/data.hpp"
 
 #include <cstdlib>
@@ -17,12 +18,14 @@
 
 #include <stdexcept>
 #include <iostream>
-
-using namespace RoutingAlgebras;
-using namespace utils::ui;
-using namespace std;
+#include <unordered_set>
 
 using Args = std::unordered_map<std::string, std::string>;
+
+using namespace RoutingAlgebras;
+using namespace utils::helpers;
+using namespace utils::ui;
+using namespace std;
 
 namespace config
 {
@@ -39,7 +42,7 @@ struct SimulationConfig {
 	optional<int> max_beacons = nullopt;
 	optional<std::size_t> window_size = nullopt;
 
-	// data collection type
+	// data collection
 	utils::RegisterType register_type;
 };
 
@@ -72,6 +75,15 @@ inline std::unique_ptr<Simulator::ISimulation>
 MakeSimulation(const SimulationConfig &cfg)
 {
 	if (cfg.protocol == "rpbob-length") {
+		if (!cfg.window_size.has_value()) {
+			auto tmp = cfg;
+			tmp.window_size =
+				utils::helpers::Compute_N<int, TOL, LE>(
+					cfg.network_file, cfg.period.value());
+			std::cout << cyan("\nWindow Size N: ")
+				  << tmp.window_size.value() << "\n";
+			return RPBOBSimulation<int, OSL, ESL>(tmp);
+		}
 		return RPBOBSimulation<int, OSL, ESL>(cfg);
 	}
 
@@ -128,16 +140,18 @@ inline void PrintArgs(const Args &args)
 	table.add_row(Row({ "network file", GetOr(args, "--network_file") }));
 	table.add_row(Row({ "protocol", GetOr(args, "--protocol") }));
 	table.add_row(Row({ "destination", GetOr(args, "--destination") }));
-	table.add_row(Row({ "nº of destination announcements", GetOr(args, "--max") }));
+	table.add_row(Row(
+		{ "nº of destination announcements", GetOr(args, "--max") }));
 	table.add_row(Row({ "param", GetOr(args, "--param") }));
-	table.add_row(Row({ "periodicity of dest. ann. (ms)", GetOr(args, "--period") }));
+	table.add_row(Row(
+		{ "periodicity of dest. ann. (ms)", GetOr(args, "--period") }));
 	table.add_row(Row({ "register", GetOr(args, "--reg") }));
 
 	table[0].format()
 		.font_style({ tabulate::FontStyle::bold })
 		.font_color(tabulate::Color::yellow);
 
-	std::cout << "\033[H\033[J";
+	clear();
 	std::cout << cyan("\nSimulation arguments\n");
 	std::cout << table << "\n";
 }
@@ -184,8 +198,9 @@ inline int ParseDest(const std::string &s)
 
 inline Args ParseNamedArgs(int argc, const char **argv)
 {
-	Args args;
+	static const unordered_set<std::string> boolean_flags = { "-N" };
 
+	Args args;
 	for (int i = 1; i < argc; ++i) {
 		std::string key = argv[i];
 
@@ -194,18 +209,23 @@ inline Args ParseNamedArgs(int argc, const char **argv)
 			std::exit(0);
 		}
 
+		// Allow single-dash boolean flags
+		if (boolean_flags.count(key)) {
+			args.emplace(key, "true");
+			continue;
+		}
+
 		if (key.rfind("--", 0) != 0) {
 			PrintUsage(argv[0]);
-			throw std::runtime_error(key);
+			throw std::runtime_error("unknown argument: " + key);
 		}
 
 		if (i + 1 >= argc) {
 			PrintUsage(argv[0]);
-			throw std::runtime_error("missing key for" + key);
+			throw std::runtime_error("missing value for " + key);
 		}
 
 		std::string value = argv[++i];
-
 		if (value.rfind("--", 0) == 0) {
 			PrintUsage(argv[0]);
 			throw std::runtime_error("missing value for " + key);
@@ -213,11 +233,20 @@ inline Args ParseNamedArgs(int argc, const char **argv)
 
 		args.emplace(std::move(key), std::move(value));
 	}
-
 	return args;
 }
 
-inline std::string Require(const Args &args, const std::string &key)
+inline std::optional<std::string> Optional(const Args &args,
+					   const std::string &key)
+{
+	auto it = args.find(key);
+
+	if (it == args.end())
+		return nullopt;
+
+	return it->second;
+}
+inline std::string Required(const Args &args, const std::string &key)
 {
 	auto it = args.find(key);
 
@@ -233,19 +262,34 @@ inline SimulationConfig ParseArgs(int argc, const char **argv)
 
 	SimulationConfig cfg;
 
-	cfg.network_file = Require(args, "--network_file");
-	cfg.protocol = Require(args, "--protocol");
-	cfg.destination = ParseDest(Require(args, "--destination"));
-	cfg.register_type = ParseRegisterType(Require(args, "--reg"));
+	cfg.network_file = Required(args, "--network_file");
+
+	if (args.contains("-N")) {
+		std::string network_file = Required(args, "--network_file");
+		double period = std::stod(Required(args, "--period"));
+		clear();
+		auto N = utils::helpers::Compute_N<int, TOL, LE>(network_file,
+								 period);
+		std::cout << cyan("\nWindow Size N: ") << N << "\n";
+		std::exit(0);
+	}
+
+	cfg.protocol = Required(args, "--protocol");
+	cfg.destination = ParseDest(Required(args, "--destination"));
+	cfg.register_type = ParseRegisterType(Required(args, "--reg"));
 
 	if (cfg.protocol.find("rpbob") != std::string::npos) {
-		cfg.max_beacons = std::stoi(Require(args, "--max"));
-		cfg.period = std::stod(Require(args, "--period"));
-		cfg.window_size = std::stoul(Require(args, "--param"));
+		cfg.max_beacons = std::stoi(Required(args, "--max"));
+		cfg.period = std::stod(Required(args, "--period"));
+
+		if (auto param = Optional(args, "--window-size");
+		    param.has_value()) {
+			cfg.window_size = std::stoul(param.value());
+		}
 	} else if (cfg.protocol.find("beacon") != std::string::npos) {
-		cfg.max_beacons = std::stoi(Require(args, "--max"));
-		cfg.period = std::stod(Require(args, "--period"));
-		cfg.dprop = std::stod(Require(args, "--param"));
+		cfg.max_beacons = std::stoi(Required(args, "--max"));
+		cfg.period = std::stod(Required(args, "--period"));
+		cfg.dprop = std::stod(Required(args, "--param"));
 	} else {
 		throw std::runtime_error("unknown protocol: " + cfg.protocol);
 	}

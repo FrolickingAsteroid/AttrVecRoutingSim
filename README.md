@@ -10,3 +10,7 @@
   --period 60 \
   --reg stab
 ```
+
+```
+./build/Simulator --network_file data/datasets/rocketfuel/1221/DelayLength.tsv --period 2.0 -N
+```

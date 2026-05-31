@@ -1,33 +1,37 @@
 #ifndef _GRAPHS_HPP_
 #define _GRAPHS_HPP_
 
-#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
-namespace Graphs {
-    template<class S>
-    struct Graph {
-        int V;
-        int E;
-        std::vector<std::unordered_map<int, std::tuple<double, bool, S> > > adjListIn;
-        std::vector<std::unordered_map<int, std::tuple<double, bool, S> > > adjListOut;
+namespace Graphs
+{
+template <class S> struct Graph {
+	int V;
+	int E;
+	std::vector<std::unordered_map<int, std::tuple<double, bool, S> > >
+		adjListIn;
+	std::vector<std::unordered_map<int, std::tuple<double, bool, S> > >
+		adjListOut;
 
-        Graph() {
-        };
+	Graph()
+	{
+	}
 
-        Graph(int V);
+	Graph(int V);
 
-        void addEdge(int, int, double delay, S);
+	static Graph<S> readGraph(const std::string &filename);
 
-        void removeEdge(int, int);
+	void addEdge(int, int, double delay, S);
 
-        void activate(int, int);
+	void removeEdge(int, int);
 
-        void deactivate(int, int);
+	void activate(int, int);
 
-        void clear();
-    };
+	void deactivate(int, int);
+
+	void clear();
+};
 }
 
 #include "graph/graph.tpp"
