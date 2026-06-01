@@ -163,10 +163,14 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
-			const auto N = Compute_N<int, TOL, LE>(
-				cfg.network_file, cfg.period.value());
-			std::cout << cyan(bold("\nWindow size N: ")) << N
-				  << "\n";
+			if (cfg.destination != -1) {
+				Compute_N<int, TOL, LE>(cfg.network_file,
+							cfg.period.value(),
+							cfg.destination);
+			} else {
+				Compute_N<int, TOL, LE>(cfg.network_file,
+							cfg.period.value());
+			}
 		}
 		std::exit(0);
 	}

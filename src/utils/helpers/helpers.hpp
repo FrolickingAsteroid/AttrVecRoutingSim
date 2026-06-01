@@ -6,21 +6,27 @@
 namespace utils::helpers
 {
 
-template <class A, class Ord, class Ext>
-std::size_t Compute_N(const std::string &filename, double Delta);
-
-template <class A, class Ord>
-double
-WorstDelay(const std::vector<std::vector<std::pair<double, A> > > &opt_time);
+template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta);
 
 template <class A, class Ord, class Ext>
-std::vector<std::vector<std::pair<double, A> > >
+void Compute_N(const std::string &filename, double Delta, int t);
+
+template <class A, class Ord, class Ext>
+std::pair<std::vector<std::vector<std::pair<double, A>>>,
+	  std::vector<std::vector<std::pair<int, A>>>>
 DelayDijkstra(const Graphs::Graph<A> &graph, int dest);
 
-void printDelays(std::vector<std::pair<int, double> > &results,
-		 const std::string &filename, double Delta);
+template <class A, class Ord>
+std::pair<double, std::vector<double>>
+WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
-}
+template <class A>
+int checkMonotonicity(std::vector<double> node_D, std::vector<std::vector<std::pair<int, A>>> opt,
+		      double Delta, int V);
+
+void printDelays(std::vector<double> &results, double D);
+
+} // namespace utils::helpers
 
 #include "utils/helpers/helpers.tpp"
 #endif
