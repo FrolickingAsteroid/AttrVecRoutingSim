@@ -3,6 +3,8 @@
 
 #include "utils/helpers/helpers.hpp"
 #include "utils/ui/appearance.hpp"
+#include "utils/ui/logger.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <queue>
@@ -58,8 +60,8 @@ DelayDijkstra(const Graphs::Graph<A> &graph, int dest)
 		auto [tau, u, a, succ] = pq.top();
 		pq.pop();
 		if (!in(a, opt[u])) {
+			opt_time[u].push_back({ tau, a });
 			if (select(opt[u], a, succ)) {
-				opt_time[u].push_back({ tau, a });
 				for (auto &[x, edge] : graph.adjListIn[u]) {
 					auto &[delay, active, link_attr] = edge;
 					A candidate = ext(link_attr, a);
@@ -113,8 +115,11 @@ int checkMonotonicity(std::vector<double> node_D, std::vector<std::vector<std::p
 		auto &[succ, attr] = opt[u].front();
 		if (succ == -1)
 			continue;
-		if (node_N[u] < node_N[succ])
+		if (node_N[u] < node_N[succ]) {
+			LOG_DEBUG << "\tN" << u << " = " << node_N[u] << " < " << "N" << succ
+				  << " = " << node_N[succ];
 			++violations;
+		}
 	}
 	return violations;
 }
@@ -125,41 +130,44 @@ template <class A, class Ord, class Ext> void Compute_N(const std::string &filen
 	int violations = 0;
 	double D = 0.0;
 
+	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (" +
+			     std::to_string(graph.V) + " destinations)" + "\n");
+
+	LOG_DEBUG << yellow("Instance where N(u) < N(succ)\n");
+
 	std::vector<double> results;
 	for (int u = 0; u < graph.V; ++u) {
 		auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, u);
 		auto [delay, node_D] = WorstDelay<A, Ord>(opt_time);
+
+		LOG_DEBUG << cyan(bold("t = " + std::to_string(u) + ":"));
 		violations += checkMonotonicity(node_D, opt, Delta, graph.V);
 		D = std::max(D, delay);
 		results.push_back(delay);
 	}
 
-	std::cout << ui::cyan("\nWorst delay per destination — " + filename + " (" +
-			      std::to_string(results.size()) + " destinations)" + "\n\n");
+	if (violations == 0)
+		LOG_DEBUG << purple("\nN_u >= N_v holds for all nodes in all destinations.\n");
+	else
+		LOG_DEBUG << "\n";
 
 	printDelays(results, D);
 
-	if (violations == 0)
-		std::cout << ui::green("\nN_u >= N_v holds for all nodes in all destinations.\n");
-	else
-		std::cout << ui::yellow("\nN_u < N_v: " + std::to_string(violations) + "\n");
-
-	std::cout << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
+	LOG_INFO << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
 }
 
 template <class A, class Ord, class Ext>
 void Compute_N(const std::string &filename, double Delta, int t)
 {
+	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (destination" +
+			     std::to_string(t) + ")\n\n");
 	auto graph = Graphs::Graph<A>::readGraph(filename);
 	auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, t);
 	auto [D, node_D] = WorstDelay<A, Ord>(opt_time);
 
-	std::cout << ui::cyan("\nWorst delay per node " + filename + " (" + std::to_string(t) +
-			      " destination)\n\n");
-
 	printDelays(node_D, D);
 
-	std::cout << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
+	LOG_INFO << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
 }
 
 inline void printDelays(std::vector<double> &results, double D)
@@ -168,6 +176,9 @@ inline void printDelays(std::vector<double> &results, double D)
 	const int total = static_cast<int>(results.size());
 	const int n_cols = numColumns(COL_WIDTH);
 	const int n_rows = numRows(total, n_cols);
+
+	if (total < n_cols * n_rows) {
+	}
 
 	tabulate::Table t;
 
@@ -213,7 +224,7 @@ inline void printDelays(std::vector<double> &results, double D)
 			.font_color(tabulate::Color::green)
 			.font_style({ tabulate::FontStyle::bold });
 
-	std::cout << t << "\n";
+	LOG_INFO << t << "\n";
 }
 } // namespace utils::helpers
 #endif

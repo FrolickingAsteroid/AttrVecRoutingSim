@@ -8,6 +8,7 @@
 #include <tabulate/tabulate.hpp>
 
 #include "core/argparsing.hpp"
+#include "utils/ui/logger.hpp"
 
 namespace config
 {
@@ -18,21 +19,16 @@ void PrintUsage(const char *prog)
 		<< yellow("\nusage:\n") << "  " << prog
 		<< " -f <network.tsv> -R|-G|-B [-a <algebra>]"
 		<< " [-t <dest|all>] [-r <stab|set>]\n"
-		<< "  " << prog
-		<< " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
-		<< "  " << prog
-		<< " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
-		<< "  " << prog
-		<< " -N -f <network.tsv> -i <period> [-a <algebra>]\n\n"
+		<< "  " << prog << " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
+		<< "  " << prog << " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
+		<< "  " << prog << " -N -f <network.tsv> -i <period> [-a <algebra>]\n\n"
 
-		<< yellow("protocols:\n")
-		<< "  -R               RPBOB (default)\n"
+		<< yellow("protocols:\n") << "  -R               RPBOB (default)\n"
 		<< "  -G               BGP\n"
 		<< "  -B               Beaconing\n"
 		<< "  -N               compute window size N from specified network file and period\n\n"
 
-		<< yellow("required:\n")
-		<< "  -f <file>        path to network .tsv file\n"
+		<< yellow("required:\n") << "  -f <file>        path to network .tsv file\n"
 		<< "  -i <period>      destination announcement period\n"
 		<< "  -m <max>         number of routing computations\n\n"
 
@@ -41,7 +37,12 @@ void PrintUsage(const char *prog)
 		<< "  -t <dest>        destination node id, or 'all' (default: all)\n"
 		<< "  -r <type>        data to collect: node stabilization time, stab or time series, set (default: stab)\n"
 		<< "  -w <N>           window size for RPBOB (default: auto from graph)\n"
-		<< "  -d <dprop>       propagation interval for Beaconing\n\n";
+		<< "  -d <dprop>       propagation interval for Beaconing\n\n"
+
+		<< yellow("Log lebel:\n")
+		<< "  -I               print basic information output (default)\n"
+		<< "  -V               print additional information regarding protocol parameters and outputs\n"
+		<< "  -S	       supress printing\n";
 }
 
 void PrintSummary(std::chrono::milliseconds elapsed)
@@ -49,8 +50,7 @@ void PrintSummary(std::chrono::milliseconds elapsed)
 	tabulate::Table table;
 	table.add_row(Row({ "Parameter", "value" }));
 
-	table.add_row(Row(
-		{ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
+	table.add_row(Row({ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
 	table[0].format()
 		.font_style({ tabulate::FontStyle::bold })
 		.font_color(tabulate::Color::yellow);
@@ -93,7 +93,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 {
 	SimulationConfig cfg;
 	int c;
-	while ((c = getopt(argc, argv, "f:t:r:m:d:a:w:i:NRGB")) != -1) {
+	while ((c = getopt(argc, argv, "f:t:r:m:d:a:w:i:NRGBVSI")) != -1) {
 		switch (c) {
 		case 'f':
 			cfg.network_file = optarg;
@@ -131,6 +131,15 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		case 'N':
 			cfg.protocol = N;
 			break;
+		case 'V':
+			setVerbose();
+			break;
+		case 'S':
+			setSilent();
+			break;
+		case 'I':
+			setInfo();
+			break;
 		case '?':
 		case 'h':
 		default:
@@ -150,26 +159,22 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 				"must specify period, window size, and number of routing computations");
 		}
 	} else if (cfg.protocol == Beaconing) {
-		if (cfg.period == nullopt || cfg.max_beacons == nullopt ||
-		    cfg.dprop == nullopt) {
+		if (cfg.period == nullopt || cfg.max_beacons == nullopt || cfg.dprop == nullopt) {
 			throw std::runtime_error(
 				"must specify propagation delay, period and number of routing computations");
 		}
 	} else if (cfg.protocol == N) {
 		if (cfg.period == nullopt) {
-			throw std::runtime_error(
-				"must period of routing computations");
+			throw std::runtime_error("must period of routing computations");
 		}
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
 			if (cfg.destination != -1) {
-				Compute_N<int, TOL, LE>(cfg.network_file,
-							cfg.period.value(),
+				Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value(),
 							cfg.destination);
 			} else {
-				Compute_N<int, TOL, LE>(cfg.network_file,
-							cfg.period.value());
+				Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
 			}
 		}
 		std::exit(0);

@@ -48,7 +48,7 @@ constexpr const char* bold = "\033[1m";
 constexpr const char* cyan = "\033[36m";
 constexpr const char* yellow = "\033[33m";
 constexpr const char* reset = "\033[0m";
-constexpr const char* green = "\033[35m";
+constexpr const char* purple = "\033[35m";
 } // namespace colors
 
 inline std::string bold(const std::string& s)
@@ -65,9 +65,9 @@ inline std::string yellow(const std::string& s)
 {
     return std::string(colors::yellow) + s + colors::reset;
 }
-inline std::string green(const std::string& s)
+inline std::string purple(const std::string& s)
 {
-    return std::string(colors::green) + s + colors::reset;
+    return std::string(colors::purple) + s + colors::reset;
 }
 inline void clear()
 {
