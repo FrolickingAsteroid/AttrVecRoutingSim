@@ -24,6 +24,6 @@ typedef struct TotalOrderLength {
 		return null;
 	}
 } TOL;
-} // namespace RoutingAlgebras
+}
 
-#endif // LENGTH_ORDER_H
+#endif

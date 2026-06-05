@@ -26,6 +26,6 @@ template <class R> struct Simulation : ISimulation {
 	{
 	}
 };
-} // namespace Simulator
+}
 
-#endif // SIMULATOR_HPP
+#endif

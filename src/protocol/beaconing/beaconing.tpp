@@ -7,11 +7,9 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
-						  int max)
+template <class RA> void BECING<RA>::DestinationAnnouncement(int t, int n, double period, int max)
 {
-	b beacon(t, Ord::Neutral());
+	Beacon<A> beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
 	uint64_t cnt = this->Send(t, beacon);
@@ -27,17 +25,16 @@ void BECING<A, Ord, Ext>::DestinationAnnouncement(int t, int n, double period,
 	}
 }
 
-template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
+template <class RA> void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon)
 {
 	if (beacon.expired(cal.now())) {
 		return;
 	}
 	Ext extension;
 
-	seq_attr lw(std::get<2>(graph.adjListOut[u].at(v)));
-	seq_attr candidate = extension(lw, beacon.getAttr());
-	b old_best = s[u].best_candidate;
+	A lw(std::get<2>(graph.adjListOut[u].at(v)));
+	A candidate = extension(lw, beacon.getAttr());
+	Beacon<A> old_best = s[u].best_candidate;
 
 	beacon.addAsEntry(u);
 	beacon.addAttr(candidate);
@@ -48,8 +45,7 @@ void BECING<A, Ord, Ext>::MsgReception(int u, int v, b beacon)
 	}
 }
 
-template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::SchedulePropagation(int u, double d_prop, int max)
+template <class RA> void BECING<RA>::SchedulePropagation(int u, double d_prop, int max)
 {
 	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
 
@@ -59,8 +55,7 @@ void BECING<A, Ord, Ext>::SchedulePropagation(int u, double d_prop, int max)
 		});
 }
 
-template <class A, class Ord, class Ext>
-void BECING<A, Ord, Ext>::Propagate(int u)
+template <class RA> void BECING<RA>::Propagate(int u)
 {
 	auto selected = s[u].BeaconsToPropagate(cal.now());
 

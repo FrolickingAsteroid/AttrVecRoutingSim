@@ -7,27 +7,24 @@
 #include "protocol/beaconing/beaconing.hpp"
 #include "simulator/simulator.hpp"
 
-#include "utils/ui/monitor.hpp"
+#include "utils/ui/appearance.hpp"
 
 using namespace Protocol::Beaconing;
+using namespace Graphs;
 
 namespace Simulator
 {
 
-template <class A, class Ord, class Ext>
-class BECINGSimulation : public Simulation<Beacon<A> > {
+template <class RA> class BECINGSimulation : public Simulation<Beacon<typename RA::BaseAttr>> {
     public:
-	using Base = Simulation<Beacon<A> >;
+	using Base = Simulation<Beacon<typename RA::BaseAttr>>;
 	using Base::registrar;
 
-	BECINGSimulation(const std::string &filename, int max_, int dest_,
-			 double d_prop_, double period_,
-			 utils::RegisterType log_t_)
-		: Base(filename, max_, dest_, period_, log_t_, "beaconing",
-		       "dprop",
-		       std::to_string(d_prop_).substr(
-			       0, std::to_string(d_prop_).find('.') + 2))
-		, graph(Graphs::Graph<A>::readGraph(filename))
+	BECINGSimulation(const std::string &filename, int max_, int dest_, double d_prop_,
+			 double period_, utils::RegisterType log_t_)
+		: Base(filename, max_, dest_, period_, log_t_, "beaconing", "dprop",
+		       utils::ui::formatParam(d_prop_))
+		, graph(Graph<typename RA::BaseAttr>::readGraph(filename))
 		, d_prop(d_prop_)
 		, period(period_)
 		, dest(dest_)
@@ -48,7 +45,7 @@ class BECINGSimulation : public Simulation<Beacon<A> > {
 	void run() override
 	{
 		for (int t : targets) {
-			BECING<A, Ord, Ext> proto(graph);
+			BECING<RA> proto(graph);
 			proto.DestinationAnnouncement(t, 0, period, max);
 
 			// periodic propagation on every node,
@@ -63,7 +60,7 @@ class BECINGSimulation : public Simulation<Beacon<A> > {
 	}
 
     private:
-	Graphs::Graph<A> graph;
+	Graph<typename RA::BaseAttr> graph;
 	double d_prop;
 	double period;
 	int dest, max;

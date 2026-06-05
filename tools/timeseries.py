@@ -201,10 +201,15 @@ def plot_node_timeline(df_node, node, output_file=None, ncols=3):
 
 
 if __name__ == "__main__":
-    PROTO = "beaconing"
-    TESTDIR = f"../data/output/rocketfuel/1221/{PROTO}"
-    FILE = "DelayLength_d0_p60.0_rc1_set.csv"
-    node = 12
+    PROTO = "rpbob"
+    # TESTDIR = "../data/output/rocketfuel/1221/rpbob/keep"
+    # FILE = "DelayLength_d0_N40_p60.0_rc100_set.csv"
+
+    TESTDIR = "../data/output/rocketfuel/1221/rpbob"
+    FILE = "DelayLength_d0_N40_p60.0_rc5_set.csv"
+    # TESTDIR = f"../data/output/test/small/{PROTO}"
+    # FILE = "edge-case_d2_N40_p2.0_rc5_set.csv"
+    node = 33
 
     cwd = os.getcwd()
 

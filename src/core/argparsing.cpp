@@ -9,6 +9,12 @@
 
 #include "core/argparsing.hpp"
 #include "utils/ui/logger.hpp"
+#include "utils/helpers/helpers.hpp"
+
+using namespace RoutingAlgebras;
+using namespace utils::helpers;
+using namespace utils::ui;
+using namespace std;
 
 namespace config
 {

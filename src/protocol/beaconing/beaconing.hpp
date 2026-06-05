@@ -4,36 +4,31 @@
 #include "protocol/beaconing/state/beacon.hpp"
 #include "protocol/beaconing/state/store.hpp"
 #include "protocol/protocol.hpp"
-#include <vector>
+
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord, class Ext>
-struct BECING : IProtocol<A, Beacon<A> > {
-	// https://github.com/scionproto/scion/blob/control/config/config.go#L37
-	static constexpr double DPropInterval = 60; //
-
-	using Base = IProtocol<A, Beacon<A> >;
+template <class RA> struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>> {
+	using Base = IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>;
 	using Base::graph;
 	using Base::cal;
 	using Base::data;
 
-	using b = Beacon<A>;
-	using store = BeaconStore<A, Ord>;
-	using seq_attr = A;
+	using A = RA::BaseAttr;
+	using Ord = RA::Ord;
+	using Ext = RA::Ext;
 
-	std::vector<store> s;
+	std::vector<BeaconStore<A, Ord>> s;
 
 	explicit BECING(Graphs::Graph<A> &graph_)
 		: Base(graph_)
-		, s(graph_.V, store())
+		, s(graph_.V, BeaconStore<A, Ord>())
 	{
 	}
 
-	void DestinationAnnouncement(int t, int n, double period,
-				     int max) override;
+	void DestinationAnnouncement(int t, int n, double period, int max) override;
 
-	void MsgReception(int u, int v, b beacon) override;
+	void MsgReception(int u, int v, Beacon<A> beacon) override;
 	void SchedulePropagation(int u, double d_prop, int max);
 	void Propagate(int u);
 };

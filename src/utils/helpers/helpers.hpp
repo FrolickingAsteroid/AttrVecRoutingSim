@@ -21,6 +21,10 @@ std::pair<double, std::vector<double>>
 WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class A>
+std::vector<int> propagateN(const std::vector<double> &node_D,
+				    const Graphs::Graph<A> &graph, double Delta);
+
+template <class A>
 int checkMonotonicity(std::vector<double> node_D, std::vector<std::vector<std::pair<int, A>>> opt,
 		      double Delta, int V);
 

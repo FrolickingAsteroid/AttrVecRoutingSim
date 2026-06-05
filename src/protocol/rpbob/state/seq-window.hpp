@@ -2,6 +2,9 @@
 #define SEQ_WINDOW_HPP
 
 #include "path-segment.hpp"
+#include "routing-algebras/extensions/seq-extension.hpp"
+#include "routing-algebras/orders/sequenced-order.hpp"
+
 #include <optional>
 #include <vector>
 
@@ -28,8 +31,8 @@ template <class A, class Ord> class SequenceWindow {
 	std::vector<path> set_seq_attr;
 	path best_attr;
 };
-} // namespace Protocol::Rpbob
+}
 
 #include "protocol/rpbob/state/seq-window.tpp"
 
-#endif // SEQ_WINDOW_HPP
+#endif

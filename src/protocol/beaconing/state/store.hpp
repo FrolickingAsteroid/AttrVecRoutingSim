@@ -1,8 +1,9 @@
 #ifndef STORE_HPP
 #define STORE_HPP
 
-#include "beacon.hpp"
 #include <vector>
+
+#include "beacon.hpp"
 
 namespace Protocol::Beaconing
 {

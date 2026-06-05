@@ -1,17 +1,16 @@
 #ifndef MP_PATH_SEGMENT_H
 #define MP_PATH_SEGMENT_H
 
-#include <routing-algebras/sequenced-ra.hpp>
 #include <vector>
 
 namespace Protocol::Rpbob
 {
 template <class A> struct Path {
-	RoutingAlgebras::SeqAttr<A> attribute;
+	A attr;
 	std::vector<int> path;
 
-	Path(int e, RoutingAlgebras::SeqAttr<A> a)
-		: attribute(a)
+	Path(int e, A a)
+		: attr(a)
 	{
 		addAsEntry(e);
 	}
@@ -21,19 +20,19 @@ template <class A> struct Path {
 		path.insert(path.begin(), entry);
 	}
 
-	RoutingAlgebras::SeqAttr<A> getAttr()
+	A getAttr()
 	{
-		return attribute;
+		return attr;
 	}
 
-	void addAttr(const RoutingAlgebras::SeqAttr<A> &attr)
+	void addAttr(A &attr_)
 	{
-		attribute = attr;
+		attr = attr_;
 	}
 
 	bool operator==(const Path<A> &other) const
 	{
-		return attribute == other.attribute && path == other.path;
+		return attr == other.attr && path == other.path;
 	}
 
 	bool operator!=(const Path<A> &other) const
@@ -43,7 +42,7 @@ template <class A> struct Path {
 
 	friend std::ostream &operator<<(std::ostream &os, const Path<A> &p)
 	{
-		os << "(" << p.attribute.n << ";" << p.attribute.a << ")";
+		os << "(" << p.attr.n << ";" << p.attr.a << ")";
 		return os;
 	}
 };

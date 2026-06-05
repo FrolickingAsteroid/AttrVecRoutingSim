@@ -8,29 +8,28 @@
 
 namespace Protocol::Rpbob
 {
-template <class A, class Ord, class Ext> struct RPBOB : IProtocol<A, Path<A> > {
-	using Base = IProtocol<A, Path<A> >;
+template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>> {
+	using Base = IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>>;
 	using Base::graph;
 	using Base::cal;
 	using Base::data;
 
-	using path = Path<A>;
-	using window = SequenceWindow<A, Ord>;
-	using seq_attr = RoutingAlgebras::SeqAttr<A>;
+	using A = RA::Attr;
+	using Ord = RA::Ord;
+	using Ext = RA::Ext;
 
-	std::vector<window> s;
+	std::vector<SequenceWindow<A, Ord>> s;
 
-	explicit RPBOB(Graphs::Graph<A> &graph_, std::size_t N_)
+	explicit RPBOB(Graph<typename RA::BaseAttr> &graph_, std::size_t N_)
 		: Base(graph_)
-		, s(graph_.V, window(N_))
+		, s(graph_.V, SequenceWindow<A, Ord>(N_))
 	{
 	}
 
-	void MsgReception(int u, int v, path p) override;
-	void DestinationAnnouncement(int t, int n, double period,
-				     int max) override;
+	void MsgReception(int u, int v, Path<A> p) override;
+	void DestinationAnnouncement(int t, int n, double period, int max) override;
 };
-} // namespace Protocol::Rpbob
+}
 
 #include "protocol/rpbob/rpbob.tpp"
 

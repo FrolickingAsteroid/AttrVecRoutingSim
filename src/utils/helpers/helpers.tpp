@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <queue>
+#include <set>
 #include <vector>
 
 using namespace utils::ui;
@@ -55,10 +56,12 @@ DelayDijkstra(const Graphs::Graph<A> &graph, int dest)
 
 	A neutral = Ord::Neutral();
 	pq.push(std::make_tuple(0.0, dest, neutral, -1));
+	std::set<int> visited;
 
 	while (!pq.empty()) {
 		auto [tau, u, a, succ] = pq.top();
 		pq.pop();
+
 		if (!in(a, opt[u])) {
 			opt_time[u].push_back({ tau, a });
 			if (select(opt[u], a, succ)) {
@@ -159,7 +162,7 @@ template <class A, class Ord, class Ext> void Compute_N(const std::string &filen
 template <class A, class Ord, class Ext>
 void Compute_N(const std::string &filename, double Delta, int t)
 {
-	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (destination" +
+	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (destination " +
 			     std::to_string(t) + ")\n\n");
 	auto graph = Graphs::Graph<A>::readGraph(filename);
 	auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, t);
@@ -168,6 +171,42 @@ void Compute_N(const std::string &filename, double Delta, int t)
 	printDelays(node_D, D);
 
 	LOG_INFO << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
+
+	propagateN(node_D, graph, Delta);
+}
+
+template <class A>
+std::vector<int> propagateN(const std::vector<double> &node_D, const Graphs::Graph<A> &graph,
+			    double Delta)
+{
+	std::vector<int> node_N(graph.V);
+	for (int u = 0; u < graph.V; ++u)
+		node_N[u] = static_cast<int>(std::ceil(node_D[u] / Delta));
+
+	int max = std::max_element(node_N.begin(), node_N.end()) - node_N.begin();
+
+	using P = std::pair<int, int>;
+	std::priority_queue<P> pq;
+	pq.push({ node_N[max], max });
+
+	while (!pq.empty()) {
+		auto [N, v] = pq.top();
+		pq.pop();
+		for (auto &[u, edge] : graph.adjListIn[v]) {
+			if (node_N[u] < N) {
+				node_N[u] = N;
+				pq.push({ node_N[u], u });
+			}
+		}
+	}
+
+	LOG_DEBUG << "\n  --- N ---";
+	for (int u = 0; u < graph.V; ++u)
+		LOG_DEBUG << "  node_N[" << u << "] = " << node_N[u];
+
+	LOG_DEBUG << "\n";
+
+	return node_N;
 }
 
 inline void printDelays(std::vector<double> &results, double D)

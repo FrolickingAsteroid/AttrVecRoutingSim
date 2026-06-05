@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     series = [
         (base_dir / "rpbob" / FILE_1, "RPBOB SP"),
-        (base_dir / "beaconing" / FILE_2, "Beaconing SP"),
+        ##(base_dir / "beaconing" / FILE_2, "Beaconing SP"),
         # (base_dir / "rpbob" / FILE_2, "RPBOB Hop Count"),
         # (base_dir / "beaconing" / FILE_2, "Beaconing Hop Count"),
     ]
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     plot_dir = Path("../data/plots")
     plot_dir.mkdir(exist_ok=True)
 
-    output_file = plot_dir / f"AS{NETWORK}_Lengths_ccdf_{dprop}_{N}_all.png"
+    output_file = plot_dir / f"AS{NETWORK}_Lengths_ccdf_{dprop}_{N}_allcocococ.png"
 
     plot_stab_ccdf(series, NETWORK, output_file)
 
