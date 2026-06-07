@@ -1,12 +1,28 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
-#include <optional>
-#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace utils::stats
 {
+
+struct SummaryStats {
+	double avg_term	   = 0;
+	double avg_msg	   = 0;
+	double avg_changes = 0;
+
+	double min_msg	   = INT_MAX;
+	double min_term	   = INT_MAX;
+	double min_changes = INT_MAX;
+
+	double max_term	   = 0;
+	double max_changes = 0;
+	double max_msg	   = 0;
+
+	int total_nodes = 0;
+	int total_dests = 0;
+};
 
 // ─── Data<R> ─────────────────────────────────────────────────────────────────
 // Per-destination data collected during one simulation run.

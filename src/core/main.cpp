@@ -1,4 +1,5 @@
 #include "core/argparsing.hpp"
+#include "utils/stats/data.hpp"
 
 #include <chrono>
 
@@ -17,9 +18,11 @@ int main(int argc, char *const *argv)
 		sim->run();
 		const auto end = chrono::steady_clock::now();
 
+		auto stats = sim->postProcess();
+
 		const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
 
-		PrintSummary(elapsed);
+		PrintSummary(elapsed,stats);
 
 		return 0;
 	} catch (const std::exception &err) {

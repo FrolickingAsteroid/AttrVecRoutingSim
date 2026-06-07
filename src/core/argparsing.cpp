@@ -48,17 +48,43 @@ void PrintUsage(const char *prog)
 		  << "  -S               suppress printing\n";
 }
 
-void PrintSummary(std::chrono::milliseconds elapsed)
+void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats)
 {
-	tabulate::Table table;
-	table.add_row(Row({ "Parameter", "value" }));
-	table.add_row(Row({ "elapsed time", std::to_string(elapsed.count()) + " ms" }));
-	table[0].format()
-		.font_style({ tabulate::FontStyle::bold })
-		.font_color(tabulate::Color::yellow);
+	using namespace tabulate;
 
-	std::cout << cyan("\nSimulation summary:\n");
-	std::cout << table << "\n";
+	auto fmt = [](double v) {
+		std::ostringstream ss;
+		ss << std::fixed << std::setprecision(2) << v;
+		return ss.str();
+	};
+
+	auto range = [&](double avg, double mn, double mx) {
+		return fmt(avg) + "  (" + fmt(mn) + " / " + fmt(mx) + ")";
+	};
+
+	Table table;
+
+	// header row
+	table.add_row({ "Parameter", "avg  (min / max)" });
+
+	table.add_row({ "Elapsed time", std::to_string(elapsed.count()) + " ms" });
+
+	table.add_row(
+		{ "Termination time (ms)", range(stats.avg_term, stats.min_term, stats.max_term) });
+
+	table.add_row({ "Attribute changes / node",
+			range(stats.avg_changes, stats.min_changes, stats.max_changes) });
+
+	table.add_row(
+		{ "Messages sent / node", range(stats.avg_msg, stats.min_msg, stats.max_msg) });
+
+	table[0].format().font_style({ FontStyle::bold }).font_color(Color::yellow);
+
+	for (std::size_t i = 1; i < table.size(); ++i)
+		table[i][0].format().font_color(Color::cyan);
+
+	LOG_INFO << purple("\nSimulation summary:\n");
+	LOG_INFO << table << "\n\n";
 }
 
 int ParseDest(const std::string &s)

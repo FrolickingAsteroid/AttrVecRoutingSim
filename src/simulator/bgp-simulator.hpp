@@ -1,7 +1,6 @@
 #ifndef BGP_SIMULATION_HPP
 #define BGP_SIMULATION_HPP
 
-#include <cstddef>
 #include <numeric>
 #include <string>
 
@@ -22,6 +21,7 @@ template <class RA> class BGPSimulation : public ISimulation {
 	BGPSimulation(const std::string			       &filename,
 		      const std::map<std::string, std::string> &map,
 		      int					dest_)
+
 		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
 		, recorder(filename, "bgp", map)
 		, dest(dest_)
@@ -46,6 +46,11 @@ template <class RA> class BGPSimulation : public ISimulation {
 			proto.Run();
 			recorder.recordDest(t, proto.data);
 		}
+	}
+
+	utils::stats::SummaryStats postProcess() override
+	{
+		return utils::stats::Summary(recorder.getRecords());
 	}
 
     private:

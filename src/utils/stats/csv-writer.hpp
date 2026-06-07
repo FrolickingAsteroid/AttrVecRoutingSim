@@ -12,6 +12,11 @@
 namespace utils::stats
 {
 
+template <class R> struct Record {
+	int	dest;
+	Data<R> data;
+};
+
 /**
  * Implementation of a simple csv management class
  *
@@ -26,6 +31,7 @@ template <class R> class Recorder {
 	Recorder(const std::filesystem::path		  &input,
 		 const std::string			  &proto,
 		 const std::map<std::string, std::string> &map)
+		: records()
 	{
 		convergence_out = openFile(makeOutputPath(input, proto, map, "convergence"));
 		convergence_out << convergenceHeader();
@@ -36,6 +42,7 @@ template <class R> class Recorder {
 
 	void recordDest(int dest, const Data<R> &data)
 	{
+		records.push_back({ dest, data });
 		int n = static_cast<int>(data.lastChangeTime.size());
 		for (int u = 0; u < n; ++u) {
 			if (u == dest) {
@@ -44,6 +51,11 @@ template <class R> class Recorder {
 			writeConvergenceRow(convergence_out, dest, u, data);
 			writeTrafficRow(traffic_out, dest, u, data);
 		}
+	}
+
+	std::vector<Record<R>> getRecords()
+	{
+		return records;
 	}
 
 	static std::string convergenceHeader()
@@ -68,8 +80,9 @@ template <class R> class Recorder {
 	}
 
     private:
-	std::ofstream convergence_out;
-	std::ofstream traffic_out;
+	std::vector<Record<R>> records;
+	std::ofstream	       convergence_out;
+	std::ofstream	       traffic_out;
 };
 
 }

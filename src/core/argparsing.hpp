@@ -40,7 +40,7 @@ struct SimulationConfig {
 // ---------------------------------------------------------------------------- *
 
 void PrintUsage(const char *prog);
-void PrintSummary(std::chrono::milliseconds elapsed);
+void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats);
 
 // ---------------------------------------------------------------------------- *
 //

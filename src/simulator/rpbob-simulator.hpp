@@ -9,6 +9,7 @@
 #include "protocol/rpbob/rpbob.hpp"
 #include "simulator/simulator.hpp"
 #include "utils/stats/csv-writer.hpp"
+#include "utils/stats/stats-summary.hpp"
 
 using namespace Protocol::Rpbob;
 using namespace Graphs;
@@ -53,11 +54,17 @@ template <class RA> class RpBOBSimulation : public ISimulation {
 		}
 	}
 
+	utils::stats::SummaryStats postProcess() override
+	{
+		return utils::stats::Summary(recorder.getRecords());
+	}
+
     private:
 	Graph<typename RA::BaseAttr>			graph;
 	utils::stats::Recorder<Path<typename RA::Attr>> recorder;
 	double						period;
-	int						dest, max;
+	int						dest;
+	int						max;
 	std::size_t					N;
 	std::vector<int>				targets;
 };

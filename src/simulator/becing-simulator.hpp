@@ -7,6 +7,7 @@
 #include "simulator/simulator.hpp"
 #include "utils/ui/appearance.hpp"
 #include "utils/stats/csv-writer.hpp"
+#include "utils/stats/stats-summary.hpp"
 #include "protocol/beaconing/beaconing.hpp"
 
 using namespace Protocol::Beaconing;
@@ -57,6 +58,11 @@ template <class RA> class BECINGSimulation : public ISimulation {
 			proto.Run();
 			recorder.recordDest(t, proto.data);
 		}
+	}
+
+	utils::stats::SummaryStats postProcess() override
+	{
+		return utils::stats::Summary(recorder.getRecords());
 	}
 
     private:
