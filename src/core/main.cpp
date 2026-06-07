@@ -9,7 +9,7 @@ int main(int argc, char *const *argv)
 {
 	try {
 		const auto cfg = ParseArgs(argc, argv);
-		auto sim = MakeSimulation(cfg);
+		auto	   sim = MakeSimulation(cfg);
 
 		sim->setup();
 
@@ -17,9 +17,7 @@ int main(int argc, char *const *argv)
 		sim->run();
 		const auto end = chrono::steady_clock::now();
 
-		const auto elapsed =
-			chrono::duration_cast<chrono::milliseconds>(end -
-								    start);
+		const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
 
 		PrintSummary(elapsed);
 

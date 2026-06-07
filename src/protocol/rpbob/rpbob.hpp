@@ -1,10 +1,11 @@
 #ifndef RPBOB_HPP
 #define RPBOB_HPP
 
-#include "protocol/protocol.hpp"
-#include "protocol/rpbob/state/path-segment.hpp"
-#include "protocol/rpbob/state/seq-window.hpp"
 #include <vector>
+
+#include "protocol/protocol.hpp"
+#include "protocol/rpbob/state/seq-window.hpp"
+#include "protocol/rpbob/state/path-segment.hpp"
 
 namespace Protocol::Rpbob
 {
@@ -14,7 +15,7 @@ template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typenam
 	using Base::cal;
 	using Base::data;
 
-	using A = RA::Attr;
+	using A	  = RA::Attr;
 	using Ord = RA::Ord;
 	using Ext = RA::Ext;
 
@@ -27,7 +28,12 @@ template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typenam
 	}
 
 	void MsgReception(int u, int v, Path<A> p) override;
-	void DestinationAnnouncement(int t, int n, double period, int max) override;
+	void DestinationAnnouncement(int t, int n, double period, int max);
+
+	void LinkFailure(int u, int v) override
+	{
+		graph.deactivate(u, v);
+	}
 };
 }
 

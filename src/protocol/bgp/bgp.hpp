@@ -1,36 +1,91 @@
 #ifndef BGP_HPP
 #define BGP_HPP
 
+#include "protocol/bgp/state/bgp-attribute.hpp"
+#include "protocol/bgp/state/node-state.hpp"
 #include "protocol/protocol.hpp"
-#include "protocol/rpbob/state/path-segment.hpp"
-#include "protocol/rpbob/state/seq-window.hpp"
 #include <vector>
 
 namespace Protocol::BGP
 {
-template <class RA> struct BGP : IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>> {
-	using Base = IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>>;
+
+// BGP<A, Ord, Ext> implements the BGP path-vector protocol over IProtocol.
+//
+// Template parameters:
+//   A    — the underlying metric type (e.g. int, Weight).
+//          Must support operator+, operator<, operator!=, operator==.
+//   Ord  — provides Ord::Neutral(int asn) → BGPAttribute<A> and
+//                    Ord::Invalid()        → BGPAttribute<A>
+//          Used only at DestinationAnnouncement and construction time.
+//   Ext  — a callable: Ext()(link_attr, received_attr) → extended BGPAttribute<A>
+//          Applied in MsgReception before handing the result to the node state.
+//
+// Cycle-detection bookkeeping (nCycles, inCycle, cycleFormed, timeInCycle)
+// lives here, not in BGPNodeState, because it is protocol-level observation,
+// not per-node routing state.
+
+template <class RA>
+struct BGP
+	: IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr, typename RA::Ext>> {
+	using Base = IProtocol<typename RA::BaseAttr,
+			       BGPAttribute<typename RA::BaseAttr, typename RA::Ext>>;
 	using Base::graph;
 	using Base::cal;
 	using Base::data;
 
-	using A = RA::Attr;
-	using Ord = RA::Ord;
+	using A	  = RA::BaseAttr;
 	using Ext = RA::Ext;
+	using Ord = RA::Ord;
 
-	std::vector<SequenceWindow<A, Ord>> s;
+	using attr	 = BGPAttribute<A, Ext>;
+	using node_state = BGPNodeState<A, Ext, Ord>;
 
-	explicit BGP(Graph<typename RA::BaseAttr> &graph_, std::size_t N_)
+	std::vector<node_state> s;
+
+	std::vector<int>  nCycles;
+	std::vector<bool> inCycle;
+	std::vector<int>  cycleFormed;
+	std::vector<int>  timeInCycle;
+	std::vector<bool> changeAttr;
+	std::vector<bool> firstChange;
+
+	explicit BGP(Graph<A> &graph_)
 		: Base(graph_)
-		, s(graph_.V, SequenceWindow<A, Ord>(N_))
+		, s(graph_.V, node_state())
+		, nCycles(graph_.V, 0)
+		, inCycle(graph_.V, false)
+		, cycleFormed(graph_.V, 0)
+		, timeInCycle(graph_.V, 0)
+		, changeAttr(graph_.V, false)
+		, firstChange(graph_.V, false)
 	{
 	}
 
-	void MsgReception(int u, int v, Path<A> p) override;
-	void DestinationAnnouncement(int t, int n, double period, int max) override;
+	void DestinationAnnouncement(int t);
+
+	void LinkFailure(int u, int v) override;
+	void MsgReception(int u, int v, attr received) override;
+
+	//std::vector<int> &CycleBlackHoleTimes();
+	//std::vector<int> &CycleBlackHoleChanges();
+
+	// private:
+	// Fan out the elected attribute of node u to all its in-neighbors.
+	// void advertiseToNeighbors(int u, int dest);
+
+	// Resets all cycle-detection bookkeeping to zero.
+	// Called at the start of DestinationAnnouncement and Withdrawal.
+	// void resetCycleState();
+
+	// Updates inCycle/nCycles/timeInCycle for all nodes at time t.
+	// Mirrors the check block at the end of processEvent in the original.
+	// void checkCycles(int t);
+
+	// Recursive cycle check for node u. Mirrors auxCheckCycle.
+	// bool auxCheckCycle(int u, std::vector<bool> &vis, std::vector<bool> &inStack);
 };
+
 }
 
-#include "protocol/rpbob/rpbob.tpp"
-
+#include "protocol/bgp/bgp.tpp"
 #endif

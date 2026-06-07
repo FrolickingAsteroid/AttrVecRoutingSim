@@ -76,5 +76,5 @@ SequenceWindow<A, Ord>::CompareSetAttr(const path &n)
 
 	return std::nullopt;
 }
-} // namespace Protocol::Rpbob
+}
 #endif // SEQ_WINDOW_TPP

@@ -102,57 +102,21 @@ WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 	return { D, node_D };
 }
 
-template <class A>
-int checkMonotonicity(std::vector<double> node_D, std::vector<std::vector<std::pair<int, A>>> opt,
-		      double Delta, int V)
-{
-	int violations = 0;
-
-	std::vector<std::size_t> node_N(V);
-	for (int u = 0; u < V; ++u)
-		node_N[u] = static_cast<std::size_t>(std::ceil(node_D[u] / Delta));
-
-	for (int u = 0; u < V; ++u) {
-		if (opt[u].empty())
-			continue;
-		auto &[succ, attr] = opt[u].front();
-		if (succ == -1)
-			continue;
-		if (node_N[u] < node_N[succ]) {
-			LOG_DEBUG << "\tN" << u << " = " << node_N[u] << " < " << "N" << succ
-				  << " = " << node_N[succ];
-			++violations;
-		}
-	}
-	return violations;
-}
-
 template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta)
 {
 	auto graph = Graphs::Graph<A>::readGraph(filename);
-	int violations = 0;
 	double D = 0.0;
 
 	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (" +
 			     std::to_string(graph.V) + " destinations)" + "\n");
 
-	LOG_DEBUG << yellow("Instance where N(u) < N(succ)\n");
-
 	std::vector<double> results;
 	for (int u = 0; u < graph.V; ++u) {
 		auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, u);
 		auto [delay, node_D] = WorstDelay<A, Ord>(opt_time);
-
-		LOG_DEBUG << cyan(bold("t = " + std::to_string(u) + ":"));
-		violations += checkMonotonicity(node_D, opt, Delta, graph.V);
 		D = std::max(D, delay);
 		results.push_back(delay);
 	}
-
-	if (violations == 0)
-		LOG_DEBUG << purple("\nN_u >= N_v holds for all nodes in all destinations.\n");
-	else
-		LOG_DEBUG << "\n";
 
 	printDelays(results, D);
 

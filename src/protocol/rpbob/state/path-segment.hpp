@@ -6,8 +6,10 @@
 namespace Protocol::Rpbob
 {
 template <class A> struct Path {
-	A attr;
+	A		 attr;
 	std::vector<int> path;
+
+	Path() = default;
 
 	Path(int e, A a)
 		: attr(a)

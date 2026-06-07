@@ -5,16 +5,16 @@
 #include "protocol/beaconing/state/store.hpp"
 #include "protocol/protocol.hpp"
 
-
 namespace Protocol::Beaconing
 {
-template <class RA> struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>> {
+template <class RA>
+struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>> {
 	using Base = IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>;
 	using Base::graph;
 	using Base::cal;
 	using Base::data;
 
-	using A = RA::BaseAttr;
+	using A	  = RA::BaseAttr;
 	using Ord = RA::Ord;
 	using Ext = RA::Ext;
 
@@ -26,11 +26,16 @@ template <class RA> struct BECING : IProtocol<typename RA::BaseAttr, Beacon<type
 	{
 	}
 
-	void DestinationAnnouncement(int t, int n, double period, int max) override;
+	void DestinationAnnouncement(int t, int n, double period, int max);
 
 	void MsgReception(int u, int v, Beacon<A> beacon) override;
 	void SchedulePropagation(int u, double d_prop, int max);
 	void Propagate(int u);
+
+	void LinkFailure(int u, int v) override
+	{
+		graph.deactivate(u, v);
+	}
 };
 }
 

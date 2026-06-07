@@ -4,10 +4,10 @@
 #include <numeric>
 #include <string>
 
-#include "protocol/beaconing/beaconing.hpp"
 #include "simulator/simulator.hpp"
-
 #include "utils/ui/appearance.hpp"
+#include "utils/stats/csv-writer.hpp"
+#include "protocol/beaconing/beaconing.hpp"
 
 using namespace Protocol::Beaconing;
 using namespace Graphs;
@@ -15,16 +15,16 @@ using namespace Graphs;
 namespace Simulator
 {
 
-template <class RA> class BECINGSimulation : public Simulation<Beacon<typename RA::BaseAttr>> {
+template <class RA> class BECINGSimulation : public ISimulation {
     public:
-	using Base = Simulation<Beacon<typename RA::BaseAttr>>;
-	using Base::registrar;
-
-	BECINGSimulation(const std::string &filename, int max_, int dest_, double d_prop_,
-			 double period_, utils::RegisterType log_t_)
-		: Base(filename, max_, dest_, period_, log_t_, "beaconing", "dprop",
-		       utils::ui::formatParam(d_prop_))
-		, graph(Graph<typename RA::BaseAttr>::readGraph(filename))
+	BECINGSimulation(const std::string			  &filename,
+			 const std::map<std::string, std::string> &map,
+			 int					   max_,
+			 int					   dest_,
+			 double					   d_prop_,
+			 double					   period_)
+		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
+		, recorder(filename, "beaconing", map)
 		, d_prop(d_prop_)
 		, period(period_)
 		, dest(dest_)
@@ -55,16 +55,17 @@ template <class RA> class BECINGSimulation : public Simulation<Beacon<typename R
 			}
 
 			proto.Run();
-			registrar.RegisterDestination(t, proto.data);
+			recorder.recordDest(t, proto.data);
 		}
 	}
 
     private:
-	Graph<typename RA::BaseAttr> graph;
-	double d_prop;
-	double period;
-	int dest, max;
-	std::vector<int> targets;
+	Graph<typename RA::BaseAttr>			      graph;
+	utils::stats::Recorder<Beacon<typename RA::BaseAttr>> recorder;
+	double						      d_prop;
+	double						      period;
+	int						      dest, max;
+	std::vector<int>				      targets;
 };
 
 } // namespace Simulator

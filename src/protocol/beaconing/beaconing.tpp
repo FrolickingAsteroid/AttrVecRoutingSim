@@ -12,8 +12,7 @@ template <class RA> void BECING<RA>::DestinationAnnouncement(int t, int n, doubl
 	Beacon<A> beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
 
-	uint64_t cnt = this->Send(t, beacon);
-	data.record(cal.now(), t, "announcement", cnt);
+	this->Send(t, beacon);
 
 	// schedule next routing computation
 	n += 1;
@@ -32,16 +31,16 @@ template <class RA> void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon
 	}
 	Ext extension;
 
-	A lw(std::get<2>(graph.adjListOut[u].at(v)));
-	A candidate = extension(lw, beacon.getAttr());
-	Beacon<A> old_best = s[u].best_candidate;
+	A	  lw(std::get<2>(graph.adjListOut[u].at(v)));
+	A	  candidate = extension(lw, beacon.getAttr());
+	Beacon<A> old_best  = s[u].best_candidate;
 
 	beacon.addAsEntry(u);
 	beacon.addAttr(candidate);
 	s[u].Insert(beacon);
 
 	if (old_best != s[u].best_candidate) {
-		data.record(cal.now(), u, s[u].best_candidate);
+		data.recordChange(u, cal.now(), s[u].best_candidate);
 	}
 }
 
@@ -62,13 +61,8 @@ template <class RA> void BECING<RA>::Propagate(int u)
 	if (selected.empty())
 		return;
 
-	data.record(cal.now(), u, selected.at(0), selected);
-
-	uint64_t cnt = 0;
 	for (auto beacon : selected)
-		cnt += this->Send(u, beacon);
-
-	data.record(cal.now(), u, "propagate", cnt);
+		this->Send(u, beacon);
 }
 
 }

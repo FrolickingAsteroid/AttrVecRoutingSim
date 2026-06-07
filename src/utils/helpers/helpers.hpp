@@ -24,10 +24,6 @@ template <class A>
 std::vector<int> propagateN(const std::vector<double> &node_D,
 				    const Graphs::Graph<A> &graph, double Delta);
 
-template <class A>
-int checkMonotonicity(std::vector<double> node_D, std::vector<std::vector<std::pair<int, A>>> opt,
-		      double Delta, int V);
-
 void printDelays(std::vector<double> &results, double D);
 
 } // namespace utils::helpers
