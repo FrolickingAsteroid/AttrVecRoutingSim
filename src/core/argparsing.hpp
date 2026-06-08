@@ -1,38 +1,21 @@
 #ifndef ARGPARSING_HPP
 #define ARGPARSING_HPP
 
+#include <map>
+#include <memory>
+#include <string>
+
 #include "routing-algebras/lengths.hpp"
 #include "routing-algebras/seq.hpp"
 
 #include "simulator/becing-simulator.hpp"
 #include "simulator/bgp-simulator.hpp"
 #include "simulator/rpbob-simulator.hpp"
-#include "simulator/simulator.hpp"
 
-#include <map>
-#include <memory>
-#include <string>
+#include "core/config.hpp"
 
 namespace config
 {
-
-enum Options { RPBOB, Beaconing, BGP, N };
-enum Metric { LENGTHS, HOPS };
-
-struct SimulationConfig {
-	// required args
-	std::string network_file;
-	Options	    protocol	= N;
-	Metric	    algebra	= LENGTHS;
-	int	    destination = -1;
-
-	// optional args
-	std::optional<double>	   dprop       = std::nullopt;
-	std::optional<double>	   period      = std::nullopt;
-	std::optional<int>	   max_beacons = std::nullopt;
-	std::optional<std::size_t> window_size = std::nullopt;
-};
-
 // ---------------------------------------------------------------------------- *
 //
 // Helper print functions
@@ -49,9 +32,8 @@ void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::Summary
 // ---------------------------------------------------------------------------- *
 
 SimulationConfig ParseArgs(int argc, char *const *argv);
-
-Metric ParseAlgebra(const std::string &s);
-int    ParseDest(const std::string &s);
+Metric		 ParseAlgebra(const std::string &s);
+int		 ParseDest(const std::string &s);
 
 // ---------------------------------------------------------------------------- *
 //
@@ -75,7 +57,7 @@ inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cf
 {
 	return {
 		{ "", AlgebraName(cfg.algebra) },
-		{ "N", std::to_string(cfg.window_size.value()) },
+		{ "N", std::to_string(cfg.N.value()) },
 		{ "period", utils::ui::formatParam(cfg.period.value()) },
 	};
 }
@@ -102,15 +84,9 @@ inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
 //
 // ---------------------------------------------------------------------------- *
 
-template <class RA>
-std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(const SimulationConfig &cfg)
+template <class RA> std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
 {
-	return std::make_unique<Simulator::RpBOBSimulation<RA>>(cfg.network_file,
-								RPBOBParams(cfg),
-								cfg.window_size.value(),
-								cfg.max_beacons.value(),
-								cfg.destination,
-								cfg.period.value());
+	return std::make_unique<Simulator::RpBOBSimulation<RA>>(cfg, RPBOBParams(cfg));
 }
 
 template <class RA>
@@ -118,34 +94,35 @@ std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(const SimulationConf
 {
 	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg.network_file,
 								 BeaconingParams(cfg),
-								 cfg.max_beacons.value(),
+								 cfg.max.value(),
 								 cfg.destination,
 								 cfg.dprop.value(),
-								 cfg.period.value());
+								 cfg.period.value(),
+								 cfg.scenario);
 }
 
 template <class RA>
 std::unique_ptr<Simulator::ISimulation> BGPSimulation(const SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::BGPSimulation<RA>>(
-		cfg.network_file, BGPParams(cfg), cfg.destination);
+		cfg.network_file, BGPParams(cfg), cfg.destination, cfg.scenario);
 }
 
-inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(const SimulationConfig &cfg)
+inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg)
 {
-	if (cfg.protocol == RPBOB) {
+	if (cfg.protocol == Options::RPBOB) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
 			return RPBOBSimulation<Sequenced<L>>(cfg);
 		}
-	} else if (cfg.protocol == Beaconing) {
+	} else if (cfg.protocol == Options::Beaconing) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
 			return BeaconingSimulation<L>(cfg);
 		}
-	} else if (cfg.protocol == BGP) {
+	} else if (cfg.protocol == Options::BGP) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
@@ -155,6 +132,6 @@ inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(const SimulationCo
 
 	throw std::runtime_error("unknown protocol");
 }
+}
 
-} // namespace config
 #endif

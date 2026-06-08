@@ -5,9 +5,12 @@
 #include <numeric>
 #include <string>
 
-#include "utils/ui/appearance.hpp"
-#include "protocol/rpbob/rpbob.hpp"
+#include "core/config.hpp"
+
 #include "simulator/simulator.hpp"
+#include "protocol/rpbob/rpbob.hpp"
+
+#include "utils/ui/logger.hpp"
 #include "utils/stats/csv-writer.hpp"
 #include "utils/stats/stats-summary.hpp"
 
@@ -19,36 +22,54 @@ namespace Simulator
 
 template <class RA> class RpBOBSimulation : public ISimulation {
     public:
-	RpBOBSimulation(const std::string			 &filename,
-			const std::map<std::string, std::string> &map,
-			std::size_t				  N_,
-			int					  max_,
-			int					  dest_,
-			double					  period_)
-		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
-		, recorder(filename, "rpbob", map)
-		, period(period_)
-		, dest(dest_)
-		, max(max_)
-		, N(N_)
+	RpBOBSimulation(config::SimulationConfig		 &cfg_,
+			const std::map<std::string, std::string> &map)
+		: cfg(cfg_)
+		, graph(Graph<typename RA::BaseAttr>::readGraph(cfg.network_file))
+		, recorder(cfg.network_file, "rpbob", map)
 	{
 	}
 
 	void setup() override
 	{
-		if (dest < 0) {
+		if (cfg.destination < 0) {
 			targets.resize(graph.V);
 			std::iota(targets.begin(), targets.end(), 0);
 		} else {
-			targets = { dest };
+			targets = { cfg.destination };
 		}
+
+		if (cfg.scenario == config::Normal) {
+			return;
+		}
+
+		double max_ct = 0;
+		for (int t : targets) {
+			RPBOB<RA> dry(graph, cfg.N.value());
+			dry.DestinationAnnouncement(t, 0, 0, 1);
+			dry.Run();
+			double ct = *std::max_element(dry.data.lastChangeTime.begin(),
+						      dry.data.lastChangeTime.end());
+
+			max_ct = std::max(max_ct, ct);
+		}
+		convergence_time = max_ct;
+
+		LOG_DEBUG << "\nLargest convergence time " << convergence_time << "\n";
 	}
 
 	void run() override
 	{
 		for (int t : targets) {
-			RPBOB<RA> proto(graph, N);
-			proto.DestinationAnnouncement(t, 0, period, max);
+			RPBOB<RA> proto(graph, *cfg.N);
+			proto.data.setOffset(convergence_time);
+
+			if (cfg.scenario == config::ScenarioType::LinkFailure)
+				proto.cal.schedule(convergence_time,
+						   [&]() { proto.LinkFailure(cfg.u, cfg.v); });
+
+			proto.DestinationAnnouncement(t, 0, *cfg.period, *cfg.max);
+
 			proto.Run();
 			recorder.recordDest(t, proto.data);
 		}
@@ -60,13 +81,12 @@ template <class RA> class RpBOBSimulation : public ISimulation {
 	}
 
     private:
+	config::SimulationConfig		       &cfg;
 	Graph<typename RA::BaseAttr>			graph;
 	utils::stats::Recorder<Path<typename RA::Attr>> recorder;
-	double						period;
-	int						dest;
-	int						max;
-	std::size_t					N;
-	std::vector<int>				targets;
+
+	std::vector<int> targets;
+	double		 convergence_time = 0;
 };
 
 }

@@ -43,7 +43,7 @@ template <class R> class Recorder {
 	void recordDest(int dest, const Data<R> &data)
 	{
 		records.push_back({ dest, data });
-		int n = static_cast<int>(data.lastChangeTime.size());
+		const int n = static_cast<int>(data.lastChangeTime.size());
 		for (int u = 0; u < n; ++u) {
 			if (u == dest) {
 				continue;
@@ -65,6 +65,10 @@ template <class R> class Recorder {
 
 	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data)
 	{
+		auto it = data.finalValue.find(u);
+		if (it == data.finalValue.end())
+			return;
+
 		out << dest << "," << u << "," << data.lastChangeTime[u] << ","
 		    << data.changeCounts[u] << "," << data.finalValue.at(u) << "\n";
 	}

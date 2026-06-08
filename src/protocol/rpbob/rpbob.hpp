@@ -32,7 +32,7 @@ template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typenam
 
 	void LinkFailure(int u, int v) override
 	{
-		graph.deactivate(u, v);
+		graph.removeEdge(u, v);;
 	}
 };
 }

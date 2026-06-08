@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <string>
 #include <tabulate/tabulate.hpp>
-#include <unordered_set>
 
 #include "core/argparsing.hpp"
 #include "utils/helpers/helpers.hpp"
@@ -108,7 +107,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	SimulationConfig cfg;
 	int		 c;
 
-	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:NRGBVSI")) != -1) {
+	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F:W:NRGBVSI")) != -1) {
 		switch (c) {
 		case 'f':
 			cfg.network_file = optarg;
@@ -129,7 +128,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			cfg.destination = ParseDest(optarg);
 			break;
 		case 'm':
-			cfg.max_beacons = std::stoi(optarg);
+			cfg.max = std::stoi(optarg);
 			break;
 		case 'i':
 			cfg.period = std::stod(optarg);
@@ -138,11 +137,30 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			cfg.dprop = std::stod(optarg);
 			break;
 		case 'w':
-			cfg.window_size = std::stoul(optarg);
+			cfg.N = std::stoul(optarg);
 			break;
 		case 'N':
 			cfg.protocol = N;
 			break;
+		case 'F': {
+			cfg.scenario = LinkFailure;
+
+			cfg.u = std::stoi(optarg);
+			if (optind < argc && *argv[optind] != '-') {
+				cfg.v = std::stoi(argv[optind]);
+				optind++;
+			} else {
+				throw std::runtime_error("-F requires two node ids: u v");
+			}
+			break;
+		}
+
+		case 'W': {
+			cfg.scenario   = Withdrawal;
+			cfg.withdrawal = std::stoi(optarg);
+			break;
+		}
+
 		case 'V':
 			setVerbose();
 			break;
@@ -164,12 +182,12 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		throw std::runtime_error("must specify a network file");
 
 	if (cfg.protocol == RPBOB) {
-		if (!cfg.period || !cfg.max_beacons || !cfg.window_size)
+		if (!cfg.period || !cfg.max || !cfg.N)
 			throw std::runtime_error(
 				"must specify period, window size, and number of routing computations");
 
 	} else if (cfg.protocol == Beaconing) {
-		if (!cfg.period || !cfg.max_beacons || !cfg.dprop)
+		if (!cfg.period || !cfg.max || !cfg.dprop)
 			throw std::runtime_error(
 				"must specify propagation delay, period, and number of routing computations");
 
@@ -180,16 +198,16 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
-			if (cfg.destination != -1)
+			if (cfg.destination != -1) {
 				Compute_N<int, TOL, LE>(
 					cfg.network_file, cfg.period.value(), cfg.destination);
-			else
+			} else {
 				Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
+			}
 		}
 		std::exit(0);
 	}
 
 	return cfg;
 }
-
 }

@@ -9,6 +9,9 @@ namespace Protocol::Rpbob
 {
 template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Path<A> p)
 {
+	if (graph.adjListOut[u].find(v) == graph.adjListOut[u].end())
+		return;
+
 	Ext extension;
 
 	Path<A> old_opt_attr = s[u].GetBestAttr();

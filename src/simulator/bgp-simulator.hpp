@@ -1,6 +1,8 @@
 #ifndef BGP_SIMULATION_HPP
 #define BGP_SIMULATION_HPP
 
+#include "core/config.hpp"
+
 #include <numeric>
 #include <string>
 
@@ -20,7 +22,8 @@ template <class RA> class BGPSimulation : public ISimulation {
     public:
 	BGPSimulation(const std::string			       &filename,
 		      const std::map<std::string, std::string> &map,
-		      int					dest_)
+		      int					dest_,
+		      config::ScenarioType			scenario)
 
 		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
 		, recorder(filename, "bgp", map)

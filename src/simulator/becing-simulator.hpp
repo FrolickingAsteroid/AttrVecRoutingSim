@@ -4,6 +4,7 @@
 #include <numeric>
 #include <string>
 
+#include "core/config.hpp"
 #include "simulator/simulator.hpp"
 #include "utils/ui/appearance.hpp"
 #include "utils/stats/csv-writer.hpp"
@@ -23,7 +24,8 @@ template <class RA> class BECINGSimulation : public ISimulation {
 			 int					   max_,
 			 int					   dest_,
 			 double					   d_prop_,
-			 double					   period_)
+			 double					   period_,
+			 config::ScenarioType			   scenario)
 		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
 		, recorder(filename, "beaconing", map)
 		, d_prop(d_prop_)

@@ -35,17 +35,24 @@ struct SummaryStats {
 //   - messageCount       — total messages sent during the run
 
 template <class R> struct Data {
-	explicit Data(int V)
+	explicit Data(const int V)
 		: lastChangeTime(V, 0.0)
 		, changeCounts(V, 0)
 		, msgCount(V)
 	{
 	}
 
+	void setOffset(double t)
+	{
+		offset = t;
+	}
+
 	// Called by the protocol every time node u changes its elected attribute.
 	void recordChange(const int node, const double time, const R &value)
 	{
-		lastChangeTime[node] = time;
+		if (time < offset)
+			return;
+		lastChangeTime[node] = time - offset;
 		++changeCounts[node];
 		finalValue[node] = value;
 	}
@@ -56,6 +63,7 @@ template <class R> struct Data {
 		++msgCount[node];
 	}
 
+	double			   offset = 0.0;
 	std::vector<double>	   lastChangeTime;
 	std::vector<int>	   changeCounts;
 	std::unordered_map<int, R> finalValue;
