@@ -16,39 +16,53 @@ using namespace utils::ui;
 namespace utils::helpers
 {
 
+template <class A>
+std::vector<std::size_t> FindNPerNode(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
+{
+	std::vector<std::size_t> Ns;
+	Ns.reserve(opt_time.size());
+	for (const auto &node_paths : opt_time) {
+		if (Delta == 0 || node_paths.size() < 2) {
+			Ns.push_back(0);
+			continue;
+		}
+		double diff = node_paths.back().first - node_paths.front().first;
+		Ns.push_back(static_cast<std::size_t>(std::ceil(diff / Delta)));
+	}
+	return Ns;
+}
+
+template <class A> int FindMaxDelayDiff(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
+{
+	auto Ns = FindDelayDiffPerNode<A>(Delta, opt_time);
+	return static_cast<int>(*std::max_element(Ns.begin(), Ns.end()));
+}
+
 template <class A, class Ord, class Ext>
-std::pair<std::vector<std::vector<std::pair<double, A>>>,
-	  std::vector<std::vector<std::pair<int, A>>>>
-DelayDijkstra(const Graphs::Graph<A> &graph, int dest)
+std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vector<A>>>
+DelayDijkstra(const Graph<A> &graph, int dest)
 {
 	Ord ord;
 	Ext ext;
+
 	const int V = graph.V;
 
-	std::vector<std::vector<std::pair<int, A>>> opt(V);
+	std::vector<std::vector<A>>		       opt(V);
 	std::vector<std::vector<std::pair<double, A>>> opt_time(V);
 
 	using Quad = std::tuple<double, int, A, int>; // (tau, node, attr, succ)
-	auto comp = [](const Quad &lhs, const Quad &rhs) {
-		return std::get<0>(lhs) > std::get<0>(rhs);
+	auto comp  = [](const Quad &lhs, const Quad &rhs) { return std::get<0>(lhs) > std::get<0>(rhs); };
+
+	auto in = [](const A &a, const std::vector<A> &set) {
+		return std::find_if(set.begin(), set.end(), [&](const A &p) { return p == a; }) != set.end();
 	};
 
-	auto in = [](const A &a, const std::vector<std::pair<int, A>> &set) {
-		return std::find_if(set.begin(), set.end(), [&](const std::pair<int, A> &p) {
-			       return p.second == a;
-		       }) != set.end();
-	};
-
-	auto select = [&](std::vector<std::pair<int, A>> &set, const A &a, int succ) -> bool {
+	auto select = [&](std::vector<A> &set, const A &a) -> bool {
 		for (const auto &p : set)
-			if (ord(p.second, a))
+			if (ord(p, a))
 				return false;
-		set.erase(std::remove_if(set.begin(), set.end(),
-					 [&](const std::pair<int, A> &p) {
-						 return ord(a, p.second);
-					 }),
-			  set.end());
-		set.push_back(std::make_pair(succ, a));
+		set.erase(std::remove_if(set.begin(), set.end(), [&](const A &p) { return ord(a, p); }), set.end());
+		set.push_back(a);
 		return true;
 	};
 
@@ -63,11 +77,14 @@ DelayDijkstra(const Graphs::Graph<A> &graph, int dest)
 		pq.pop();
 
 		if (!in(a, opt[u])) {
-			opt_time[u].push_back({ tau, a });
-			if (select(opt[u], a, succ)) {
+			if (select(opt[u], a)) {
+				opt_time[u].push_back({ tau, a });
 				for (auto &[x, edge] : graph.adjListIn[u]) {
+					if (x == dest) {
+						continue;
+					}
 					auto &[delay, active, link_attr] = edge;
-					A candidate = ext(link_attr, a);
+					A candidate			 = ext(link_attr, a);
 					pq.push(std::make_tuple(tau + delay, x, candidate, u));
 				}
 			}
@@ -76,12 +93,13 @@ DelayDijkstra(const Graphs::Graph<A> &graph, int dest)
 	return { opt_time, opt };
 }
 
+/*
 template <class A, class Ord>
 std::pair<double, std::vector<double>>
 WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
-	Ord ord;
-	double D = 0.0;
+	Ord		    ord;
+	double		    D = 0.0;
 	std::vector<double> node_D(opt_time.size(), 0.0);
 
 	for (std::size_t u = 0; u < opt_time.size(); ++u) {
@@ -104,8 +122,8 @@ WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 
 template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta)
 {
-	auto graph = Graphs::Graph<A>::readGraph(filename);
-	double D = 0.0;
+	auto   graph = Graphs::Graph<A>::readGraph(filename);
+	double D     = 0.0;
 
 	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (" +
 			     std::to_string(graph.V) + " destinations)" + "\n");
@@ -114,7 +132,7 @@ template <class A, class Ord, class Ext> void Compute_N(const std::string &filen
 	for (int u = 0; u < graph.V; ++u) {
 		auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, u);
 		auto [delay, node_D] = WorstDelay<A, Ord>(opt_time);
-		D = std::max(D, delay);
+		D		     = std::max(D, delay);
 		results.push_back(delay);
 	}
 
@@ -128,9 +146,9 @@ void Compute_N(const std::string &filename, double Delta, int t)
 {
 	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (destination " +
 			     std::to_string(t) + ")\n\n");
-	auto graph = Graphs::Graph<A>::readGraph(filename);
+	auto graph	     = Graphs::Graph<A>::readGraph(filename);
 	auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, t);
-	auto [D, node_D] = WorstDelay<A, Ord>(opt_time);
+	auto [D, node_D]     = WorstDelay<A, Ord>(opt_time);
 
 	printDelays(node_D, D);
 
@@ -140,8 +158,8 @@ void Compute_N(const std::string &filename, double Delta, int t)
 }
 
 template <class A>
-std::vector<int> propagateN(const std::vector<double> &node_D, const Graphs::Graph<A> &graph,
-			    double Delta)
+std::vector<int>
+propagateN(const std::vector<double> &node_D, const Graphs::Graph<A> &graph, double Delta)
 {
 	std::vector<int> node_N(graph.V);
 	for (int u = 0; u < graph.V; ++u)
@@ -176,9 +194,9 @@ std::vector<int> propagateN(const std::vector<double> &node_D, const Graphs::Gra
 inline void printDelays(std::vector<double> &results, double D)
 {
 	constexpr int COL_WIDTH = 22;
-	const int total = static_cast<int>(results.size());
-	const int n_cols = numColumns(COL_WIDTH);
-	const int n_rows = numRows(total, n_cols);
+	const int     total	= static_cast<int>(results.size());
+	const int     n_cols	= numColumns(COL_WIDTH);
+	const int     n_rows	= numRows(total, n_cols);
 
 	if (total < n_cols * n_rows) {
 	}
@@ -229,5 +247,6 @@ inline void printDelays(std::vector<double> &results, double D)
 
 	LOG_INFO << t << "\n";
 }
+*/
 } // namespace utils::helpers
 #endif

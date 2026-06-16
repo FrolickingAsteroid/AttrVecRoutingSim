@@ -21,7 +21,7 @@ namespace Protocol::BGP
 // BGPAttribute<A> values using operator< and operator!=.
 
 template <class A, class Ext, class Ord> struct BGPNodeState {
-	using attr = BGPAttribute<A, Ext>;
+	using attr = BGPAttribute<A, Ext, Ord>;
 
 	std::unordered_map<int, attr> aTab;
 	attr			      E;
@@ -30,9 +30,9 @@ template <class A, class Ext, class Ord> struct BGPNodeState {
 	int			      succ{ -1 };
 
 	explicit BGPNodeState()
-		: E(BGPAttribute<A, Ext>(-1, Ord::Null()))
-		, Av(BGPAttribute<A, Ext>(-1, Ord::Null()))
-		, O(BGPAttribute<A, Ext>(-1, Ord::Null()))
+		: E(attr(-1, Ord::Null()))
+		, Av(attr(-1, Ord::Null()))
+		, O(attr(-1, Ord::Null()))
 	{
 	}
 
@@ -48,12 +48,12 @@ template <class A, class Ext, class Ord> struct BGPNodeState {
 
 	void SetOrigin(int asn)
 	{
-		O = BGPAttribute<A, Ext>(asn, Ord::Neutral());
+		O = attr(asn, Ord::Neutral());
 	}
 
 	void ClearOrigin()
 	{
-		O = BGPAttribute(-1, Ord::Null());
+		O = attr(-1, Ord::Null());
 	}
 
 	// Recompute Av and succ from the current aTab and O.

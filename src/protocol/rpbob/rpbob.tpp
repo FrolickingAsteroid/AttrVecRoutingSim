@@ -7,6 +7,31 @@ using namespace RoutingAlgebras;
 
 namespace Protocol::Rpbob
 {
+
+template <class RA> void RPBOB<RA>::process()
+{
+	for (int u = 0; u < graph.V; ++u) {
+		auto	it   = data.finalValue.find(u);
+		Path<A> best = s[u].GetBestAttr();
+
+		if (best.attr == Ord::Null()) {
+			continue;
+		}
+
+		if (it == data.finalValue.end() || best.attr.a != it->second.attr.a) {
+			data.recordChange(u, cal.now(), best);
+		}
+	}
+}
+
+template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
+{
+	data.log = true;
+	data.setOffset(cal.now());
+	graph.removeEdge(u, v);
+	graph.removeEdge(v, u);
+}
+
 template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Path<A> p)
 {
 	if (graph.adjListOut[u].find(v) == graph.adjListOut[u].end())
@@ -25,27 +50,23 @@ template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Path<A> p)
 
 	if (changed.has_value()) {
 		this->Send(u, p);
-		if (Path<A> new_opt_attr = s[u].GetBestAttr();
-		    old_opt_attr.attr.a != new_opt_attr.attr.a) {
-			data.recordChange(u, cal.now(), new_opt_attr);
-		}
+		converged();
 	}
 }
 
 template <class RA> void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, int max)
 {
-	Path<A> p(t, Ord::Neutral(n));
+	s[t].SetOrigin(n, t);
+	auto o = s[t].GetBestAttr();
 
-	this->Send(t, p);
+	this->Send(t, o);
 
-	// schedule next routing computation
 	n += 1;
+
 	double d = period * n;
-	if (n < max) {
-		cal.schedule(d, [t, n, period, max, this]() mutable {
-			this->DestinationAnnouncement(t, n, period, max);
-		});
-	}
+	if (n < max)
+		cal.schedule(d,
+			     [t, n, period, max, this]() mutable { this->DestinationAnnouncement(t, n, period, max); });
 }
 }
 

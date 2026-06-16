@@ -6,7 +6,7 @@
 namespace RoutingAlgebras
 {
 typedef struct TotalOrderLength {
-	static constexpr int null = INT_MAX;
+	static constexpr int null    = INT_MAX;
 	static constexpr int neutral = 0;
 
 	bool operator()(int l, int r) const

@@ -22,7 +22,15 @@ template <class A, class R> struct IProtocol {
 
 	void Run()
 	{
-		cal.run();
+		cal.run([this]() { process(); });
+	}
+
+	virtual void MsgReception(int u, int v, R msg) = 0;
+	virtual void LinkFailure(int u, int v)	       = 0;
+
+	// callbacks
+	virtual void process()
+	{
 	}
 
 	void Send(int t, R msg)
@@ -33,15 +41,10 @@ template <class A, class R> struct IProtocol {
 			if (!active)
 				continue;
 
-			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
-				this->MsgReception(r, t, msg);
-			});
+			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable { this->MsgReception(r, t, msg); });
 			data.recordMessage(t);
 		}
 	}
-
-	virtual void MsgReception(int u, int v, R msg) = 0;
-	virtual void LinkFailure(int u, int v)	       = 0;
 };
 
 } // namespace Protocol

@@ -1,5 +1,5 @@
-#ifndef CSV_RECORDER_HPP
-#define CSV_RECORDER_HPP
+#ifndef CSV_WRITER_HPP
+#define CSV_WRITER_HPP
 
 #include "utils/stats/csv-output.hpp"
 #include "utils/stats/data.hpp"
@@ -12,9 +12,46 @@
 namespace utils::stats
 {
 
+struct MsgStats {
+	int    total = 0;
+	int    count = 0;
+	double avg   = 0.0;
+	double min   = INT_MAX;
+	double max   = 0.0;
+
+	void add(const double msgs)
+	{
+		total += static_cast<int>(msgs);
+		count += 1;
+		min = std::min(min, msgs);
+		max = std::max(max, msgs);
+	}
+
+	void finalize()
+	{
+		avg = count > 0 ? static_cast<double>(total) / count : 0.0;
+	}
+};
+
+struct SummaryStats {
+	// per-node
+	MsgStats term; // per node termination time
+	MsgStats changes; // per node attribute changes
+	MsgStats nodes; // per node message count
+	MsgStats msg; // per dest or per failure message count
+
+	int total_nodes = 0;
+	int total_msgs	= 0;
+
+	// per-dest or per-failure
+	std::map<int, MsgStats>			msgs_per_dest;
+	std::map<std::pair<int, int>, MsgStats> msgs_per_link_failure;
+};
+
 template <class R> struct Record {
-	int	dest;
-	Data<R> data;
+	int				   dest{};
+	std::optional<std::pair<int, int>> failure;
+	Data<R>				   data;
 };
 
 /**
@@ -34,22 +71,14 @@ template <class R> class Recorder {
 		: records()
 	{
 		convergence_out = openFile(makeOutputPath(input, proto, map, "convergence"));
-		convergence_out << convergenceHeader();
+		traffic_out	= openFile(makeOutputPath(input, proto, map, "traffic"));
 
-		traffic_out = openFile(makeOutputPath(input, proto, map, "traffic"));
-		traffic_out << trafficHeader();
-	}
-
-	void recordDest(int dest, const Data<R> &data)
-	{
-		records.push_back({ dest, data });
-		const int n = static_cast<int>(data.lastChangeTime.size());
-		for (int u = 0; u < n; ++u) {
-			if (u == dest) {
-				continue;
-			}
-			writeConvergenceRow(convergence_out, dest, u, data);
-			writeTrafficRow(traffic_out, dest, u, data);
+		if (map.at("S_") == "linkFailure") {
+			convergence_out << convergenceHeader(true);
+			traffic_out << trafficHeader(true);
+		} else if (map.at("S_") == "normal") {
+			convergence_out << convergenceHeader();
+			traffic_out << trafficHeader();
 		}
 	}
 
@@ -58,30 +87,30 @@ template <class R> class Recorder {
 		return records;
 	}
 
-	static std::string convergenceHeader()
+	static std::string convergenceHeader(bool with_failure = false)
 	{
-		return "dest,node,stab_time,change_count,metric\n";
+		return (with_failure ? "failure," : "") +
+		       std::string("dest,node,stab_time,msg_count,change_count,metric\n");
 	}
 
-	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data)
+	static std::string trafficHeader(bool with_failure = false)
 	{
-		auto it = data.finalValue.find(u);
-		if (it == data.finalValue.end())
-			return;
-
-		out << dest << "," << u << "," << data.lastChangeTime[u] << ","
-		    << data.changeCounts[u] << "," << data.finalValue.at(u) << "\n";
+		return (with_failure ? "failure," : "dest,") + std::string("total_msgs\n");
 	}
 
-	static std::string trafficHeader()
-	{
-		return "dest,node,msg_count\n";
-	}
+	void recordDest(int dest, const Data<R> &data, std::optional<std::pair<int, int>> failure = std::nullopt);
 
-	static void writeTrafficRow(std::ostream &out, int dest, int u, const Data<R> &data)
-	{
-		out << dest << "," << u << "," << data.msgCount[u] << "\n";
-	}
+	static void writeTrafficRow(std::ostream &out, int dest, int msgs);
+
+	static void writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs);
+
+	static void writeConvergenceRow(std::ostream			  &out,
+					int				   dest,
+					int				   u,
+					const Data<R>			  &data,
+					std::optional<std::pair<int, int>> failure);
+
+	SummaryStats Summary(int V);
 
     private:
 	std::vector<Record<R>> records;
@@ -90,5 +119,7 @@ template <class R> class Recorder {
 };
 
 }
+
+#include "utils/stats/csv-writer.tpp"
 
 #endif

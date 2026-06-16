@@ -6,16 +6,37 @@
 namespace Protocol::BGP
 {
 
+template <class RA> void BGP<RA>::process()
+{
+	for (int u = 0; u < graph.V; ++u) {
+		auto it	  = data.finalValue.find(u);
+		auto best = s[u].GetElected();
+
+		if (best.attribute == Ord::Null()) {
+			continue;
+		}
+
+		if (it == data.finalValue.end() || best.attribute != it->second.attribute) {
+			data.recordChange(u, cal.now(), best);
+		}
+	}
+}
+
 template <class RA> void BGP<RA>::LinkFailure(int u, int v)
 {
-	graph.deactivate(u, v);
+	graph.removeEdge(u, v);
+	graph.removeEdge(v, u);
 
-	// If v was u's current successor, u must recompute
-	if (s[u].succ == v) {
-		s[u].RemoveNeighbor(v);
-		if (s[u].ProcessBest()) {
-			changeAttr[u] = true;
-			this->Send(u, s[u].GetElected());
+	data.log = true;
+	data.setOffset(cal.now());
+
+	for (auto [node, neighbor] : { std::pair{ u, v }, std::pair{ v, u } }) {
+		if (s[node].succ == neighbor) {
+			s[node].RemoveNeighbor(neighbor);
+			if (s[node].ProcessBest()) {
+				this->Send(node, s[node].GetElected());
+				data.recordChange(node, cal.now(), s[node].GetElected());
+			}
 		}
 	}
 }
@@ -25,26 +46,24 @@ template <class RA> void BGP<RA>::DestinationAnnouncement(int t)
 	// resetCycleState();
 
 	s[t].SetOrigin(t);
-	if (s[t].ProcessBest()) {
-		changeAttr[t]  = true;
-		firstChange[t] = true;
-		this->Send(t, s[t].GetElected());
-	}
+	this->Send(t, s[t].O);
 }
 
 template <class RA> void BGP<RA>::MsgReception(int u, int v, attr received)
 {
+	if (graph.adjListOut[u].find(v) == graph.adjListOut[u].end())
+		return;
+
 	attr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
 	attr extended = lw + received;
 
 	s[u].UpdateNeighbor(v, extended);
 	if (s[u].ProcessBest(v)) {
-		changeAttr[u]  = true;
-		firstChange[u] = true;
-
-		data.recordChange(u, cal.now(), s[u].GetElected());
 		this->Send(u, s[u].GetElected());
+		//converged();
 	}
+
+	//data.recordMessage(u, cal.now());
 }
 
 // ─── cycle / correctness observation ─────────────────────────────────────────

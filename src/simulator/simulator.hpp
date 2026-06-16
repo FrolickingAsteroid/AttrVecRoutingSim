@@ -1,7 +1,7 @@
 #ifndef SIMULATOR_HPP
 #define SIMULATOR_HPP
 
-#include "utils/stats/data.hpp"
+#include "utils/stats/csv-writer.hpp"
 
 namespace Simulator
 {

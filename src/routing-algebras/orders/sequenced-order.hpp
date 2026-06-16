@@ -6,11 +6,18 @@
 namespace RoutingAlgebras
 {
 template <class A, class OrdBase> struct SeqOrd {
-	int N;
+	int N = 0;
+
+	SeqOrd() = default;
 
 	explicit SeqOrd(std::size_t N_)
 		: N(static_cast<int>(N_))
 	{
+	}
+
+	static SeqAttr<A> Neutral()
+	{
+		return SeqAttr<A>{ 0, OrdBase::neutral };
 	}
 
 	static SeqAttr<A> Neutral(int n)

@@ -5,7 +5,7 @@ namespace RoutingAlgebras
 {
 template <class A> struct SeqAttr {
 	int n{}; // Sequence number
-	A a; // Base routing algebra attribute
+	A   a; // Base routing algebra attribute
 
 	SeqAttr() = default;
 
@@ -30,6 +30,17 @@ template <class A> struct SeqAttr {
 	{
 		return !(*this == other);
 	}
+
+	bool operator==(const A &other) const
+	{
+		return a == other;
+	}
+
+	friend std::ostream &operator<<(std::ostream &os, const SeqAttr &a)
+	{
+		os << "(" << a.n << ", " << a.a << ")";
+		return os;
+	}
 };
 
 // forward declaration
@@ -38,10 +49,12 @@ template <class A, class OrdBase> struct SeqOrd;
 
 template <class BaseAlgebra> struct Sequenced {
 	using BaseAttr = BaseAlgebra::BaseAttr;
+	using BaseExt  = BaseAlgebra::Ext;
+	using BaseOrd  = BaseAlgebra::Ord;
 
 	using Attr = SeqAttr<BaseAttr>;
-	using Ext = SeqExtension<BaseAttr, typename BaseAlgebra::Ext>;
-	using Ord = SeqOrd<BaseAttr, typename BaseAlgebra::Ord>;
+	using Ext  = SeqExtension<BaseAttr, typename BaseAlgebra::Ext>;
+	using Ord  = SeqOrd<BaseAttr, typename BaseAlgebra::Ord>;
 };
 }
 

@@ -11,7 +11,7 @@ namespace Protocol::BGP
 
 static constexpr int MaxASPathLength = 35;
 
-template <class A, class Ext> struct BGPAttribute {
+template <class A, class Ext, class Ord> struct BGPAttribute {
 	A		 attribute;
 	std::vector<int> as_path;
 
@@ -46,9 +46,9 @@ template <class A, class Ext> struct BGPAttribute {
 	// Returns an invalid (withdrawn / unreachable) attribute.
 	// Replaces BGPAttribute(INVALID).
 	// Represented as an empty AS path — no valid origin.
-	static BGPAttribute Invalid(A invalid_attr)
+	static BGPAttribute Invalid()
 	{
-		return BGPAttribute(std::vector<int>{}, invalid_attr);
+		return BGPAttribute(std::vector<int>{}, Ord::Null());
 	}
 
 	// --- queries ---
@@ -120,15 +120,19 @@ template <class A, class Ext> struct BGPAttribute {
 	{
 		Ext ext;
 
+		if (a.isInvalid()) {
+			return BGPAttribute::Invalid();
+		}
+
 		// the path is already too long (> MaxASPathLength hops)
 		if (static_cast<int>(a.as_path.size()) > MaxASPathLength) {
-			return BGPAttribute::Invalid(a.attribute);
+			return BGPAttribute::Invalid();
 		}
 
 		// the tail AS is already in the path (loop detection).
 		if (std::find(a.as_path.begin(), a.as_path.end(), link.as_path[0]) !=
 		    a.as_path.end()) {
-			return BGPAttribute::Invalid(a.attribute);
+			return BGPAttribute::Invalid();
 		}
 
 		std::vector<int> new_path(a.as_path);

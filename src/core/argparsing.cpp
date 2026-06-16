@@ -19,8 +19,7 @@ namespace config
 
 void PrintUsage(const char *prog)
 {
-	std::cerr << yellow("\nusage:\n") << "  " << prog
-		  << " -f <network.tsv> -R|-G|-B [-a <algebra>]"
+	std::cerr << yellow("\nusage:\n") << "  " << prog << " -f <network.tsv> -R|-G|-B [-a <algebra>]"
 		  << " [-t <dest|all>]\n"
 		  << "  " << prog << " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
 		  << "  " << prog << " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
@@ -35,14 +34,12 @@ void PrintUsage(const char *prog)
 		  << "  -i <period>      destination announcement period\n"
 		  << "  -m <max>         number of routing computations\n\n"
 
-		  << yellow("optional:\n")
-		  << "  -a <algebra>     routing algebra: lengths (default), hops\n"
+		  << yellow("optional:\n") << "  -a <algebra>     routing algebra: lengths (default), hops\n"
 		  << "  -t <dest>        destination node id, or 'all' (default: all)\n"
 		  << "  -w <N>           window size for RPBOB (default: auto from graph)\n"
 		  << "  -d <dprop>       propagation interval for Beaconing\n\n"
 
-		  << yellow("log level:\n")
-		  << "  -I               print basic information (default)\n"
+		  << yellow("log level:\n") << "  -I               print basic information (default)\n"
 		  << "  -V               print additional protocol information\n"
 		  << "  -S               suppress printing\n";
 }
@@ -50,35 +47,29 @@ void PrintUsage(const char *prog)
 void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats)
 {
 	using namespace tabulate;
+	using namespace utils::stats;
 
-	auto fmt = [](double v) {
+	auto fmt = [](const double v) {
 		std::ostringstream ss;
 		ss << std::fixed << std::setprecision(2) << v;
 		return ss.str();
 	};
-
-	auto range = [&](double avg, double mn, double mx) {
-		return fmt(avg) + "  (" + fmt(mn) + " / " + fmt(mx) + ")";
+	auto range = [&](const MsgStats &s) {
+		return fmt(s.avg) + "  (min: " + fmt(s.min) + " / max: " + fmt(s.max) + ")";
 	};
 
+	const bool has_failures = !stats.msgs_per_link_failure.empty();
+
 	Table table;
-
-	// header row
-	table.add_row({ "Parameter", "avg  (min / max)" });
-
+	table.add_row({ "Parameter", "Avg  (min / max)" });
 	table.add_row({ "Elapsed time", std::to_string(elapsed.count()) + " ms" });
-
-	table.add_row(
-		{ "Termination time (ms)", range(stats.avg_term, stats.min_term, stats.max_term) });
-
-	table.add_row({ "Attribute changes / node",
-			range(stats.avg_changes, stats.min_changes, stats.max_changes) });
-
-	table.add_row(
-		{ "Messages sent / node", range(stats.avg_msg, stats.min_msg, stats.max_msg) });
+	table.add_row({ "Total nodes processed", std::to_string(stats.total_nodes) });
+	table.add_row({ "Termination time (ms)", range(stats.term) });
+	table.add_row({ "Attribute changes / node", range(stats.changes) });
+	table.add_row({ "Messages / node", range(stats.nodes) });
+	table.add_row({ has_failures ? "Messages / failure" : "Messages / destination", range(stats.msg) });
 
 	table[0].format().font_style({ FontStyle::bold }).font_color(Color::yellow);
-
 	for (std::size_t i = 1; i < table.size(); ++i)
 		table[i][0].format().font_color(Color::cyan);
 
@@ -107,7 +98,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	SimulationConfig cfg;
 	int		 c;
 
-	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F:W:NRGBVSI")) != -1) {
+	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F::W:NRGBVSI")) != -1) {
 		switch (c) {
 		case 'f':
 			cfg.network_file = optarg;
@@ -144,13 +135,15 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			break;
 		case 'F': {
 			cfg.scenario = LinkFailure;
-
-			cfg.u = std::stoi(optarg);
 			if (optind < argc && *argv[optind] != '-') {
-				cfg.v = std::stoi(argv[optind]);
-				optind++;
-			} else {
-				throw std::runtime_error("-F requires two node ids: u v");
+				try {
+					cfg.u = std::stoi(argv[optind]);
+					++optind;
+					cfg.v = std::stoi(argv[optind]);
+				} catch (...) {
+					throw std::runtime_error(
+						"Either two nodes must be specified or no node at all");
+				}
 			}
 			break;
 		}
@@ -191,7 +184,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			throw std::runtime_error(
 				"must specify propagation delay, period, and number of routing computations");
 
-	} else if (cfg.protocol == N) {
+	} /*else if (cfg.protocol == N) {
 		if (!cfg.period)
 			throw std::runtime_error("must specify period");
 
@@ -206,8 +199,9 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			}
 		}
 		std::exit(0);
-	}
 
+	}
+	*/
 	return cfg;
 }
 }

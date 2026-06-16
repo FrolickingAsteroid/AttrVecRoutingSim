@@ -8,7 +8,7 @@ namespace Protocol::BGP
 
 template <class A, class Ext, class Ord> bool BGPNodeState<A, Ext, Ord>::ProcessBest(int v)
 {
-	Ord ord;
+	// Ord ord;
 	if (aTab.at(v) < E) {
 		// aTab[v] is strictly better than current E
 		succ = v;
@@ -33,7 +33,7 @@ template <class A, class Ext, class Ord> bool BGPNodeState<A, Ext, Ord>::Process
 
 template <class A, class Ext, class Ord> void BGPNodeState<A, Ext, Ord>::fullScan()
 {
-	Av   = O;
+	Av   = attr::Invalid();
 	succ = -1;
 	for (const auto &[neighbor, learned] : aTab) {
 		if (learned < Av) {

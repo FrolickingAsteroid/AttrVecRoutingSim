@@ -44,7 +44,7 @@ template <class A> struct Path {
 
 	friend std::ostream &operator<<(std::ostream &os, const Path<A> &p)
 	{
-		os << "(" << p.attr.n << ";" << p.attr.a << ")";
+		os << p.attr.a;
 		return os;
 	}
 };

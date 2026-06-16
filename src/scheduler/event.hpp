@@ -6,8 +6,9 @@
 #include <utility>
 
 struct Event {
-	double time;
-	std::uint64_t seq;
+	double		      time;
+	double		      priority;
+	std::uint64_t	      seq;
 	std::function<void()> e;
 
 	Event(double time_, std::uint64_t seq_, std::function<void()> e_)

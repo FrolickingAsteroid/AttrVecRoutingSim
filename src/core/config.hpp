@@ -20,7 +20,7 @@ struct SimulationConfig {
 	std::optional<double>	   dprop  = std::nullopt;
 	std::optional<double>	   period = std::nullopt;
 	std::optional<int>	   max	  = std::nullopt;
-	std::optional<std::size_t> N	  = std::nullopt;
+	std::optional<int> N	  = std::nullopt;
 
 	// Type of simulation being run
 	ScenarioType scenario	= Normal;

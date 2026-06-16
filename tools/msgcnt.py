@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-import os
-from asyncio.tasks import sleep
-from pathlib import Path
 
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,138 +10,100 @@ plt.rcParams.update(
         "font.family": "serif",
         "font.serif": ["Computer Modern Roman", "DejaVu Serif"],
         "mathtext.fontset": "cm",
-        "font.size": 9,
+        "font.size": 10,
     }
 )
 
+NETWORK  = "1221"
+STEM     = "DelayLength"
+BASE_DIR = Path(f"../data/output/rocketfuel/{NETWORK}")
 
-def make_ccdf(data):
-    x = np.sort(np.asarray(data))
-    n = len(x)
+RUNS = [
+    {
+        "proto":  "rpbob",
+        "params": {"A_": "lengths", "N": "1", "S_": "linkFailure", "period": "1.0"},
+        "label":  "RPBOB SP",
+    },
+    {
+        "proto":  "bgp",
+        "params": {"A_": "lengths", "S_": "linkFailure"},
+        "label":  "BGP SP",
+    },
+]
 
-    if n == 0:
-        return np.array([]), np.array([])
-
-    ccdf = 1.0 - np.arange(0, n) / n
-
-    x_plot = np.r_[0, x]
-    ccdf_plot = np.r_[1.0, ccdf]
-
-    return x_plot, ccdf_plot
-
-
-def load_msg_counts_until_stab(csv_msg, csv_stab):
-    msg = pd.read_csv(csv_msg)
-    stab = pd.read_csv(csv_stab)
-
-    # Last stabilization time per destination
-    stab_time = stab.groupby("dest")["stab_time"].max()
-
-    counts = []
-
-    for dest, T in stab_time.items():
-        mask = (
-            (msg["dest"] == dest)
-            & (msg["time"] <= T)
-            & (msg["kind"].isin(["announcement", "propagate"]))
-        )
-
-        counts.append(msg.loc[mask, "msg_count"].sum())
-
-    return np.sort(np.asarray(counts))
+DEST_FILTER = None
 
 
-def load_wave_counts(csv_file, period):
-    df = pd.read_csv(csv_file)
+# ─── helpers (shared structure with stab.py) ──────────────────────────────────
 
-    announcements = df[df["kind"] == "announcement"].copy()
-    propagations = df[df["kind"] == "propagate"].copy()
+def build_path(base_dir: Path, stem: str, proto: str, params: dict) -> Path:
+    param_str = "_".join(f"{k}{v}" for k, v in params.items())
+    filename  = f"{stem}_{param_str}_convergence.csv"
+    return base_dir / proto / filename
 
-    wave_counts = []
-    for _, ann_row in announcements.iterrows():
-        t0 = ann_row["time"]
 
-        if t0 > 50:
+def build_series(base_dir: Path, stem: str, runs: list, dest_filter) -> list:
+    series = []
+    for run in runs:
+        path = build_path(base_dir, stem, run["proto"], run["params"])
+        if not path.exists():
+            print(f"[warn] file not found: {path}")
             continue
-
-        dest = ann_row["dest"]
-        direct = ann_row["msg_count"]
-        mask = (
-            (propagations["dest"] == dest)
-            & (propagations["time"] >= t0)
-            & (propagations["time"] < t0 + period)
-        )
-        wave = propagations[mask]["msg_count"].sum()
-        wave_counts.append(direct + wave)
-
-    return np.sort(np.array(wave_counts))
+        df = pd.read_csv(path)
+        if dest_filter is not None:
+            df = df[df["dest"] == dest_filter]
+        # keep only nodes that actually received messages after failure
+        df = df[df["change_count"] != 0]
+        series.append((df, run["label"]))
+    return series
 
 
-def plot_msgCnt_ccdf(series, network, output_file, period):
+# ─── plot ─────────────────────────────────────────────────────────────────────
 
+def plot_msg_ccdf(series: list, network: str, output_file: Path):
     plt.figure(figsize=(5.5, 3.8))
     max_x = 0
-    for csv_msg, csv_stab, label in series:
-        data = load_msg_counts_until_stab(csv_msg, csv_stab)
 
-        x_plot, ccdf_plot = make_ccdf(data)
-        avg = round(np.mean(data), 0)
+    for df, label in series:
+        x    = np.sort(df["msg_count"].to_numpy())
+        n    = len(x)
+        avg  = np.mean(x)
+        ccdf = 1.0 - np.arange(0, n) / n
 
-        plt.step(
-            x_plot,
-            ccdf_plot,
-            where="post",
-            label=f"{label} (avg {avg:.0f})",
-        )
+        x_plot    = np.r_[0, x]
+        ccdf_plot = np.r_[1.0, ccdf]
 
-        if np.max(x_plot) > max_x:
-            max_x = np.max(x_plot)
-    plt.title(f"Messages per Routing Computation (AS{network})")
-    plt.xlabel("Number of Messages")
+        plt.step(x_plot, ccdf_plot, where="post",
+                 label=f"{label} (avg {avg:.1f} msgs)")
+
+        if max_x < max(x_plot):
+            max_x = max(x_plot)
+
+    plt.title(f"Message count per node after failure (AS{network})")
+    plt.xlabel("Message count")
     plt.ylabel("CCDF")
-
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
     plt.xlim([0, max_x])
     plt.ylim([0, 1.1])
-    plt.grid(True, alpha=0.3)
 
-    plt.legend(fontsize=9)
-    plt.tight_layout()
-
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_file, dpi=200, bbox_inches="tight")
+    print(f"Saved: {output_file}")
 
+
+# ─── main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    NETWORK = "1221"
+    series = build_series(BASE_DIR, STEM, RUNS, DEST_FILTER)
 
-    dprop = "dprop15.5"
-    N = "N40"
+    if not series:
+        print("No data to plot.")
+        exit(1)
 
-    FILE_1 = f"DelayLength_all_{dprop}_p60.0_rc1_msgCount.csv"
-    FILE_2 = f"DelayLength_all_{N}_p60.0_rc1_msgCount.csv"
+    plot_dir  = Path("../data/plots")
+    proto_tag = "_".join(r["proto"] for r in RUNS)
+    dest_tag  = f"d{DEST_FILTER}" if DEST_FILTER is not None else "all"
+    output_file = plot_dir / f"AS{NETWORK}_{proto_tag}_{dest_tag}_msg_ccdf.png"
 
-    STAB_1 = f"DelayLength_all_{dprop}_p60.0_rc1_stab.csv"
-    STAB_2 = f"DelayLength_all_{N}_p60.0_rc1_stab.csv"
-
-    base_dir = Path(f"../data/output/rocketfuel/{NETWORK}")
-
-    series = [
-        (
-            base_dir / "beaconing" / FILE_1,
-            base_dir / "beaconing" / STAB_1,
-            "Beaconing SP",
-        ),
-        (
-            base_dir / "rpbob" / FILE_2,
-            base_dir / "rpbob" / STAB_2,
-            "RPBOB SP",
-        ),
-    ]
-
-    plot_dir = Path("../data/plots")
-    plot_dir.mkdir(exist_ok=True)
-
-    output_file = plot_dir / f"AS{NETWORK}_Lengths_msgCount_{dprop}_{N}_ccdf_all.png"
-
-    plot_msgCnt_ccdf(series, NETWORK, output_file, period=60)
-
-    print(f"Output file: {output_file}")
+    plot_msg_ccdf(series, NETWORK, output_file)

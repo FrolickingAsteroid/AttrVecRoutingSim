@@ -20,6 +20,8 @@ template <class A, class Ord> class SequenceWindow {
 	{
 	}
 
+	void SetOrigin(int n, int u);
+
 	const path &GetBestAttr() const;
 
 	const std::vector<path> &GetSetAttr() const;
@@ -27,9 +29,9 @@ template <class A, class Ord> class SequenceWindow {
 	std::optional<path> CompareSetAttr(const path &n);
 
     private:
-	std::size_t N;
+	std::size_t	  N;
 	std::vector<path> set_seq_attr;
-	path best_attr;
+	path		  best_attr;
 };
 }
 

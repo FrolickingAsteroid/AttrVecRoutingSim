@@ -1,5 +1,5 @@
-#ifndef CSV_WRITER_HPP
-#define CSV_WRITER_HPP
+#ifndef CSV_OUTPUT_HPP
+#define CSV_OUTPUT_HPP
 
 #include <filesystem>
 #include <fstream>

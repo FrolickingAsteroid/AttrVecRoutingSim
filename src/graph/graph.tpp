@@ -25,7 +25,7 @@ template <class S> void Graph<S>::addEdge(int u, int v, double delay, S w)
 		throw std::out_of_range("Out-Node does not exist.");
 	}
 	E++;
-	adjListIn[v][u] = { delay, true, w };
+	adjListIn[v][u]	 = { delay, true, w };
 	adjListOut[u][v] = { delay, true, w };
 }
 
@@ -79,8 +79,7 @@ template <class S> Graph<S> Graph<S>::readGraph(const std::string &filename)
 	std::ifstream fileNetwork(filename);
 
 	if (!fileNetwork.is_open()) {
-		throw std::runtime_error("Could not open network file: " +
-					 filename);
+		throw std::runtime_error("Could not open network file: " + filename);
 	}
 
 	int V;
@@ -88,7 +87,7 @@ template <class S> Graph<S> Graph<S>::readGraph(const std::string &filename)
 	int v;
 
 	double delay;
-	S attr;
+	S      attr;
 
 	fileNetwork >> V;
 
@@ -99,6 +98,22 @@ template <class S> Graph<S> Graph<S>::readGraph(const std::string &filename)
 	}
 
 	return graph;
+}
+
+template <class S>
+std::vector<std::tuple<int, int, std::tuple<double, bool, S>, std::tuple<double, bool, S>>> Graph<S>::findBidLinks()
+{
+	using Edge = std::tuple<double, bool, S>;
+	std::vector<std::tuple<int, int, Edge, Edge>> bidirectional_links;
+	for (int u = 0; u < V; ++u) {
+		for (const auto &[v, edge_uv] : adjListOut[u]) {
+			if (u < v && adjListOut[v].count(u)) {
+				auto &edge_vu = adjListOut[v].at(u);
+				bidirectional_links.push_back({ u, v, edge_uv, edge_vu });
+			}
+		}
+	}
+	return bidirectional_links;
 }
 }
 #endif

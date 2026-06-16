@@ -25,12 +25,12 @@ BASE_DIR = Path(f"../data/output/rocketfuel/{NETWORK}")
 RUNS = [
     {
         "proto": "rpbob",
-        "params": {"": "lengths", "N": "40", "period": "60.0"},
-        "label": "RPBOB SP N = 40",
+        "params": {"A_": "lengths", "N": "1", "S_": "linkFailure", "period": "3.0"},
+        "label": "RPBOB SP",
     },
     {
         "proto": "bgp",
-        "params": {"": "lengths"},
+        "params": {"A_": "lengths", "S_": "linkFailure"},
         "label": "BGP SP",
     },
     # {
@@ -71,6 +71,8 @@ def build_series(base_dir: Path, stem: str, runs: list, dest_filter) -> list:
         if dest_filter is not None:
             df = df[df["dest"] == dest_filter]
         series.append((df, run["label"]))
+        print(df)
+
     return series
 
 
@@ -81,6 +83,8 @@ def plot_stab_ccdf(series: list, network: str, output_file: Path):
     max_x = 0
 
     for df, label in series:
+        df = df[df["change_count"] != 0]
+
         x = np.sort(df["stab_time"].to_numpy())
         n = len(x)
         avg_time = np.mean(x)
@@ -91,6 +95,9 @@ def plot_stab_ccdf(series: list, network: str, output_file: Path):
 
         plt.step(x_plot, ccdf_plot, where="post",
                  label=f"{label} (avg {avg_time:.2f} ms)")
+
+        if max_x < max(x_plot):
+            max_x = max(x_plot)
 
     dest_str = f"dest={DEST_FILTER}" if DEST_FILTER is not None else "all destinations"
     plt.title(f"Stabilisation time per node (AS{network})")

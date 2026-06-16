@@ -9,8 +9,9 @@ namespace RoutingAlgebras
 
 typedef struct Lengths {
 	using BaseAttr = int;
-	using Ext = LE;
-	using Ord = TOL;
+	using Attr     = int;
+	using Ext      = LE;
+	using Ord      = TOL;
 } L;
 
 }

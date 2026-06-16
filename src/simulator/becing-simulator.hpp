@@ -8,7 +8,6 @@
 #include "simulator/simulator.hpp"
 #include "utils/ui/appearance.hpp"
 #include "utils/stats/csv-writer.hpp"
-#include "utils/stats/stats-summary.hpp"
 #include "protocol/beaconing/beaconing.hpp"
 
 using namespace Protocol::Beaconing;
@@ -19,29 +18,20 @@ namespace Simulator
 
 template <class RA> class BECINGSimulation : public ISimulation {
     public:
-	BECINGSimulation(const std::string			  &filename,
-			 const std::map<std::string, std::string> &map,
-			 int					   max_,
-			 int					   dest_,
-			 double					   d_prop_,
-			 double					   period_,
-			 config::ScenarioType			   scenario)
-		: graph(Graph<typename RA::BaseAttr>::readGraph(filename))
-		, recorder(filename, "beaconing", map)
-		, d_prop(d_prop_)
-		, period(period_)
-		, dest(dest_)
-		, max(max_)
+	BECINGSimulation(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map)
+		: cfg(cfg_)
+		, graph(Graph<typename RA::BaseAttr>::readGraph(cfg.network_file))
+		, recorder(cfg.network_file, "rpbob", map)
 	{
 	}
 
 	void setup() override
 	{
-		if (dest < 0) {
+		if (cfg.destination < 0) {
 			targets.resize(graph.V);
 			std::iota(targets.begin(), targets.end(), 0);
 		} else {
-			targets = { dest };
+			targets = { cfg.destination };
 		}
 	}
 
@@ -49,12 +39,12 @@ template <class RA> class BECINGSimulation : public ISimulation {
 	{
 		for (int t : targets) {
 			BECING<RA> proto(graph);
-			proto.DestinationAnnouncement(t, 0, period, max);
+			proto.DestinationAnnouncement(t, 0, *cfg.period, *cfg.max);
 
 			// periodic propagation on every node,
 			// independent of destination announcement
 			for (int u = 0; u < graph.V; ++u) {
-				proto.SchedulePropagation(u, d_prop, max);
+				proto.SchedulePropagation(u, *cfg.dprop, *cfg.max);
 			}
 
 			proto.Run();
@@ -64,16 +54,16 @@ template <class RA> class BECINGSimulation : public ISimulation {
 
 	utils::stats::SummaryStats postProcess() override
 	{
-		return utils::stats::Summary(recorder.getRecords());
+		return recorder.Summary(graph.V);
 	}
 
     private:
+	config::SimulationConfig			     &cfg;
 	Graph<typename RA::BaseAttr>			      graph;
 	utils::stats::Recorder<Beacon<typename RA::BaseAttr>> recorder;
-	double						      d_prop;
-	double						      period;
-	int						      dest, max;
-	std::vector<int>				      targets;
+
+	std::vector<int> targets;
+	double		 convergence_time = 0;
 };
 
 } // namespace Simulator

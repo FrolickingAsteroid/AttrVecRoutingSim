@@ -25,10 +25,9 @@ namespace Protocol::BGP
 // not per-node routing state.
 
 template <class RA>
-struct BGP
-	: IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr, typename RA::Ext>> {
+struct BGP : IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>> {
 	using Base = IProtocol<typename RA::BaseAttr,
-			       BGPAttribute<typename RA::BaseAttr, typename RA::Ext>>;
+			       BGPAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>;
 	using Base::graph;
 	using Base::cal;
 	using Base::data;
@@ -37,7 +36,7 @@ struct BGP
 	using Ext = RA::Ext;
 	using Ord = RA::Ord;
 
-	using attr	 = BGPAttribute<A, Ext>;
+	using attr	 = BGPAttribute<A, Ext, Ord>;
 	using node_state = BGPNodeState<A, Ext, Ord>;
 
 	std::vector<node_state> s;
@@ -65,6 +64,11 @@ struct BGP
 
 	void LinkFailure(int u, int v) override;
 	void MsgReception(int u, int v, attr received) override;
+
+	void process() override;
+
+	std::function<bool(int)> nodeConverged = nullptr;
+	std::function<void()>	 converged     = nullptr;
 
 	//std::vector<int> &CycleBlackHoleTimes();
 	//std::vector<int> &CycleBlackHoleChanges();

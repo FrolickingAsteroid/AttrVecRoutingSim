@@ -7,20 +7,20 @@
 namespace Graphs
 {
 template <class S> struct Graph {
-	int V;
-	int E;
-	std::vector<std::unordered_map<int, std::tuple<double, bool, S> > >
-		adjListIn;
-	std::vector<std::unordered_map<int, std::tuple<double, bool, S> > >
-		adjListOut;
+	int								  V;
+	int								  E;
+	std::vector<std::unordered_map<int, std::tuple<double, bool, S>>> adjListIn;
+	std::vector<std::unordered_map<int, std::tuple<double, bool, S>>> adjListOut;
 
 	Graph()
 	{
 	}
 
-	Graph(int V);
+	explicit Graph(int V_);
 
-	static Graph<S> readGraph(const std::string &filename);
+	static Graph readGraph(const std::string &filename);
+
+	std::vector<std::tuple<int, int, std::tuple<double, bool, S>, std::tuple<double, bool, S>>> findBidLinks();
 
 	void addEdge(int, int, double delay, S);
 

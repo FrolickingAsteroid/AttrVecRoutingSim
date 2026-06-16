@@ -18,63 +18,42 @@ const std::vector<typename SequenceWindow<A, Ord>::path> &SequenceWindow<A, Ord>
 	return set_seq_attr;
 }
 
+template <class A, class Ord> void SequenceWindow<A, Ord>::SetOrigin(int n, int u)
+{
+	best_attr = path(u, Ord::Neutral(n));
+}
+
 template <class A, class Ord>
 std::optional<typename SequenceWindow<A, Ord>::path>
-SequenceWindow<A, Ord>::CompareSetAttr(const path &n)
+SequenceWindow<A, Ord>::CompareSetAttr(const path &c)
 {
 	Ord ord(N);
-	std::vector<path> kept;
-	bool added = false;
-	bool removed = false;
 
-	// if the set is currently empty, add the newly arriving path
-	if (set_seq_attr.empty()) {
-		set_seq_attr.push_back(n);
-		best_attr = n;
-		return n;
-	}
+	// if anything in the set is better than the current candidate, discard it
+	for (const auto &current : set_seq_attr)
+		if (ord(current.attr, c.attr) || c.attr == current.attr)
+			return std::nullopt;
 
-	// else compare each resident path to the new candidate
-	for (auto it = set_seq_attr.rbegin(); it != set_seq_attr.rend(); ++it) {
-		const auto &current = *it;
+	// remove anything worse than the candidate
+	set_seq_attr.erase(
+		std::remove_if(set_seq_attr.begin(),
+			       set_seq_attr.end(),
+			       [&](const path &current) { return ord(c.attr, current.attr); }),
+		set_seq_attr.end());
 
-		//[TODO] replace == with tie logic related to string algebra
-		// current attr < candidate attr
-		if (current.attr == n.attr || ord(current.attr, n.attr)) {
-			kept.push_back(current);
-			removed = true;
+	set_seq_attr.push_back(c);
 
-			// current attr > candidate attr
-		} else if (ord(n.attr, current.attr)) {
-			if (!added) {
-				kept.push_back(n);
-				added = true;
-			}
+	// sort by sequence number
+	std::sort(set_seq_attr.begin(), set_seq_attr.end(), [](const path &l, const path &r) {
+		return l.attr.n < r.attr.n;
+	});
 
-			// incomparable
-		} else {
-			kept.push_back(current);
-		}
-	}
+	// update best
+	path new_best = set_seq_attr.front();
+	if (new_best.attr != best_attr.attr)
+		best_attr = new_best;
 
-	if (!added && removed == false) {
-		kept.push_back(n);
-	}
-
-	// sort paths by sequence number
-	std::sort(kept.begin(), kept.end(),
-		  [](const path &l, const path &r) { return l.attr.n < r.attr.n; });
-
-	if (set_seq_attr != kept) {
-		set_seq_attr = std::move(kept);
-		if (path new_best_attr = set_seq_attr.front();
-		    new_best_attr.attr != best_attr.attr) {
-			best_attr = new_best_attr;
-		}
-		return n;
-	}
-
-	return std::nullopt;
+	return c;
 }
 }
 #endif // SEQ_WINDOW_TPP

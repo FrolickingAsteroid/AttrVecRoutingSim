@@ -41,6 +41,20 @@ int		 ParseDest(const std::string &s);
 //
 // ---------------------------------------------------------------------------- *
 
+inline std::string ScenarioName(ScenarioType m)
+{
+	switch (m) {
+	case Normal:
+		return "normal";
+	case LinkFailure:
+		return "linkFailure";
+	case Withdrawal:
+		return "withdrawal";
+	default:
+		throw std::runtime_error("unknown scenario");
+	}
+}
+
 inline std::string AlgebraName(Metric m)
 {
 	switch (m) {
@@ -56,25 +70,28 @@ inline std::string AlgebraName(Metric m)
 inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cfg)
 {
 	return {
-		{ "", AlgebraName(cfg.algebra) },
+		{ "A_", AlgebraName(cfg.algebra) },
 		{ "N", std::to_string(cfg.N.value()) },
 		{ "period", utils::ui::formatParam(cfg.period.value()) },
+		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }
 
 inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig &cfg)
 {
 	return {
-		{ "", AlgebraName(cfg.algebra) },
+		{ "A_", AlgebraName(cfg.algebra) },
 		{ "dprop", utils::ui::formatParam(cfg.dprop.value()) },
 		{ "period", utils::ui::formatParam(cfg.period.value()) },
+		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }
 
 inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
 {
 	return {
-		{ "", AlgebraName(cfg.algebra) },
+		{ "A_", AlgebraName(cfg.algebra) },
+		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }
 
@@ -89,40 +106,31 @@ template <class RA> std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(Simu
 	return std::make_unique<Simulator::RpBOBSimulation<RA>>(cfg, RPBOBParams(cfg));
 }
 
-template <class RA>
-std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(const SimulationConfig &cfg)
+template <class RA> std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg)
 {
-	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg.network_file,
-								 BeaconingParams(cfg),
-								 cfg.max.value(),
-								 cfg.destination,
-								 cfg.dprop.value(),
-								 cfg.period.value(),
-								 cfg.scenario);
+	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg, BeaconingParams(cfg));
 }
 
-template <class RA>
-std::unique_ptr<Simulator::ISimulation> BGPSimulation(const SimulationConfig &cfg)
+template <class RA> std::unique_ptr<Simulator::ISimulation> BGPSimulation(SimulationConfig &cfg)
 {
-	return std::make_unique<Simulator::BGPSimulation<RA>>(
-		cfg.network_file, BGPParams(cfg), cfg.destination, cfg.scenario);
+	return std::make_unique<Simulator::BGPSimulation<RA>>(cfg, BGPParams(cfg));
 }
 
 inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg)
 {
-	if (cfg.protocol == Options::RPBOB) {
+	if (cfg.protocol == RPBOB) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
 			return RPBOBSimulation<Sequenced<L>>(cfg);
 		}
-	} else if (cfg.protocol == Options::Beaconing) {
+	} else if (cfg.protocol == Beaconing) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
 			return BeaconingSimulation<L>(cfg);
 		}
-	} else if (cfg.protocol == Options::BGP) {
+	} else if (cfg.protocol == BGP) {
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
