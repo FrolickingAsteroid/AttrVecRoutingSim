@@ -175,33 +175,26 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		throw std::runtime_error("must specify a network file");
 
 	if (cfg.protocol == RPBOB) {
-		if (!cfg.period || !cfg.max || !cfg.N)
-			throw std::runtime_error(
-				"must specify period, window size, and number of routing computations");
+		if (!cfg.period || !cfg.max)
+			throw std::runtime_error("must specify period, and number of routing computations");
 
 	} else if (cfg.protocol == Beaconing) {
 		if (!cfg.period || !cfg.max || !cfg.dprop)
 			throw std::runtime_error(
 				"must specify propagation delay, period, and number of routing computations");
 
-	} /*else if (cfg.protocol == N) {
+	} else if (cfg.protocol == N) {
 		if (!cfg.period)
 			throw std::runtime_error("must specify period");
 
 		switch (cfg.algebra) {
 		case LENGTHS:
 		case HOPS:
-			if (cfg.destination != -1) {
-				Compute_N<int, TOL, LE>(
-					cfg.network_file, cfg.period.value(), cfg.destination);
-			} else {
-				Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
-			}
+			Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
+			break;
 		}
 		std::exit(0);
-
 	}
-	*/
 	return cfg;
 }
 }

@@ -52,7 +52,10 @@ template <class R> SummaryStats Recorder<R>::Summary(int V)
 				continue;
 			stats.total_nodes++;
 
-			stats.term.add(data.lastChangeTime[u]);
+			if (data.changeCounts[u] != 0) {
+				stats.term.add(data.lastChangeTime[u]);
+			}
+
 			stats.changes.add(static_cast<double>(data.changeCounts[u]));
 			stats.nodes.add(static_cast<double>(data.msgCount[u]));
 
@@ -64,8 +67,6 @@ template <class R> SummaryStats Recorder<R>::Summary(int V)
 
 		if (failure) {
 			stats.msgs_per_link_failure[*failure].add(dest_msgs);
-			//stats.msgs_per_dest[dest].add(dest_msgs);
-			//std::cout << "msg for dest " << dest << ": msg " << dest_msgs << std::endl;
 		} else {
 			stats.msgs_per_dest[dest].add(dest_msgs);
 		}
@@ -91,8 +92,9 @@ template <class R> SummaryStats Recorder<R>::Summary(int V)
 			writeTrafficRow(traffic_out, failure, entry.total);
 		}
 	}
-	stats.msg.count = stats.msgs_per_link_failure.empty() ? static_cast<int>(stats.msgs_per_dest.size()) :
-								static_cast<int>(stats.msgs_per_link_failure.size());
+	stats.msg.count = stats.msgs_per_link_failure.empty() ?
+				  static_cast<int>(stats.msgs_per_dest.size()) :
+				  static_cast<int>(stats.msgs_per_link_failure.size());
 	stats.msg.finalize();
 
 	return stats;

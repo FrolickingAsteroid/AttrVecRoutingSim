@@ -84,7 +84,8 @@ template <class RA> class BGPSimulation : public ISimulation {
 	utils::stats::Recorder<BGPAttribute<base_attr, base_ext, base_ord>> recorder;
 
 	std::vector<int> targets;
-	std::vector<std::tuple<int, int, std::tuple<double, bool, base_attr>, std::tuple<double, bool, base_attr>>>
+	std::vector<
+		std::tuple<int, int, std::tuple<double, bool, base_attr>, std::tuple<double, bool, base_attr>>>
 		bid_links;
 
 	auto proto(int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt)

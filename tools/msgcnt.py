@@ -21,7 +21,7 @@ BASE_DIR = Path(f"../data/output/rocketfuel/{NETWORK}")
 RUNS = [
     {
         "proto":  "rpbob",
-        "params": {"A_": "lengths", "N": "1", "S_": "linkFailure", "period": "1.0"},
+        "params": {"A_": "lengths", "N": "adaptative", "S_": "linkFailure", "period": "100.0"},
         "label":  "RPBOB SP",
     },
     {
@@ -34,7 +34,7 @@ RUNS = [
 DEST_FILTER = None
 
 
-# ─── helpers (shared structure with stab.py) ──────────────────────────────────
+# ─── helpers  ──────────────────────────────────
 
 def build_path(base_dir: Path, stem: str, proto: str, params: dict) -> Path:
     param_str = "_".join(f"{k}{v}" for k, v in params.items())

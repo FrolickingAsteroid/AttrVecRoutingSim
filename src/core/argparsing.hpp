@@ -71,8 +71,8 @@ inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cf
 {
 	return {
 		{ "A_", AlgebraName(cfg.algebra) },
-		{ "N", std::to_string(cfg.N.value()) },
-		{ "period", utils::ui::formatParam(cfg.period.value()) },
+		{ "N", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative" },
+		{ "period", formatParam(cfg.period.value()) },
 		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }

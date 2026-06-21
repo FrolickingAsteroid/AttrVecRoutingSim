@@ -58,7 +58,7 @@ target_link_libraries(Simulator
 # Warnings
 # ------------------------------------------------------------
 
-if(SIMULATOR_ENABLE_WARNINGS)
+if (SIMULATOR_ENABLE_WARNINGS)
     target_compile_options(Simulator
             PRIVATE
             $<$<CXX_COMPILER_ID:GNU,Clang>:
@@ -71,12 +71,12 @@ if(SIMULATOR_ENABLE_WARNINGS)
             /W4
             >
     )
-endif()
+endif ()
 
 # ------------------------------------------------------------
 # Debug/Release defaults
 # ------------------------------------------------------------
 
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-endif()
+endif ()

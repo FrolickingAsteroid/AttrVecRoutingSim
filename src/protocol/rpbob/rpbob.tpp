@@ -19,6 +19,15 @@ template <class RA> void RPBOB<RA>::process()
 		}
 
 		if (it == data.finalValue.end() || best.attr.a != it->second.attr.a) {
+			/*
+			if (u == 0) {
+				std::cout << "[";
+				for (int node : best.path)
+					std::cout << node << " ";
+				std::cout << "] attr: " << best.attr.a << " seq: " << best.attr.n
+					  << " cal: " << cal.now() << std::endl;
+			}
+			*/
 			data.recordChange(u, cal.now(), best);
 		}
 	}
@@ -28,6 +37,7 @@ template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
 {
 	data.log = true;
 	data.setOffset(cal.now());
+
 	graph.removeEdge(u, v);
 	graph.removeEdge(v, u);
 }
@@ -65,8 +75,9 @@ template <class RA> void RPBOB<RA>::DestinationAnnouncement(int t, int n, double
 
 	double d = period * n;
 	if (n < max)
-		cal.schedule(d,
-			     [t, n, period, max, this]() mutable { this->DestinationAnnouncement(t, n, period, max); });
+		cal.schedule(d, [t, n, period, max, this]() mutable {
+			this->DestinationAnnouncement(t, n, period, max);
+		});
 }
 }
 

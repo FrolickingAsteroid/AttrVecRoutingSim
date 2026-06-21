@@ -35,6 +35,10 @@ template <class RA> class RpBOBSimulation : public ISimulation {
 
 	void setup() override
 	{
+		if (cfg.N.has_value()) {
+			N.assign(graph.V, *cfg.N);
+		}
+
 		if (cfg.destination < 0) {
 			targets.resize(graph.V);
 			std::iota(targets.begin(), targets.end(), 0);
@@ -55,9 +59,14 @@ template <class RA> class RpBOBSimulation : public ISimulation {
 	void run() override
 	{
 		for (int t : targets) {
-			auto [time, o] = utils::helpers::DelayDijkstra<base_attr, base_ord, base_ext>(graph, t);
-			N	       = utils::helpers::FindNPerNode<base_attr>(*cfg.period, time);
-			//cfg.N	       = utils::helpers::FindMaxDelayDiff<RA>(*cfg.period, time);
+			auto [time, o] =
+				utils::helpers::DelayDijkstra<base_attr, base_ord, base_ext>(graph, t);
+
+			conv_time = ConvergenceTime(time);
+
+			if (!cfg.N.has_value()) {
+				N = utils::helpers::FindNPerNode<base_attr>(*cfg.period, time);
+			}
 
 			if (cfg.scenario == config::ScenarioType::Normal) {
 				convergence_attr[t] = std::move(o);
@@ -69,18 +78,13 @@ template <class RA> class RpBOBSimulation : public ISimulation {
 					graph.removeEdge(v, u);
 
 					auto [opt_time, opt] =
-						utils::helpers::DelayDijkstra<base_attr, base_ord, base_ext>(graph, t);
+						utils::helpers::DelayDijkstra<base_attr, base_ord, base_ext>(
+							graph, t);
 
 					graph.addEdge(u, v, get<0>(edge_uv), get<2>(edge_uv));
 					graph.addEdge(v, u, get<0>(edge_vu), get<2>(edge_vu));
 
-					auto Ns_ = utils::helpers::FindNPerNode<base_attr>(*cfg.period, opt_time);
-					for (std::size_t i = 0; i < N.size(); ++i) {
-						if (Ns_[i] > N[i])
-							N[i] = Ns_[i];
-					}
-
-					conv_time	    = ConvergenceTime(opt_time);
+					updateN(opt_time);
 					convergence_attr[t] = std::move(opt);
 
 					recorder.recordDest(t, proto(t, u, v), std::make_pair(u, v));
@@ -99,23 +103,33 @@ template <class RA> class RpBOBSimulation : public ISimulation {
     private:
 	std::vector<size_t>				N;
 	config::SimulationConfig		       &cfg;
-	Graph<typename RA::BaseAttr>			graph;
+	Graph<base_attr>				graph;
 	std::vector<int>				targets;
 	utils::stats::Recorder<Path<typename RA::Attr>> recorder;
 
-	std::map<int, std::vector<std::vector<typename RA::BaseAttr>>> convergence_attr;
-	double							       conv_time = 0.0;
+	std::map<int, std::vector<std::vector<base_attr>>> convergence_attr;
+	double						   conv_time = 0.0;
 
-	std::vector<std::tuple<int, int, std::tuple<double, bool, base_attr>, std::tuple<double, bool, base_attr>>>
+	std::vector<
+		std::tuple<int, int, std::tuple<double, bool, base_attr>, std::tuple<double, bool, base_attr>>>
 		bid_links;
 
-	double ConvergenceTime(const std::vector<std::vector<std::pair<double, typename RA::BaseAttr>>> &opt_time)
+	void updateN(const std::vector<std::vector<std::pair<double, base_attr>>> &opt_time)
+	{
+		if (cfg.N.has_value())
+			return;
+		auto Ns = utils::helpers::FindNPerNode<base_attr>(*cfg.period, opt_time);
+		for (std::size_t i = 0; i < N.size(); ++i)
+			N[i] = std::max(N[i], Ns[i]);
+	}
+
+	double ConvergenceTime(const std::vector<std::vector<std::pair<double, base_attr>>> &opt_time)
 	{
 		double max_delay = 0.0;
 		for (const auto &node_paths : opt_time)
 			if (!node_paths.empty())
 				max_delay = std::max(max_delay, node_paths.back().first);
-		return max_delay;
+		return max_delay + 1;
 	}
 
 	auto proto(int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt)
