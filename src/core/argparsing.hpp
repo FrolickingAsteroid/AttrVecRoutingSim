@@ -71,8 +71,8 @@ inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cf
 {
 	return {
 		{ "A_", AlgebraName(cfg.algebra) },
-		{ "N", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative" },
-		{ "period", formatParam(cfg.period.value()) },
+		{ "N_", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative" },
+		{ "period_", formatParam(cfg.period.value()) },
 		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }
@@ -81,8 +81,8 @@ inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig
 {
 	return {
 		{ "A_", AlgebraName(cfg.algebra) },
-		{ "dprop", utils::ui::formatParam(cfg.dprop.value()) },
-		{ "period", utils::ui::formatParam(cfg.period.value()) },
+		{ "dprop_", utils::ui::formatParam(cfg.dprop.value()) },
+		{ "period_", utils::ui::formatParam(cfg.period.value()) },
 		{ "S_", ScenarioName(cfg.scenario) },
 	};
 }
