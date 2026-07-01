@@ -62,8 +62,6 @@ template <class RA> void BGP<RA>::MsgReception(int u, int v, attr received)
 		this->Send(u, s[u].GetElected());
 		//converged();
 	}
-
-	//data.recordMessage(u, cal.now());
 }
 
 // ─── cycle / correctness observation ─────────────────────────────────────────

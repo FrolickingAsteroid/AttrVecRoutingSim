@@ -20,8 +20,8 @@ namespace Protocol::BGP
 // BGPNodeState never calls the algebra directly; it only stores and compares
 // BGPAttribute<A> values using operator< and operator!=.
 
-template <class A, class Ext, class Ord> struct BGPNodeState {
-	using attr = BGPAttribute<A, Ext, Ord>;
+template <class Attr> struct BGPNodeState {
+	using attr = Attr;
 
 	std::unordered_map<int, attr> aTab;
 	attr			      E;
@@ -30,9 +30,9 @@ template <class A, class Ext, class Ord> struct BGPNodeState {
 	int			      succ{ -1 };
 
 	explicit BGPNodeState()
-		: E(attr(-1, Ord::Null()))
-		, Av(attr(-1, Ord::Null()))
-		, O(attr(-1, Ord::Null()))
+		: E(attr::Invalid())
+		, Av(attr::Invalid())
+		, O(attr::Invalid())
 	{
 	}
 
@@ -48,12 +48,7 @@ template <class A, class Ext, class Ord> struct BGPNodeState {
 
 	void SetOrigin(int asn)
 	{
-		O = attr(asn, Ord::Neutral());
-	}
-
-	void ClearOrigin()
-	{
-		O = attr(-1, Ord::Null());
+		O = attr::Neutral(asn);
 	}
 
 	// Recompute Av and succ from the current aTab and O.
@@ -93,7 +88,7 @@ template <class A, class Ext, class Ord> struct BGPNodeState {
 		return !E.isInvalid();
 	}
 
-    private:
+    protected:
 	// Scan all of aTab and install the best into Av/succ.
 	void fullScan();
 

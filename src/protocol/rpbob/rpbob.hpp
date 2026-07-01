@@ -1,6 +1,7 @@
 #ifndef RPBOB_HPP
 #define RPBOB_HPP
 
+#include <tuple>
 #include <vector>
 
 #include "protocol/protocol.hpp"
@@ -9,16 +10,22 @@
 
 namespace Protocol::Rpbob
 {
-template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>> {
-	using Base = IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>>;
 
-	using Base::graph;
-	using Base::cal;
-	using Base::data;
+template <class RA>
+struct RPBOB
+	: IProtocol<typename RA::BaseAttr,
+		    Path<typename RA::Attr>,
+		    std::variant<Path<typename RA::Attr>, std::tuple<int, int, int>>> {
+	using Msg  = std::variant<Path<typename RA::Attr>, std::tuple<int, int, int>>;
+	using Base = IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>, Msg>;
 
 	using A	  = RA::Attr;
 	using Ord = RA::Ord;
 	using Ext = RA::Ext;
+
+	using Base::graph;
+	using Base::cal;
+	using Base::data;
 
 	std::vector<SequenceWindow<A, Ord>> s;
 
@@ -37,7 +44,11 @@ template <class RA> struct RPBOB : IProtocol<typename RA::BaseAttr, Path<typenam
 			s.emplace_back(n);
 	}
 
-	void MsgReception(int u, int v, Path<A> p) override;
+	void MsgReception(int u, int v, Msg msg) override;
+
+	void HandleMsg(int u, int v, Path<A> p);
+
+	void HandleMsg(int u, int v, std::tuple<int, int, int> notif);
 
 	void DestinationAnnouncement(int t, int n, double period, int max);
 

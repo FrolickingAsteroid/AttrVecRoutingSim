@@ -6,7 +6,7 @@
 namespace config
 {
 enum ScenarioType { Normal, LinkFailure, Withdrawal };
-enum Options { RPBOB, Beaconing, BGP, N };
+enum Options { RPBOB, Beaconing, BGP, RCN, N };
 enum Metric { LENGTHS, HOPS };
 
 struct SimulationConfig {
@@ -17,10 +17,10 @@ struct SimulationConfig {
 	int	    destination = -1;
 
 	// optional args
-	std::optional<double>	   dprop  = std::nullopt;
-	std::optional<double>	   period = std::nullopt;
-	std::optional<int>	   max	  = std::nullopt;
-	std::optional<int> N	  = std::nullopt;
+	std::optional<double> dprop  = std::nullopt;
+	std::optional<double> period = std::nullopt;
+	std::optional<int>    max    = std::nullopt;
+	std::optional<int>    N	     = std::nullopt;
 
 	// Type of simulation being run
 	ScenarioType scenario	= Normal;

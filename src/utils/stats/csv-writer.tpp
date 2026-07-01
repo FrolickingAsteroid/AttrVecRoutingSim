@@ -9,7 +9,9 @@ namespace utils::stats
 {
 
 template <class R>
-void Recorder<R>::recordDest(int dest, const Data<R> &data, std::optional<std::pair<int, int>> failure)
+void Recorder<R>::recordDest(int				dest,
+			     const Data<R>		       &data,
+			     std::optional<std::pair<int, int>> failure)
 {
 	records.push_back({ dest, failure, data });
 }
@@ -26,18 +28,36 @@ void Recorder<R>::writeConvergenceRow(std::ostream			&out,
 		return;
 	if (failure)
 		out << "(" << failure->first << ";" << failure->second << "),";
-	out << dest << "," << u << "," << data.lastChangeTime[u] << "," << data.msgCount[u] << ","
-	    << data.changeCounts[u] << "," << it->second << "\n";
+	out << dest << "," << u << "," << data.lastChangeTime[u] << ","
+	    << data.msgCount[u] << "," << data.changeCounts[u] << "," << it->second
+	    << "\n";
 }
 
-template <class R> void Recorder<R>::writeTrafficRow(std::ostream &out, int dest, int msgs)
+template <class R>
+void Recorder<R>::writeTrafficRow(std::ostream &out, int dest, int msgs)
 {
 	out << dest << "," << msgs << "\n";
 }
 
-template <class R> void Recorder<R>::writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs)
+template <class R>
+void Recorder<R>::writeTrafficRow(std::ostream	     &out,
+				  std::pair<int, int> failure,
+				  int		      msgs)
 {
 	out << "(" << failure.first << ";" << failure.second << ")," << msgs << "\n";
+}
+
+template <class R>
+void Recorder<R>::writeMsgLogRow(std::ostream			   &out,
+				 std::optional<std::pair<int, int>> failure,
+				 int				    dest,
+				 int				    node,
+				 double				    time,
+				 int				    msg)
+{
+	if (failure)
+		out << "(" << failure->first << "-" << failure->second << "),";
+	out << dest << "," << node << "," << time << "," << msg << "\n";
 }
 
 template <class R> SummaryStats Recorder<R>::Summary(int V)
@@ -69,6 +89,12 @@ template <class R> SummaryStats Recorder<R>::Summary(int V)
 			stats.msgs_per_link_failure[*failure].add(dest_msgs);
 		} else {
 			stats.msgs_per_dest[dest].add(dest_msgs);
+		}
+		for (const auto &[time, per_node] : data.msgLog) {
+			for (const auto &[node, msg] : per_node) {
+				writeMsgLogRow(
+					msglog_out, failure, dest, node, time, msg);
+			}
 		}
 	}
 

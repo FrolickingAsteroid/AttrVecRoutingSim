@@ -26,7 +26,9 @@ template <class A, class Ord> class SequenceWindow {
 
 	const std::vector<path> &GetSetAttr() const;
 
-	std::optional<path> CompareSetAttr(const path &n);
+	std::optional<path> CompareSetAttr(const path &c);
+
+	bool FailureNotif(std::tuple<int, int, int> notif);
 
     private:
 	std::size_t	  N;

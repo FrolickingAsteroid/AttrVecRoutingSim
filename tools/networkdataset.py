@@ -75,6 +75,7 @@ def _unit_delay(u: int, v: int) -> int:
     """Constant unit delay"""
     return 1
 
+
 def _lognormal_delay(u: int, v: int, mu: float = 3.0, sigma: float = 0.4) -> int:
     """
     Log-normal delay (~20 ms mean at default params), matching empirical
@@ -117,8 +118,9 @@ def b_clique_network(
     g = nx.DiGraph()
 
     def add(u, v):
-        g.add_edge(u, v, Delay=delay_fn(u, v), Length=length_fn(u, v))
-        g.add_edge(v, u, Delay=delay_fn(u, v), Length=length_fn(u, v))
+        l = length_fn(u, v)
+        g.add_edge(u, v, Delay=delay_fn(u, v), Length=l)
+        g.add_edge(v, u, Delay=delay_fn(u, v), Length=l)
 
     for i in range(n - 1):
         add(i, i + 1)
@@ -317,7 +319,7 @@ def main():
     args = parser.parse_args()
 
     if args.cmd == "bclique":
-        write_b_clique(args.n, args.testdir, mode=args.mode)
+        write_b_clique(args.n, args.cliquedir, mode=args.mode)
 
     elif args.cmd == "plot":
         if args.save:

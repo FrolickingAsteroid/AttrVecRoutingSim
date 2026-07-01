@@ -7,13 +7,63 @@
 namespace Protocol::Rpbob
 {
 template <class A, class Ord>
+bool SequenceWindow<A, Ord>::FailureNotif(std::tuple<int, int, int> notif)
+{
+	auto [n, u, v] = notif;
+	bool erased    = false;
+
+	if (set_seq_attr.empty()) {
+		return erased;
+	}
+
+	if (best_attr.attr.n > n) {
+		return erased;
+	}
+
+	auto contains_failed_link = [u, v](const path &p) {
+		const auto &nodes = p.path;
+
+		if (nodes.size() < 2) {
+			return false;
+		}
+
+		for (std::size_t i = 0; i + 1 < nodes.size(); ++i) {
+			const int a = nodes[i];
+			const int b = nodes[i + 1];
+
+			if ((a == u && b == v) || (a == v && b == u)) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	set_seq_attr.erase(std::remove_if(set_seq_attr.begin(),
+					  set_seq_attr.end(),
+					  [&](const path &p) {
+						  if (!contains_failed_link(p)) {
+							  return false;
+						  }
+						  if (p == best_attr) {
+							  return false;
+						  }
+						  erased = true;
+						  return true;
+					  }),
+			   set_seq_attr.end());
+
+	return erased;
+}
+template <class A, class Ord>
 const SequenceWindow<A, Ord>::path &SequenceWindow<A, Ord>::GetBestAttr() const
 {
 	return best_attr;
 }
 
 template <class A, class Ord>
-const std::vector<typename SequenceWindow<A, Ord>::path> &SequenceWindow<A, Ord>::GetSetAttr() const
+const std::vector<typename SequenceWindow<A, Ord>::path> &
+SequenceWindow<A, Ord>::GetSetAttr() const
 {
 	return set_seq_attr;
 }
@@ -35,18 +85,19 @@ SequenceWindow<A, Ord>::CompareSetAttr(const path &c)
 			return std::nullopt;
 
 	// remove anything worse than the candidate
-	set_seq_attr.erase(
-		std::remove_if(set_seq_attr.begin(),
-			       set_seq_attr.end(),
-			       [&](const path &current) { return ord(c.attr, current.attr); }),
-		set_seq_attr.end());
+	set_seq_attr.erase(std::remove_if(set_seq_attr.begin(),
+					  set_seq_attr.end(),
+					  [&](const path &current) {
+						  return ord(c.attr, current.attr);
+					  }),
+			   set_seq_attr.end());
 
 	set_seq_attr.push_back(c);
 
 	// sort by sequence number
-	std::sort(set_seq_attr.begin(), set_seq_attr.end(), [](const path &l, const path &r) {
-		return l.attr.n < r.attr.n;
-	});
+	std::sort(set_seq_attr.begin(),
+		  set_seq_attr.end(),
+		  [](const path &l, const path &r) { return l.attr.n < r.attr.n; });
 
 	// update best
 	path new_best = set_seq_attr.front();

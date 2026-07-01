@@ -37,7 +37,7 @@ struct BGP : IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr
 	using Ord = RA::Ord;
 
 	using attr	 = BGPAttribute<A, Ext, Ord>;
-	using node_state = BGPNodeState<A, Ext, Ord>;
+	using node_state = BGPNodeState<attr>;
 
 	std::vector<node_state> s;
 

@@ -19,15 +19,6 @@ template <class RA> void RPBOB<RA>::process()
 		}
 
 		if (it == data.finalValue.end() || best.attr.a != it->second.attr.a) {
-			/*
-			if (u == 0) {
-				std::cout << "[";
-				for (int node : best.path)
-					std::cout << node << " ";
-				std::cout << "] attr: " << best.attr.a << " seq: " << best.attr.n
-					  << " cal: " << cal.now() << std::endl;
-			}
-			*/
 			data.recordChange(u, cal.now(), best);
 		}
 	}
@@ -40,9 +31,29 @@ template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
 
 	graph.removeEdge(u, v);
 	graph.removeEdge(v, u);
+
+	auto notif = std::make_tuple(s[u].GetBestAttr().attr.n, u, v);
+
+	if (s[u].FailureNotif(notif)) {
+		this->Send(u, Msg{ notif });
+	}
 }
 
-template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Path<A> p)
+template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
+{
+	std::visit([&](auto &&m) { this->HandleMsg(u, v, m); }, msg);
+}
+
+template <class RA>
+void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, int, int> notif)
+{
+	(void)v;
+	if (s[u].FailureNotif(notif)) {
+		this->Send(u, Msg{ notif });
+	}
+}
+
+template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p)
 {
 	if (graph.adjListOut[u].find(v) == graph.adjListOut[u].end())
 		return;
@@ -59,17 +70,18 @@ template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Path<A> p)
 	std::optional<Path<A>> changed = s[u].CompareSetAttr(p);
 
 	if (changed.has_value()) {
-		this->Send(u, p);
+		this->Send(u, Msg{ p });
 		converged();
 	}
 }
 
-template <class RA> void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, int max)
+template <class RA>
+void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, int max)
 {
 	s[t].SetOrigin(n, t);
 	auto o = s[t].GetBestAttr();
 
-	this->Send(t, o);
+	this->Send(t, Msg{ o });
 
 	n += 1;
 

@@ -2,7 +2,6 @@
 #define BGP_ATTRIBUTE_HPP
 
 #include <algorithm>
-#include <iomanip>
 #include <iostream>
 #include <vector>
 
@@ -38,12 +37,11 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	// Returns the neutral (origin) attribute for a destination node.
 	// Replaces BGPAttribute(NEUTRAL, asn).
 	// Ord::Neutral() must return an A that is the identity for extension.
-	static BGPAttribute Neutral(int asn, A neutral_attr)
+	static BGPAttribute Neutral(int asn)
 	{
-		return BGPAttribute(asn, neutral_attr);
+		return BGPAttribute(asn, Ord::Neutral());
 	}
 
-	// Returns an invalid (withdrawn / unreachable) attribute.
 	// Replaces BGPAttribute(INVALID).
 	// Represented as an empty AS path — no valid origin.
 	static BGPAttribute Invalid()
@@ -94,7 +92,7 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	// regardless of whether the AS paths are identical.
 	bool operator!=(const BGPAttribute &other) const
 	{
-		return attribute != other.attribute;
+		return attribute != other.attribute || as_path != other.as_path;
 	}
 
 	bool operator<(const BGPAttribute &other) const
@@ -138,7 +136,8 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 		std::vector<int> new_path(a.as_path);
 		new_path.push_back(link.as_path[0]);
 
-		return BGPAttribute(std::move(new_path), ext(link.attribute, a.attribute));
+		return BGPAttribute(std::move(new_path),
+				    ext(link.attribute, a.attribute));
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const BGPAttribute &a)

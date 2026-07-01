@@ -37,35 +37,22 @@ template <class R> struct Data {
 		++changeCounts[node];
 	}
 
-	void recordMessage(const int node)
+	void recordMessage(const int node, const double time)
 	{
 		if (log) {
 			++msgCount[node];
+			++msgLog[time - offset][node];
 		}
 	}
 
-	// Called by the protocol every time a message is sent.
-	void recordMessage(const int node, const double time)
-	{
-		if (time < offset)
-			return;
-
-		if (Conv[node])
-			return;
-
-		++msgCount[node];
-
-		if (hasConverged && hasConverged(node))
-			Conv[node] = true;
-	}
-
-	double			   offset = 0.0;
-	bool			   log	  = false;
-	std::vector<double>	   lastChangeTime;
-	std::vector<int>	   changeCounts;
-	std::unordered_map<int, R> finalValue;
-	std::vector<int>	   msgCount;
-	std::vector<bool>	   Conv;
+	double				     offset = 0.0;
+	bool				     log    = false;
+	std::vector<double>		     lastChangeTime;
+	std::vector<int>		     changeCounts;
+	std::unordered_map<int, R>	     finalValue;
+	std::map<double, std::map<int, int>> msgLog;
+	std::vector<int>		     msgCount;
+	std::vector<bool>		     Conv;
 };
 
 }
