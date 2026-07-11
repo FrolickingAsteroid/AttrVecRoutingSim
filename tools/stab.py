@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
 import re
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Global settings
@@ -25,6 +26,7 @@ plt.rcParams.update(
 PROTO_COLORS = {
     "bgp": "tab:green",
     "rpbob": "tab:blue",
+    "rcn": "tab:orange",
     "beaconing": "tab:orange",
 }
 
@@ -32,6 +34,7 @@ PROTO_COLORS = {
 # ─────────────────────────────────────────────────────────────────────────────
 # Interactive helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def choose_one(prompt, options, display_fn=str):
     if not options:
@@ -79,9 +82,15 @@ def ask_optional_int(prompt):
     return int(s) if s else None
 
 
+def ask_optional_float(prompt):
+    s = input(f"\n{prompt}").strip()
+    return float(s) if s else 1.0
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # File discovery
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def discover_folders():
     return sorted(p.name for p in DATA_ROOT.iterdir() if p.is_dir())
@@ -195,6 +204,7 @@ def path_from_template(folder, network, template):
 # Series loading
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_series(files, dest_filter=None):
     series = []
 
@@ -203,6 +213,46 @@ def load_series(files, dest_filter=None):
 
         if dest_filter is not None:
             df = df[df["dest"] == dest_filter]
+
+        tags = parse_tags(item["name"])
+
+        series.append(
+            {
+                "df": df,
+                "label": display_legend(item),
+                "proto": item["proto"],
+                "algebra": tags.get("A", "unknown"),
+                "scene": tags.get("S", "unknown"),
+                "path": item["path"],
+                "name": item["name"],
+                "network": item["network"],
+            }
+        )
+
+    return series
+
+
+def load_msg_series(files, dest, failure):
+    """
+    Like load_series, but for msg_timeseries files: filters down each file
+    to a single (failure, dest) run, since one file can contain several
+    runs stacked together.
+
+    `failure` should be the exact string as it appears in the CSV's
+    `failure` column (e.g. "(0-3)"), or None/"" to select rows where no
+    failure occurred.
+    """
+    series = []
+
+    for item in files:
+        df = pd.read_csv(item["path"])
+
+        df = df[df["dest"] == dest]
+
+        if failure in (None, ""):
+            df = df[df["failure"].isna() | (df["failure"] == "")]
+        else:
+            df = df[df["failure"] == failure]
 
         tags = parse_tags(item["name"])
 
@@ -233,6 +283,7 @@ def make_output_name(network, series, suffix):
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 1: CCDF stabilisation time
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def plot_stab_ccdf(series, network, output_file):
     fig, ax = plt.subplots(figsize=(5.5, 3.8))
@@ -286,6 +337,7 @@ def plot_stab_ccdf(series, network, output_file):
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 2: change-count bar plot
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def plot_change_count(series, network, output_file):
     fig, ax = plt.subplots(figsize=(5.5, 3.8))
@@ -342,10 +394,7 @@ def plot_change_count(series, network, output_file):
 # ─────────────────────────────────────────────────────────────────────────────
 # Plot 3: stabilisation time vs number of nodes, log scale
 # ─────────────────────────────────────────────────────────────────────────────
-
 from matplotlib.patches import Patch
-import numpy as np
-import pandas as pd
 
 
 def plot_max_stab_log(folder, networks, template_files, dest_filter, output_file):
@@ -382,13 +431,15 @@ def plot_max_stab_log(folder, networks, template_files, dest_filter, output_file
             if df["stab_time"].max() > max_stab:
                 max_stab = df["stab_time"].max()
 
-            all_boxes.append({
-                "n_nodes": n_nodes,
-                "stab": stab,
-                "proto": proto,
-                "color": color,
-                "label": label,
-            })
+            all_boxes.append(
+                {
+                    "n_nodes": n_nodes,
+                    "stab": stab,
+                    "proto": proto,
+                    "color": color,
+                    "label": label,
+                }
+            )
 
     if not all_boxes:
         print("No data to plot.")
@@ -428,7 +479,7 @@ def plot_max_stab_log(folder, networks, template_files, dest_filter, output_file
         patch_artist=True,
         showfliers=False,
         manage_ticks=False,
-        showmeans=True
+        showmeans=True,
     )
 
     for patch, color in zip(bp["boxes"], box_colors):
@@ -479,8 +530,82 @@ def plot_max_stab_log(folder, networks, template_files, dest_filter, output_file
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Plot 4: average per-node message rate over time since failure
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def compute_avg_node_rate(df, n_nodes, bin_width):
+    if df.empty:
+        return np.array([]), np.array([])
+
+    max_t = df["time"].max()
+    n_bins = max(1, int(np.ceil(max_t / bin_width)) + 1)
+    edges = np.arange(0, (n_bins + 1) * bin_width, bin_width)
+
+    df = df.copy()
+    df["bin"] = pd.cut(df["time"], bins=edges, right=False, labels=False)
+
+    per_bin_total = df.groupby("bin")["msg"].sum()
+    per_bin_total = per_bin_total.reindex(range(n_bins), fill_value=0)
+
+    avg_rate = per_bin_total.to_numpy() / max(1, n_nodes)
+    bin_centers = edges[:n_bins] + bin_width / 2
+
+    return bin_centers, avg_rate
+
+
+def plot_msg_rate(series, network, output_file, bin_width):
+    fig, ax = plt.subplots(figsize=(5.5, 3.8))
+
+    # n_nodes = network_size(network) - 1  # exclude the destination
+    n_nodes = 50
+    max_x = 0.0
+    for item in series:
+        df = item["df"]
+        proto = item["proto"]
+        label = item["label"]
+
+        if df.empty:
+            print(f"[warn] no rows for {label} after filtering, skipping")
+            continue
+
+        x, y = compute_avg_node_rate(df, n_nodes, bin_width)
+
+        if len(x) == 0:
+            continue
+
+        ax.step(
+            x,
+            y,
+            where="mid",
+            color=PROTO_COLORS.get(proto, None),
+            label=label,
+            linewidth=1.5,
+        )
+
+        max_x = max(max_x, float(x.max()))
+
+    ax.set_title(
+        f"Average per-node message rate after failure ({network})", fontsize=10
+    )
+    ax.set_xlabel(f"Time since failure [ms] (bin width = {bin_width})")
+    ax.set_ylabel("Avg. messages / node / bin")
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+
+    ax.set_xlim([-0.01, max_x if max_x > 0 else 1.0])
+    ax.set_ylim(bottom=-0.01)
+
+    fig.tight_layout()
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_file, dpi=250, bbox_inches="tight")
+    print(f"Saved: {output_file}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Prompt modes
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def run_ccdf_prompt():
     folder = choose_one("Choose folder:", discover_folders())
@@ -557,9 +682,50 @@ def run_max_stab_log_prompt():
     )
 
 
+def run_msg_rate_prompt():
+    folder = choose_one("Choose folder:", discover_folders())
+    network = choose_one("Choose network:", discover_networks(folder))
+
+    files = discover_csvs(folder, network, suffix="_msglog.csv")
+
+    selected_files = choose_many(
+        "Choose msg_timeseries files:",
+        files,
+        display_fn=display_name,
+    )
+
+    # Peek at the first file to discover which (failure, dest) runs exist,
+    # so the same run can be selected consistently across all chosen files.
+    sample_df = pd.read_csv(selected_files[0]["path"])
+    sample_df["failure"] = sample_df["failure"].fillna("")
+    combos = sorted(
+        sample_df[["failure", "dest"]]
+        .drop_duplicates()
+        .itertuples(index=False, name=None)
+    )
+
+    failure, dest = choose_one(
+        "Choose (failure, dest) run to plot:",
+        combos,
+        display_fn=lambda c: f"failure={c[0] or 'none'}, dest={c[1]}",
+    )
+
+    bin_width = ask_optional_float("Bin width in ms? Press Enter for 1.0: ")
+
+    series = load_msg_series(selected_files, dest, failure)
+
+    if not series:
+        print("No data to plot.")
+        return
+
+    output_file = make_output_name(network, series, f"msg_rate_dest{dest}")
+    plot_msg_rate(series, network, output_file, bin_width)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main():
     plot_type = choose_one(
@@ -568,6 +734,7 @@ def main():
             "ccdf stabilization time",
             "attribute change count",
             "stabilization time log plot",
+            "average per-node message rate",
         ],
     )
 
@@ -579,7 +746,8 @@ def main():
 
     elif plot_type == "stabilization time log plot":
         run_max_stab_log_prompt()
-
+    elif plot_type == "average per-node message rate":
+        run_msg_rate_prompt()
     else:
         raise RuntimeError(f"Unknown plot type: {plot_type}")
 

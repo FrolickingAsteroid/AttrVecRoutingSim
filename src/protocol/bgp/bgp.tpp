@@ -12,11 +12,11 @@ template <class RA> void BGP<RA>::process()
 		auto it	  = data.finalValue.find(u);
 		auto best = s[u].GetElected();
 
-		if (best.attribute == Ord::Null()) {
+		if (best.attribute == Ord::Null() && data.log == false) {
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best.attribute != it->second.attribute) {
+		if (it == data.finalValue.end() || best != it->second) {
 			data.recordChange(u, cal.now(), best);
 		}
 	}
@@ -26,7 +26,6 @@ template <class RA> void BGP<RA>::LinkFailure(int u, int v)
 {
 	graph.removeEdge(u, v);
 	graph.removeEdge(v, u);
-
 	data.log = true;
 	data.setOffset(cal.now());
 
@@ -39,6 +38,22 @@ template <class RA> void BGP<RA>::LinkFailure(int u, int v)
 			}
 		}
 	}
+}
+
+template <class RA> void BGP<RA>::NodeDown(int t)
+{
+	for (auto &[r, edge] : graph.adjListIn[t]) {
+		if (s[r].succ == t) {
+			s[r].RemoveNeighbor(t);
+			graph.deactivate(r, t);
+			if (s[r].ProcessBest()) {
+				this->Send(r, s[r].GetElected());
+				data.recordChange(r, cal.now(), s[r].GetElected());
+			}
+		}
+	}
+	data.log = true;
+	data.setOffset(cal.now());
 }
 
 template <class RA> void BGP<RA>::DestinationAnnouncement(int t)
@@ -56,7 +71,6 @@ template <class RA> void BGP<RA>::MsgReception(int u, int v, attr received)
 
 	attr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
 	attr extended = lw + received;
-
 	s[u].UpdateNeighbor(v, extended);
 	if (s[u].ProcessBest(v)) {
 		this->Send(u, s[u].GetElected());

@@ -96,7 +96,8 @@ template <class RA> class BGPSimulation : public ISimulation {
 
 		if (u && v) {
 			proto.Run();
-			proto.cal.schedule(proto.cal.now(), [&]() { proto.LinkFailure(*u, *v); });
+			//proto.cal.schedule(proto.cal.now(), [&]() { proto.LinkFailure(*u, *v); });
+			proto.cal.schedule(proto.cal.now(), [&]() { proto.NodeDown(t); });
 			proto.Run();
 		} else {
 			proto.data.log = true;

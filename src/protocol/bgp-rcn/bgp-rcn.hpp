@@ -44,6 +44,7 @@ struct RCN
 	void DestinationAnnouncement(int t);
 
 	void LinkFailure(int u, int v) override;
+	void NodeDown(int t);
 
 	void MsgReception(int u, int v, Msg received) override;
 

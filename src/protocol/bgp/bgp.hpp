@@ -63,6 +63,7 @@ struct BGP : IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr
 	void DestinationAnnouncement(int t);
 
 	void LinkFailure(int u, int v) override;
+	void NodeDown(int t);
 	void MsgReception(int u, int v, attr received) override;
 
 	void process() override;

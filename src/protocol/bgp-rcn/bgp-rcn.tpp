@@ -11,7 +11,7 @@ template <class RA> void RCN<RA>::process()
 		auto it	  = data.finalValue.find(u);
 		auto best = s[u].GetElected();
 
-		if (best.attribute == Ord::Null()) {
+		if (best.attribute == Ord::Null() && data.log == false) {
 			continue;
 		}
 
@@ -20,6 +20,24 @@ template <class RA> void RCN<RA>::process()
 			data.recordChange(u, cal.now(), best);
 		}
 	}
+}
+
+template <class RA> void RCN<RA>::NodeDown(int t)
+{
+	for (auto &[r, edge] : graph.adjListIn[t]) {
+		if (s[r].succ == t) {
+			s[r].RemoveNeighbor(t);
+			graph.deactivate(r, t);
+			if (s[r].ProcessBest()) {
+				rcn notif{ t, ++s[r].t };
+
+				this->Send(r, Msg{ s[r].GetElected(), notif });
+				data.recordChange(r, cal.now(), s[r].GetElected());
+			}
+		}
+	}
+	data.log = true;
+	data.setOffset(cal.now());
 }
 
 template <class RA> void RCN<RA>::LinkFailure(int u, int v)

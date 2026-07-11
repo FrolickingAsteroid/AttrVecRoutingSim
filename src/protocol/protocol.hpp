@@ -43,11 +43,10 @@ template <class A, class R, class Msg = R> struct IProtocol {
 			if (!active)
 				continue;
 
-			auto time = cal.now() + delay;
-			cal.schedule(time, [this, r, t, msg]() mutable {
+			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
 				this->MsgReception(r, t, msg);
 			});
-			data.recordMessage(t, time);
+			data.recordMessage(t, cal.now());
 		}
 	}
 };

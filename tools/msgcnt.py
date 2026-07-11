@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,20 +15,25 @@ plt.rcParams.update(
     }
 )
 
-NETWORK  = "1221"
-STEM     = "DelayLength"
+NETWORK = "1221"
+STEM = "DelayLength"
 BASE_DIR = Path(f"../data/output/rocketfuel/{NETWORK}")
 
 RUNS = [
     {
-        "proto":  "rpbob",
-        "params": {"A_": "lengths", "N": "adaptative", "S_": "linkFailure", "period": "100.0"},
-        "label":  "RPBOB SP",
+        "proto": "rpbob",
+        "params": {
+            "A_": "lengths",
+            "N": "adaptative",
+            "S_": "linkFailure",
+            "period": "100.0",
+        },
+        "label": "RPBOB SP",
     },
     {
-        "proto":  "bgp",
+        "proto": "bgp",
         "params": {"A_": "lengths", "S_": "linkFailure"},
-        "label":  "BGP SP",
+        "label": "BGP SP",
     },
 ]
 
@@ -36,9 +42,10 @@ DEST_FILTER = None
 
 # ─── helpers  ──────────────────────────────────
 
+
 def build_path(base_dir: Path, stem: str, proto: str, params: dict) -> Path:
     param_str = "_".join(f"{k}{v}" for k, v in params.items())
-    filename  = f"{stem}_{param_str}_convergence.csv"
+    filename = f"{stem}_{param_str}_convergence.csv"
     return base_dir / proto / filename
 
 
@@ -60,21 +67,21 @@ def build_series(base_dir: Path, stem: str, runs: list, dest_filter) -> list:
 
 # ─── plot ─────────────────────────────────────────────────────────────────────
 
+
 def plot_msg_ccdf(series: list, network: str, output_file: Path):
     plt.figure(figsize=(5.5, 3.8))
     max_x = 0
 
     for df, label in series:
-        x    = np.sort(df["msg_count"].to_numpy())
-        n    = len(x)
-        avg  = np.mean(x)
+        x = np.sort(df["msg_count"].to_numpy())
+        n = len(x)
+        avg = np.mean(x)
         ccdf = 1.0 - np.arange(0, n) / n
 
-        x_plot    = np.r_[0, x]
+        x_plot = np.r_[0, x]
         ccdf_plot = np.r_[1.0, ccdf]
 
-        plt.step(x_plot, ccdf_plot, where="post",
-                 label=f"{label} (avg {avg:.1f} msgs)")
+        plt.step(x_plot, ccdf_plot, where="post", label=f"{label} (avg {avg:.1f} msgs)")
 
         if max_x < max(x_plot):
             max_x = max(x_plot)
@@ -101,9 +108,9 @@ if __name__ == "__main__":
         print("No data to plot.")
         exit(1)
 
-    plot_dir  = Path("../data/plots")
+    plot_dir = Path("../data/plots")
     proto_tag = "_".join(r["proto"] for r in RUNS)
-    dest_tag  = f"d{DEST_FILTER}" if DEST_FILTER is not None else "all"
+    dest_tag = f"d{DEST_FILTER}" if DEST_FILTER is not None else "all"
     output_file = plot_dir / f"AS{NETWORK}_{proto_tag}_{dest_tag}_msg_ccdf.png"
 
     plot_msg_ccdf(series, NETWORK, output_file)
