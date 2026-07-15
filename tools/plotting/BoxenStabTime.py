@@ -12,11 +12,11 @@ plt.rcParams.update(
     }
 )
 
-node_counts = [4, 8, 16, 32]
+node_counts = [4, 8, 16, 32, 64]
 protocol_paths = {
-    "RPBOB": "../../data/output/clique/bclique_n{n}/rpbob/DelayHops_A_hops_N_adaptative_S_linkFailure_period_1.0_convergence.csv",
-    "BGP":   "../../data/output/clique/bclique_n{n}/bgp/DelayHops_A_hops_S_linkFailure_convergence.csv",
-    "RCN":   "../../data/output/clique/bclique_n{n}/rcn/DelayHops_A_hops_S_linkFailure_convergence.csv",
+    "RPBOB": "../../data/output/clique/bclique_n{n}/rpbob/DelayHops_unit_A_hops_N_adaptative_S_linkFailure_period_1.0_convergence.csv",
+    "BGP": "../../data/output/clique/bclique_n{n}/bgp/DelayHops_unit_A_hops_S_linkFailure_convergence.csv",
+    "RCN": "../../data/output/clique/bclique_n{n}/rcn/DelayHops_unit_A_hops_S_linkFailure_convergence.csv",
 }
 
 frames = []
@@ -31,7 +31,7 @@ df = pd.concat(frames, ignore_index=True)
 
 plt.figure(figsize=(8, 5))
 
-sns.boxplot(data=df, x="n", y="stab_time", hue="Protocol",showmeans=True,meanline=True, meanprops={'color':'black'})
+sns.boxplot(data=df, x="n", y="stab_time", hue="Protocol", showmeans=True, meanline=True, meanprops={'color': 'black'})
 
 plt.xlabel('number of nodes')
 plt.ylabel('Stabilization Time')
