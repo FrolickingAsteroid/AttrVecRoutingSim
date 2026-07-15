@@ -122,7 +122,7 @@ for n in "${NODE_COUNTS[@]}"; do
             cd "${SCRIPT_DIR}"
             ./networkdataset.py bclique -n "${n}" --mode "${type}"
             cd "${REPO_ROOT}"
-            echo "\n"
+            echo ""
         fi
 
         DATASET="data/datasets/clique/bclique_n${n}/${filetype}_${type}.tsv"
