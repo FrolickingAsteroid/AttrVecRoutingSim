@@ -19,39 +19,35 @@ namespace config
 
 void PrintUsage(const char *prog)
 {
-	std::cerr
-		<< yellow("\nusage:\n") << "  " << prog
-		<< " -f <network.tsv> -R|-G|-B [-a <algebra>]"
-		<< " [-t <dest|all>]\n"
-		<< "  " << prog << " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
-		<< "  " << prog
-		<< " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
-		<< "  " << prog << " -N -f <network.tsv> -i <period> [-a <algebra>]\n\n"
+	std::cerr << yellow("\nusage:\n") << "  " << prog
+		  << " -f <network.tsv> -R|-G|-B [-a <algebra>]"
+		  << " [-t <dest|all>]\n"
+		  << "  " << prog << " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
+		  << "  " << prog << " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
+		  << "  " << prog << " -N -f <network.tsv> -i <period> [-a <algebra>]\n\n"
 
-		<< yellow("protocols:\n") << "  -R               RPBOB (default)\n"
-		<< "  -G               BGP\n"
-		<< "  -B               Beaconing\n"
-		<< "  -N               compute window size N from network file and period\n\n"
+		  << yellow("protocols:\n") << "  -R               RPBOB (default)\n"
+		  << "  -G               BGP\n"
+		  << "  -B               Beaconing\n"
+		  << "  -N               compute window size N from network file and period\n\n"
 
-		<< yellow("required:\n")
-		<< "  -f <file>        path to network .tsv file\n"
-		<< "  -i <period>      destination announcement period\n"
-		<< "  -m <max>         number of routing computations\n\n"
+		  << yellow("required:\n") << "  -f <file>        path to network .tsv file\n"
+		  << "  -i <period>      destination announcement period\n"
+		  << "  -m <max>         number of routing computations\n\n"
 
-		<< yellow("optional:\n")
-		<< "  -a <algebra>     routing algebra: lengths (default), hops\n"
-		<< "  -t <dest>        destination node id, or 'all' (default: all)\n"
-		<< "  -w <N>           window size for RPBOB (default: auto from graph)\n"
-		<< "  -d <dprop>       propagation interval for Beaconing\n\n"
+		  << yellow("optional:\n")
+		  << "  -a <algebra>     routing algebra: lengths (default), hops\n"
+		  << "  -t <dest>        destination node id, or 'all' (default: all)\n"
+		  << "  -w <N>           window size for RPBOB (default: auto from graph)\n"
+		  << "  -d <dprop>       propagation interval for Beaconing\n\n"
 
-		<< yellow("log level:\n")
-		<< "  -I               print basic information (default)\n"
-		<< "  -V               print additional protocol information\n"
-		<< "  -S               suppress printing\n";
+		  << yellow("log level:\n")
+		  << "  -I               print basic information (default)\n"
+		  << "  -V               print additional protocol information\n"
+		  << "  -S               suppress printing\n";
 }
 
-void PrintSummary(std::chrono::milliseconds	    elapsed,
-		  const utils::stats::SummaryStats &stats)
+void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats)
 {
 	using namespace tabulate;
 	using namespace utils::stats;
@@ -62,8 +58,7 @@ void PrintSummary(std::chrono::milliseconds	    elapsed,
 		return ss.str();
 	};
 	auto range = [&](const MsgStats &s) {
-		return fmt(s.avg) + "  (min: " + fmt(s.min) + " / max: " + fmt(s.max) +
-		       ")";
+		return fmt(s.avg) + "  (min: " + fmt(s.min) + " / max: " + fmt(s.max) + ")";
 	};
 
 	const bool has_failures = !stats.msgs_per_link_failure.empty();
@@ -107,7 +102,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	SimulationConfig cfg;
 	int		 c;
 
-	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F::W:NRGCBVSI")) != -1) {
+	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F::W:NRGCBVSIA")) != -1) {
 		switch (c) {
 		case 'f':
 			cfg.network_file = optarg;
@@ -168,6 +163,9 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 
 		case 'V':
 			setVerbose();
+			break;
+		case 'A':
+			cfg.append = true;
 			break;
 		case 'S':
 			setSilent();

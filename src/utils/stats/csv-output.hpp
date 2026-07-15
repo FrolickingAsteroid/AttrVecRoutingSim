@@ -37,6 +37,9 @@ inline std::filesystem::path makeOutputPath(const std::filesystem::path		     &i
 
 	std::string param_str;
 	for (const auto &[k, v] : params) {
+		if (k == "append")
+			continue;
+
 		if (!param_str.empty())
 			param_str += "_";
 		param_str += k + v;
@@ -49,11 +52,20 @@ inline std::filesystem::path makeOutputPath(const std::filesystem::path		     &i
 }
 
 // Opens a file for writing.
-inline std::ofstream openFile(const std::filesystem::path &path)
+inline std::ofstream
+openFile(const std::filesystem::path &path, bool append, const std::string &header)
 {
-	std::ofstream out(path);
+	bool write_header = !append || !std::filesystem::exists(path) ||
+			    std::filesystem::file_size(path) == 0;
+
+	auto mode = append ? (std::ios::out | std::ios::app) : std::ios::out;
+
+	std::ofstream out(path, mode);
 	if (!out.is_open())
 		throw std::runtime_error("Could not open file: " + path.string());
+
+	if (write_header)
+		out << header;
 	return out;
 }
 

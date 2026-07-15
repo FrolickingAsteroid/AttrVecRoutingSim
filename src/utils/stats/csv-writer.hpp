@@ -70,20 +70,20 @@ template <class R> class Recorder {
 		 const std::map<std::string, std::string> &map)
 		: records()
 	{
-		convergence_out =
-			openFile(makeOutputPath(input, proto, map, "convergence"));
-		traffic_out = openFile(makeOutputPath(input, proto, map, "traffic"));
-		msglog_out  = openFile(makeOutputPath(input, proto, map, "msglog"));
+		bool append	  = (map.at("append") == "1");
+		bool link_failure = (map.at("S_") == "linkFailure");
 
-		if (map.at("S_") == "linkFailure") {
-			convergence_out << convergenceHeader(true);
-			traffic_out << trafficHeader(true);
-			msglog_out << msgLogHeader(true);
-		} else if (map.at("S_") == "normal") {
-			convergence_out << convergenceHeader();
-			traffic_out << trafficHeader();
-			msglog_out << msgLogHeader();
-		}
+		convergence_out = openFile(makeOutputPath(input, proto, map, "convergence"),
+					   append,
+					   convergenceHeader(link_failure));
+
+		traffic_out = openFile(makeOutputPath(input, proto, map, "traffic"),
+				       append,
+				       trafficHeader(link_failure));
+
+		msglog_out = openFile(makeOutputPath(input, proto, map, "msglog"),
+				      append,
+				      msgLogHeader(link_failure));
 	}
 
 	std::vector<Record<R>> getRecords()
@@ -99,22 +99,19 @@ template <class R> class Recorder {
 
 	static std::string msgLogHeader(bool with_failure = false)
 	{
-		return (with_failure ? "failure," : "") +
-		       std::string("dest,node,time,msg\n");
+		return (with_failure ? "failure," : "") + std::string("dest,node,time,msg\n");
 	}
 
 	static std::string trafficHeader(bool with_failure = false)
 	{
-		return (with_failure ? "failure," : "dest,") +
-		       std::string("total_msgs\n");
+		return (with_failure ? "failure," : "dest,") + std::string("total_msgs\n");
 	}
 
 	void recordDest(int				   dest,
 			const Data<R>			  &data,
 			std::optional<std::pair<int, int>> failure = std::nullopt);
 
-	static void
-	writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs);
+	static void writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs);
 	static void writeTrafficRow(std::ostream &out, int dest, int msgs);
 
 	static void writeMsgLogRow(std::ostream			     &out,

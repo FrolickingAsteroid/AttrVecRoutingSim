@@ -16,6 +16,8 @@ struct SimulationConfig {
 	Metric	    algebra	= LENGTHS;
 	int	    destination = -1;
 
+	bool append = false;
+
 	// optional args
 	std::optional<double> dprop  = std::nullopt;
 	std::optional<double> period = std::nullopt;
