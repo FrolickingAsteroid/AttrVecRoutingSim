@@ -99,7 +99,7 @@ fi
 echo "type: $type, metric: $metric, filetype: $filetype, append: $append, regen: $regen, runs: $runs"
 
 SIMULATOR="./build/Simulator"
-NODE_COUNTS=(4 8 32 64)
+NODE_COUNTS=(128)
 
 if [[ ! -x "${SIMULATOR}" ]]; then
     echo "Error: ${SIMULATOR} not found or not executable (run from repo root, or build first)." >&2
@@ -118,8 +118,11 @@ for n in "${NODE_COUNTS[@]}"; do
         fi
 
         if [[ "$regen" -eq 1 ]]; then
-            echo "n=${n} : regenerating dataset (./networkdataset.py bclique -n ${n} --${type})"
-            ./networkdataset.py bclique -n "${n}" --"${type}"
+            echo "regenerating dataset (./networkdataset.py bclique -n ${n} --${type})"
+            cd "${SCRIPT_DIR}"
+            ./networkdataset.py bclique -n "${n}" --mode "${type}"
+            cd "${REPO_ROOT}"
+            echo "\n"
         fi
 
         DATASET="data/datasets/clique/bclique_n${n}/${filetype}_${type}.tsv"
@@ -130,7 +133,7 @@ for n in "${NODE_COUNTS[@]}"; do
         fi
 
         echo "n=${n} : RPBOB"
-        "${SIMULATOR}" -f "${DATASET}" -R -m 200 -F 0 "${n}" -i 3.0 -t 0 -a "${metric}" "${extra_args[@]}"
+        "${SIMULATOR}" -f "${DATASET}" -R -m 200 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}"
 
         echo "n=${n} : BGP"
         "${SIMULATOR}" -f "${DATASET}" -G -F 0 "${n}" -t 0 -a "${metric}" "${extra_args[@]}"
