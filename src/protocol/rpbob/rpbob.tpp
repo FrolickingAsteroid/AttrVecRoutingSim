@@ -29,14 +29,16 @@ template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
 	data.log = true;
 	data.setOffset(cal.now());
 
-	graph.removeEdge(u, v);
-	graph.removeEdge(v, u);
+	graph.deactivate(u, v);
+	//graph.removeEdge(v, u);
 
-	auto notif = std::make_tuple(s[u].GetBestAttr().attr.n, u, v);
+	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
 
-	if (s[u].FailureNotif(notif)) {
-		this->Send(u, Msg{ notif });
-	}
+	// auto notif = std::make_tuple(s[u].GetBestAttr().attr.n, u, v);
+
+	//if (s[u].FailureNotif(notif)) {
+	//	this->Send(u, Msg{ notif });
+	//}
 }
 
 template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
@@ -55,7 +57,7 @@ void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, int, int> notif)
 
 template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p)
 {
-	if (graph.adjListOut[u].find(v) == graph.adjListOut[u].end())
+	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;
 
 	Ext extension;
@@ -71,7 +73,7 @@ template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p)
 
 	if (changed.has_value()) {
 		this->Send(u, Msg{ p });
-		converged();
+		//converged();
 	}
 }
 

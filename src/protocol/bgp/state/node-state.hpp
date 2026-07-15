@@ -73,7 +73,7 @@ template <class Attr> struct BGPNodeState {
 
 	// --- queries ---
 
-	const attr &GetElected() const
+	const attr &GetElected()
 	{
 		return E;
 	}

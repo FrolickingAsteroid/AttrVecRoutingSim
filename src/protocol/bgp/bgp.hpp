@@ -1,6 +1,8 @@
 #ifndef BGP_HPP
 #define BGP_HPP
 
+#include "utils/ui/logger.hpp"
+
 #include "protocol/bgp/state/bgp-attribute.hpp"
 #include "protocol/bgp/state/node-state.hpp"
 #include "protocol/protocol.hpp"

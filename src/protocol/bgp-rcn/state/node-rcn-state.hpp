@@ -10,21 +10,30 @@ namespace Protocol::RCN
 template <class A, class Ext, class Ord>
 struct RCNNodeState : BGPNodeState<RCNAttribute<A, Ext, Ord>> {
 	using attr = RCNAttribute<A, Ext, Ord>;
+	using base = BGPNodeState<RCNAttribute<A, Ext, Ord>>;
 
 	int			     t = 0;
 	std::unordered_map<int, int> seq_num;
-	// Msg is {attr, rcn}
+
+	const attr &GetElected()
+	{
+		if (!base::E.isInvalid()) {
+			base::E.ts.at(base::E.as_path.back()) = t;
+		}
+		return base::GetElected();
+	}
 
 	bool UpdateSeqTable(const RCNMsg<A, Ext, Ord> &learned)
 	{
-		bool update = false;
-
 		// x in update.r.aspath, update.r.ts(x) > seqnum(v,x)
 		for (const auto &[x, ts_x] : learned.route.ts) {
 			auto it = seq_num.find(x);
 			if (it == seq_num.end() || (ts_x > it->second)) {
 				seq_num[x] = ts_x;
-				update	   = true;
+			}
+			// if update.r.ts(x) < seqnum(v,x) -> old update
+			else if (ts_x < it->second) {
+				return false;
 			}
 		}
 
@@ -35,15 +44,13 @@ struct RCNNodeState : BGPNodeState<RCNAttribute<A, Ext, Ord>> {
 
 			if (it == seq_num.end() || ts_x > it->second) {
 				seq_num[x] = ts_x;
-				update	   = true;
+			}
+			if (x == BGPNodeState<RCNAttribute<A, Ext, Ord>>::succ) {
+				++t;
 			}
 		}
 
-		if (!update) {
-			return false;
-		}
-
-		RmStaleRoutes(); // stale update, discard route
+		RmStaleRoutes();
 		return true;
 	}
 

@@ -15,8 +15,7 @@ template <class RA> void RCN<RA>::process()
 			continue;
 		}
 
-		if (it == data.finalValue.end() ||
-		    best.attribute != it->second.attribute) {
+		if (it == data.finalValue.end() || best.attribute != it->second.attribute) {
 			data.recordChange(u, cal.now(), best);
 		}
 	}
@@ -77,7 +76,7 @@ template <class RA> void RCN<RA>::MsgReception(int u, int v, Msg received)
 		attr extended = lw + received.route;
 		s[u].UpdateNeighbor(v, extended);
 		if (s[u].ProcessBest(v)) {
-			++s[u].t;
+			//s[u].GetElected().ts.at(u) = s[u].t;
 			if (received.RCN.has_value()) {
 				this->Send(u, Msg{ s[u].GetElected(), *received.RCN });
 			} else {

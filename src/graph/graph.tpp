@@ -50,8 +50,8 @@ template <class S> void Graph<S>::activate(int u, int v)
 	if (0 > v or v >= V) {
 		throw std::out_of_range("In-Node  does not exist.");
 	}
-	std::get<1>(adjListOut[u].at(v)) = true;
-	std::get<1>(adjListOut[v].at(u)) = true;
+	std::get<1>(adjListIn[u].at(v)) = true;
+	std::get<1>(adjListIn[v].at(u)) = true;
 }
 
 template <class S> void Graph<S>::deactivate(int u, int v)
@@ -62,8 +62,8 @@ template <class S> void Graph<S>::deactivate(int u, int v)
 	if (0 > v or v > V) {
 		throw std::out_of_range("In-Node  does not exist.");
 	}
-	std::get<1>(adjListOut[u].at(v)) = false;
-	std::get<1>(adjListOut[v].at(u)) = false;
+	std::get<1>(adjListIn[u].at(v)) = false;
+	std::get<1>(adjListIn[v].at(u)) = false;
 }
 
 template <class S> void Graph<S>::clear()

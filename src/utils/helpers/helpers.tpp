@@ -92,6 +92,9 @@ DelayDijkstra(const Graph<A> &graph, int dest)
 						continue;
 					}
 					auto &[delay, active, link_attr] = edge;
+					if (!active) {
+						continue;
+					}
 					A candidate			 = ext(link_attr, a);
 					pq.push(std::make_tuple(tau + delay, x, candidate, u));
 				}

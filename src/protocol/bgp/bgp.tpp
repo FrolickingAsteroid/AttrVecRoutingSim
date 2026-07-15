@@ -29,6 +29,8 @@ template <class RA> void BGP<RA>::LinkFailure(int u, int v)
 	data.log = true;
 	data.setOffset(cal.now());
 
+	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
+
 	for (auto [node, neighbor] : { std::pair{ u, v }, std::pair{ v, u } }) {
 		if (s[node].succ == neighbor) {
 			s[node].RemoveNeighbor(neighbor);

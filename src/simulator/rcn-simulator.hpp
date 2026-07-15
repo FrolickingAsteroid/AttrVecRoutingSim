@@ -110,7 +110,7 @@ template <class RA> class RCNSimulation : public ISimulation {
 
 		if (u && v) {
 			proto.Run();
-			proto.cal.schedule(proto.cal.now(), [&]() { proto.NodeDown(t); });
+			proto.cal.schedule(100 , [&]() { proto.LinkFailure(*u, *v); });
 
 			/*proto.cal.schedule(proto.cal.now(),
 					   [&]() {

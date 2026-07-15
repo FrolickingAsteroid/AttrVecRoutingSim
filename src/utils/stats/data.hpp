@@ -39,10 +39,8 @@ template <class R> struct Data {
 
 	void recordMessage(const int node, const double time)
 	{
-		if (log) {
-			++msgCount[node];
-			++msgLog[time - offset][node];
-		}
+		++msgCount[node];
+		++msgLog[time][node];
 	}
 
 	double				     offset = 0.0;
