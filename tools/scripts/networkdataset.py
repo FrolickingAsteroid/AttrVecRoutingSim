@@ -125,12 +125,9 @@ def b_clique_network(
     if mode == "unit":
         add(0, n)                             # unit delay, unit/default length
         add(0, 1, delay=1, length=n)      # unit delay, length forced to n
-    elif mode == "equal" and is_hops:
+    elif mode == "equal":
         add(0, n, delay=n, length=n)
         add(0, 1, delay=n + 2, length=n + 2)
-    elif mode == "equal" and not is_hops:
-        add(0, n, delay=n)
-        add(0, 1, delay=n + 1)
     elif mode == "uniform":
         add(0, n)                        # random delay via delay_fn; length follows is_hops rule
         add(0, 1)
