@@ -84,7 +84,7 @@ def _uniform_delay(u, v, low=1, high=10):
 
 
 def _proportional_length(u: int, v: int, base: int = 10) -> int:
-    return int(np.random.uniform(base / 2, base * 2))
+    return int(np.random.uniform(1, base))
 
 
 def b_clique_network(

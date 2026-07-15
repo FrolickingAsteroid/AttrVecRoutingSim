@@ -99,7 +99,7 @@ fi
 echo "type: $type, metric: $metric, filetype: $filetype, append: $append, regen: $regen, runs: $runs"
 
 SIMULATOR="./build/Simulator"
-NODE_COUNTS=(128)
+NODE_COUNTS=(4 8 16 32 64)
 
 if [[ ! -x "${SIMULATOR}" ]]; then
     echo "Error: ${SIMULATOR} not found or not executable (run from repo root, or build first)." >&2
