@@ -75,7 +75,7 @@ for n in "${NODE_COUNTS[@]}"; do
     fi
 
     echo "n=${n} : RPBOB"
-    "${SIMULATOR}" -f "${DATASET}" -R -m 200 -F 0 ${n} -i 1.0 -t 0 -a hops
+    "${SIMULATOR}" -f "${DATASET}" -R -m 200 -F 0 ${n} -i 3.0 -t 0 -a hops
 
     echo "n=${n} : BGP"
     "${SIMULATOR}" -f "${DATASET}" -G -F 0 ${n} -t 0 -a hops

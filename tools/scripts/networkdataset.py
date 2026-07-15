@@ -77,22 +77,13 @@ def _unit_delay(u: int, v: int) -> int:
 
 
 def _lognormal_delay(u: int, v: int, mu: float = 3.0, sigma: float = 0.4) -> int:
-    """
-    Log-normal delay (~20 ms mean at default params), matching empirical
-    ISP intra-AS link distributions from Rocketfuel measurements.
-    mu=3.0 → e^3 ≈ 20 ms; sigma=0.4 is the empirical std for intra-AS links.
-    """
     return max(1, int(np.random.lognormal(mu, sigma)))
 
 def _uniform_delay(u, v, low=1, high=10):
-    """Random integer delay/length for the 'uniform' mode."""
     return int(np.random.uniform(low, high))
 
 
 def _proportional_length(u: int, v: int, base: int = 10) -> int:
-    """
-    Random length drawn uniformly in [base/2, base*2].
-    """
     return int(np.random.uniform(base / 2, base * 2))
 
 
@@ -132,11 +123,11 @@ def b_clique_network(
 
     # special edges, behavior depends on mode
     if mode == "unit":
-        add(0, n)                        # unit delay, unit/default length
+        add(0, n)                             # unit delay, unit/default length
         add(0, 1, delay=1, length=n)      # unit delay, length forced to n
     elif mode == "equal" and is_hops:
         add(0, n, delay=n, length=n)
-        add(0, 1, delay=n + 1, length=n + 1)
+        add(0, 1, delay=n + 2, length=n + 2)
     elif mode == "equal" and not is_hops:
         add(0, n, delay=n)
         add(0, 1, delay=n + 1)
