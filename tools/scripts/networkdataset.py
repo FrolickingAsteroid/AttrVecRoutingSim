@@ -84,6 +84,10 @@ def _lognormal_delay(u: int, v: int, mu: float = 3.0, sigma: float = 0.4) -> int
     """
     return max(1, int(np.random.lognormal(mu, sigma)))
 
+def _uniform_delay(u, v, low=1, high=10):
+    """Random integer delay/length for the 'uniform' mode."""
+    return int(np.random.uniform(low, high))
+
 
 def _proportional_length(u: int, v: int, base: int = 10) -> int:
     """
@@ -91,117 +95,69 @@ def _proportional_length(u: int, v: int, base: int = 10) -> int:
     """
     return int(np.random.uniform(base / 2, base * 2))
 
-def b_clique_network_single_l(
+
+def b_clique_network(
         n: int,
+        mode: str = "unit",
         delay_fn=None,
         length_fn=None,
 ) -> nx.DiGraph:
 
-    if delay_fn is None: delay_fn = _unit_delay
-    if length_fn is None: length_fn = _unit_delay
+    if delay_fn is None:
+        delay_fn = _uniform_delay if mode == "uniform" else _unit_delay
+    if length_fn is None:
+        length_fn = _unit_delay
+
+    is_hops = (length_fn is _unit_delay)  # Hops dataset -> length always represents hop count
 
     g = nx.DiGraph()
 
-    def add(u, v, delay = None, length = None):
-        if(delay is None):
-            delay = delay_fn(u, v)
-
+    def add(u, v, delay=None, length=None):
         if length is None:
-            if delay_fn == _unit_delay:
-                length = length_fn(u, v)
+            length = 1 if is_hops else length_fn(u, v)
+        if delay is None:
+            if mode == "equal":
+                delay = length
             else:
-                length = delay
+                delay = delay_fn(u, v)
 
         g.add_edge(u, v, Delay=delay, Length=length)
         g.add_edge(v, u, Delay=delay, Length=length)
 
-    for u in range(1, n+1):
-        for v in range(1, n+1):
+    # clique edges (nodes 1..n)
+    for u in range(1, n + 1):
+        for v in range(1, n + 1):
             if u != v:
                 add(u, v)
 
-    add(0, n)
-    add(0, 1, length = n)
-
-    return g
-
-def b_clique_network(
-        n: int,
-        delay_fn=None,
-        length_fn=None,
-) -> nx.DiGraph:
-    """
-    B-Clique topology of size n  (2n nodes total).
-
-    Structure (from the paper):
-      - Chain  : nodes 0 … n-1  (directed: i → i+1)
-      - Clique : nodes n … 2n-1 (fully connected, both directions)
-      - Cross-links: node 0 → node n
-                     node n-1 → node 2n-1
-
-    Parameters
-    ----------
-    n         : size parameter (chain length = clique size = n)
-    delay_fn  : callable(u, v) -> int  (default: unit delay)
-    length_fn : callable(u, v) -> int  (default: unit length)
-    """
-    if delay_fn is None: delay_fn = _unit_delay
-    if length_fn is None: length_fn = _unit_delay
-
-    g = nx.DiGraph()
-
-    def add(u, v, delay = None):
-        if(delay is None):
-            delay = delay_fn(u, v)
-
-        if delay_fn == _unit_delay:
-            l = length_fn(u, v)
-        else:
-            l = delay
-
-        g.add_edge(u, v, Delay=delay, Length=l)
-        g.add_edge(v, u, Delay=delay, Length=l)
-
-    if delay_fn == _unit_delay:
-        for i in range(n - 1):
-            add(i, i + 1, 1/n) # the whole chain has the delay of 1 time unit
+    # special edges, behavior depends on mode
+    if mode == "unit":
+        add(0, n)                        # unit delay, unit/default length
+        add(0, 1, delay=1, length=n)      # unit delay, length forced to n
+    elif mode == "equal" and is_hops:
+        add(0, n, delay=n, length=n)
+        add(0, 1, delay=n + 1, length=n + 1)
+    elif mode == "equal" and not is_hops:
+        add(0, n, delay=n)
+        add(0, 1, delay=n + 1)
+    elif mode == "uniform":
+        add(0, n)                        # random delay via delay_fn; length follows is_hops rule
+        add(0, 1)
     else:
-        for i in range(n - 1):
-            add(i, i + 1) # delay/length are the same and derived from an uniform dist
-
-
-    for u in range(n, 2 * n):
-        for v in range(n, 2 * n):
-            if u != v:
-                add(u, v)
-
-    add(0, n)  # node 0 -> node n
-    add(n - 1, 2 * n - 1)  # node n-1 ->node 2n-1
+        raise ValueError(f"Unknown mode: {mode!r}")
 
     return g
 
 
 def write_b_clique(n: int, testdir: str, mode: str = "unit"):
-    """
-    Generate a B-Clique topology and write it in the same TSV format
-    """
-    length_fn = _proportional_length
-
-    if mode == "equal":
-        delay_fn = _proportional_length
-    elif mode == "unit":
-        delay_fn = _unit_delay
-
     out_dir = Path(testdir) / f"bclique_n{n}"
     out_dir.mkdir(parents=True, exist_ok=True)
-
     for prefix, desc, attrs in _DATASET_SPECS:
         out_file = out_dir / f"{prefix}_{mode}.tsv"
         print(f"\n\t+ Saving {desc} -> '{out_file}'")
-        if "Hops" in attrs:
-            g = b_clique_network_single_l(n, delay_fn=delay_fn, length_fn=_unit_delay)
-        if "Length" in attrs:
-            g = b_clique_network_single_l(n, delay_fn=delay_fn, length_fn=length_fn)
+
+        length_fn = _unit_delay if "Hops" in attrs else _proportional_length
+        g = b_clique_network(n, mode=mode, length_fn=length_fn)
 
         with open(out_file, "w") as f:
             f.write(f"{g.number_of_nodes()}\n")
@@ -345,7 +301,7 @@ def build_parser() -> argparse.ArgumentParser:
     bc = sub.add_parser("bclique", help="generate a B-Clique synthetic topology")
     bc.add_argument("-n", type=int, default=4,
                     help="B-Clique size")
-    bc.add_argument("--mode", choices=["unit", "equal"], default="equal",
+    bc.add_argument("--mode", choices=["unit", "equal","uniform"], default="equal",
                     help="delay/length distribution (default: unit)")
 
     bp = sub.add_parser("plot", help="plot a B-Clique topology")
