@@ -12,9 +12,14 @@ plt.rcParams.update(
     }
 )
 
-df_rpbob = pd.read_csv('../../data/output/clique/bclique_n32/rpbob/DelayHops_unit_A_hops_N_adaptative_S_linkFailure_period_1.0_msglog.csv')
-df_bgp = pd.read_csv('../../data/output/clique/bclique_n32/bgp/DelayHops_unit_A_hops_S_linkFailure_msglog.csv')
-df_rcn = pd.read_csv("../../data/output/clique/bclique_n32/rcn/DelayHops_unit_A_hops_S_linkFailure_msglog.csv")
+file = "DelayHops"
+metric = "hops"
+mode = "unit"
+node_counts = [4, 8, 16, 32, 64]
+
+df_rpbob = pd.read_csv(f'../../data/output/clique/bclique_n64/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_period_1.0_msglog.csv')
+df_bgp = pd.read_csv(f'../../data/output/clique/bclique_n64/bgp/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv')
+df_rcn = pd.read_csv(f"../../data/output/clique/bclique_n64/rcn/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv")
 
 FAILURE_TIME = 100
 
@@ -40,8 +45,8 @@ binned_rcn = binned_rcn.reindex(full_range, fill_value=0)
 
 df = pd.concat([
     pd.DataFrame({"time": binned_rpbob.index, "msg": binned_rpbob.values, "protocol": r"RPBOB SP $\Delta=1.0$"}),
-    pd.DataFrame({"time": binned_bgp.index, "msg": binned_bgp.values, "protocol": "BGP SP"}),
     pd.DataFrame({"time": binned_rcn.index, "msg": binned_rcn.values, "protocol": "RCN SP"}),
+    pd.DataFrame({"time": binned_bgp.index, "msg": binned_bgp.values, "protocol": "BGP SP"}),
 ], ignore_index=True)
 
 df["time"] = df["time"] - FAILURE_TIME
@@ -54,13 +59,10 @@ plt.figure(figsize=(6, 4))
 sns.lineplot(data=df, x="time", y="msg", hue="protocol",style="protocol", markers=True, dashes=False, lw=1.5)
 plt.yscale('symlog', linthresh=0.5)
 plt.xlabel('time [ms]')
-plt.ylabel('Messages')
+plt.ylabel(f'Messages / $\Delta$')
 
-plt.ylim([-0.1, max(binned_bgp.values) + 10**4.8])
-plt.xlim([0, max(df_bgp["time"])- FAILURE_TIME])
-
-plt.xticks([0, max_term["RPBOB"], max_term["BGP"], max_term["RCN"]])
-
+plt.ylim([-0.1, max(binned_bgp.values) + 10**8])
+plt.xlim([-1, max(df_bgp["time"])- FAILURE_TIME+1])
 plt.legend()
 plt.grid(alpha=0.3, which='both')
 plt.tight_layout()

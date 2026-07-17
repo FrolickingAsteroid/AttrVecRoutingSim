@@ -14,7 +14,7 @@ plt.rcParams.update(
 )
 
 NODE_COUNTS = [4, 8, 16, 32, 64]
-DATASET_TAG = "DelayHops_unit_A_hops"
+DATASET_TAG = "DelayLength_uniform_A_lengths"
 DATA_ROOT = "../../data/output/clique"
 OUTPUT_DIR = os.path.join("outputs")
 
