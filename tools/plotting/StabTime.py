@@ -13,13 +13,17 @@ plt.rcParams.update(
     }
 )
 
-NODE_COUNTS = [4, 8, 16, 32, 64]
-DATASET_TAG = "DelayLength_equal_A_lengths"
+
+File = "DelayHops"
+Mode = "unit"
+Metric = "hops"
+DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
 DATA_ROOT = "../../data/output/clique"
 OUTPUT_DIR = os.path.join("outputs")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+NODE_COUNTS = [4, 8, 16, 32, 64, 128]
 
 def load_convergence(n):
     base = f"{DATA_ROOT}/bclique_n{n}"

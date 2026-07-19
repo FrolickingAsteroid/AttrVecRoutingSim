@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+OUTPUT_DIR = os.path.join("outputs")
 
 plt.rcParams.update(
     {
@@ -15,11 +18,12 @@ plt.rcParams.update(
 file = "DelayHops"
 metric = "hops"
 mode = "unit"
+n = "128"
 node_counts = [4, 8, 16, 32, 64]
 
-df_rpbob = pd.read_csv(f'../../data/output/clique/bclique_n64/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_period_3.0_msglog.csv')
-df_bgp = pd.read_csv(f'../../data/output/clique/bclique_n64/bgp/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv')
-df_rcn = pd.read_csv(f"../../data/output/clique/bclique_n64/rcn/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv")
+df_rpbob = pd.read_csv(f'../../data/output/clique/bclique_n{n}/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_period_1.0_msglog.csv')
+df_bgp = pd.read_csv(f'../../data/output/clique/bclique_n{n}/bgp/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv')
+df_rcn = pd.read_csv(f"../../data/output/clique/bclique_n{n}/rcn/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv")
 
 FAILURE_TIME = 100
 
@@ -31,7 +35,7 @@ def bin_series(df, bin_freq='1s'):
     binned.index = binned.index.total_seconds().astype(int)
     return binned
 
-binned_rpbob = bin_series(df_rpbob, "9s")
+binned_rpbob = bin_series(df_rpbob, "1s")
 binned_bgp = bin_series(df_bgp, "1s")
 binned_rcn = bin_series(df_rcn, "1s")
 
@@ -59,12 +63,17 @@ plt.figure(figsize=(6, 4))
 sns.lineplot(data=df, x="time", y="msg", hue="protocol",style="protocol", markers=True, dashes=False, lw=1.5)
 plt.yscale('symlog', linthresh=0.5)
 plt.xlabel('time [ms]')
-plt.ylabel(f'Messages / $\Delta$')
+plt.ylabel(r'Messages / $\Delta$')
 
 plt.ylim([-0.1, max(binned_bgp.values) + 10**8])
 plt.xlim([-0.1, max(df_bgp["time"])- FAILURE_TIME+0.1])
 plt.legend()
 plt.grid(alpha=0.3, which='both')
 plt.tight_layout()
-plt.show()
+
+out_path = os.path.join(OUTPUT_DIR, f"msgRate_n{n}.png")
+plt.savefig(out_path, dpi=300)
 plt.close()
+print(f"saved {out_path}")
+
+
