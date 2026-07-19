@@ -15,9 +15,9 @@ plt.rcParams.update(
     }
 )
 
-file = "DelayHops"
-metric = "hops"
-mode = "unit"
+file = "DelayLength"
+metric = "lengths"
+mode = "equal"
 node_counts = [4, 8, 16, 32, 64]
 protocol_paths = {
     r"RPBOB $\Delta = 1.0$": f"../../data/output/clique/bclique_n{{n}}/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_period_1.0_convergence.csv",
@@ -62,7 +62,7 @@ else:
         data=df,
         hue="Protocol",
         showfliers=True,
-        k_depth="full",
+        k_depth="tukey",
     )
     for container in ax.containers:
         ax.bar_label(container, fmt='%.1f', padding=3, fontsize=8)

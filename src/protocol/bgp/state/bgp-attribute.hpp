@@ -84,7 +84,7 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	// Used for detecting actual state change.
 	bool operator==(const BGPAttribute &other) const
 	{
-		return attribute == other.attribute && as_path == other.as_path;
+		return attribute == other.attribute;
 	}
 
 	// Inequality: intentionally not the negation of ==.
@@ -122,10 +122,10 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 			return BGPAttribute::Invalid();
 		}
 
-		// the path is already too long (> MaxASPathLength hops)
+		/* the path is already too long (> MaxASPathLength hops)
 		if (static_cast<int>(a.as_path.size()) > MaxASPathLength) {
 			return BGPAttribute::Invalid();
-		}
+		}*/
 
 		// the tail AS is already in the path (loop detection).
 		if (std::find(a.as_path.begin(), a.as_path.end(), link.as_path[0]) !=

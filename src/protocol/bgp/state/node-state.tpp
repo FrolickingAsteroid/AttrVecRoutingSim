@@ -36,7 +36,7 @@ template <class Attr> void BGPNodeState<Attr>::fullScan()
 	Av   = attr::Invalid();
 	succ = -1;
 	for (const auto &[neighbor, learned] : aTab) {
-		if (learned < Av) {
+		if (learned < Av || (learned == Av && neighbor < succ)) {
 			Av   = learned;
 			succ = neighbor;
 		}

@@ -11,7 +11,7 @@ template <class RA> void RCN<RA>::process()
 		auto it	  = data.finalValue.find(u);
 		auto best = s[u].GetElected();
 
-		if (best.attribute == Ord::Null() && data.log == false) {
+		if (best.attribute == Ord::Null()) {
 			continue;
 		}
 

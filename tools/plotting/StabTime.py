@@ -14,7 +14,7 @@ plt.rcParams.update(
 )
 
 NODE_COUNTS = [4, 8, 16, 32, 64]
-DATASET_TAG = "DelayLength_uniform_A_lengths"
+DATASET_TAG = "DelayLength_equal_A_lengths"
 DATA_ROOT = "../../data/output/clique"
 OUTPUT_DIR = os.path.join("outputs")
 
@@ -24,8 +24,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def load_convergence(n):
     base = f"{DATA_ROOT}/bclique_n{n}"
     term_rpbob = pd.read_csv(f"{base}/rpbob/{DATASET_TAG}_N_adaptative_S_linkFailure_period_1.0_convergence.csv")
-    term_bgp = pd.read_csv(f"{base}/bgp/{DATASET_TAG}_S_linkFailure_convergence.csv")
     term_rcn = pd.read_csv(f"{base}/rcn/{DATASET_TAG}_S_linkFailure_convergence.csv")
+    term_bgp = pd.read_csv(f"{base}/bgp/{DATASET_TAG}_S_linkFailure_convergence.csv")
 
     term_rpbob["Protocol"] = "RPBOB"
     term_bgp["Protocol"] = "BGP"
