@@ -40,7 +40,7 @@ namespace utils {
             if (k == "notif") {
                 if (v == "1") {
                     param_str += "_";
-                    param_str += k + v;
+                    param_str += k;
                 }
                 continue;
             }

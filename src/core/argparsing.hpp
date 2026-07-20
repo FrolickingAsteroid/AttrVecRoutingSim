@@ -70,6 +70,7 @@ namespace config {
 
     inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cfg) {
         return {
+            {"notif", std::to_string(cfg.notif)},
             {"append", std::to_string(cfg.append)},
             {"A_", AlgebraName(cfg.algebra)},
             {"N_", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative"},
@@ -80,7 +81,6 @@ namespace config {
 
     inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig &cfg) {
         return {
-            {"notif_", std::to_string(cfg.append)},
             {"append", std::to_string(cfg.append)},
             {"A_", AlgebraName(cfg.algebra)},
             {"dprop_", formatParam(cfg.dprop.value())},
