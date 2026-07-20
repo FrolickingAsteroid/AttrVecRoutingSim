@@ -23,8 +23,6 @@ template <class R> struct Data {
 		offset = t;
 	}
 
-	std::function<bool(int)> hasConverged = nullptr;
-
 	// Called by the protocol every time node u changes its elected attribute.
 	void recordChange(const int node, const double time, const R &value)
 	{

@@ -108,7 +108,7 @@ if [[ "$append" -eq 1 ]]; then
     extra_args+=(-A)
 fi
 
-total_steps=$(( ${#NODE_COUNTS[@]} * runs * 3 ))
+total_steps=$(( ${#NODE_COUNTS[@]} * runs * 4 ))
 step=0
 
 for n in "${NODE_COUNTS[@]}"; do
@@ -131,6 +131,10 @@ for n in "${NODE_COUNTS[@]}"; do
         fi
 
         "${SIMULATOR}" -f "${DATASET}" -R -m 300 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
+        step=$(( step + 1 ))
+        ProgressBar "$step" "$total_steps"
+
+        "${SIMULATOR}" -f "${DATASET}" -R notif -m 300 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
         step=$(( step + 1 ))
         ProgressBar "$step" "$total_steps"
 

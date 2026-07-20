@@ -80,7 +80,7 @@ namespace Protocol::Rpbob {
 
         if (changed.has_value()) {
             this->Send(u, Msg{p});
-            //converged();
+            converged();
         }
     }
 
@@ -94,7 +94,7 @@ namespace Protocol::Rpbob {
         n += 1;
 
         double d = period * n;
-        if (n < max)
+        if (final_state == false || n < max)
             cal.schedule(d, [t, n, period, max, this]() mutable {
                 this->DestinationAnnouncement(t, n, period, max);
             });

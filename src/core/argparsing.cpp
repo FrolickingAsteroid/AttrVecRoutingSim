@@ -190,9 +190,9 @@ namespace config {
             throw std::runtime_error("must specify a network file");
 
         if (cfg.protocol == RPBOB) {
-            if (!cfg.period || !cfg.max)
+            if (!cfg.period)
                 throw std::runtime_error(
-                    "must specify period, and number of routing computations");
+                    "must specify period");
         } else if (cfg.protocol == Beaconing) {
             if (!cfg.period || !cfg.max || !cfg.dprop)
                 throw std::runtime_error(

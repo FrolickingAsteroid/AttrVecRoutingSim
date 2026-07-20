@@ -136,17 +136,23 @@ namespace Simulator {
             proto.nodeConverged = [&](int i) {
                 if (i == t)
                     return true;
-                return proto.s[i].GetBestAttr().attr == convergence_attr[t][i].front();
+                return proto.s[i].GetBestAttr().attr == convergence_attr[t][i].front(); //needs to change for l + delim
             };
 
             proto.converged = [&]() {
+                if (proto.final_state == true) {
+                    return;
+                }
                 for (int i = 0; i < graph.V; ++i)
                     if (!proto.nodeConverged(i))
                         return;
-                proto.cal.clear();
-            };
 
-            proto.data.hasConverged = proto.nodeConverged;
+                if (!cfg.max.has_value()) {
+                    proto.cal.clear();
+                } else {
+                    proto.final_state = true;
+                }
+            };
 
             if (u && v) {
                 proto.DestinationAnnouncement(t, 0, *cfg.period, *cfg.max);

@@ -46,7 +46,7 @@ namespace Protocol::Rpbob {
 
         void HandleMsg(int u, int v, std::pair<int, Path<A> > notif);
 
-        void DestinationAnnouncement(int t, int n, double period, int max);
+        void DestinationAnnouncement(int t, int n, double period, int max = 1000);
 
         void LinkFailure(int u, int v) override;
 
@@ -54,6 +54,8 @@ namespace Protocol::Rpbob {
 
         std::function<bool(int)> nodeConverged = nullptr;
         std::function<void()> converged = nullptr;
+
+        bool final_state = false;
     };
 }
 
