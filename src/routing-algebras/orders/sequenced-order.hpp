@@ -30,6 +30,11 @@ template <class A, class OrdBase> struct SeqOrd {
 		return SeqAttr<A>{ 0, OrdBase::null };
 	}
 
+	static SeqAttr<A> Null(int n)
+	{
+		return SeqAttr<A>{ n, OrdBase::null };
+	}
+
 	int operator()(const SeqAttr<A> &l, const SeqAttr<A> &r) const
 	{
 		OrdBase ord; // attribute base order

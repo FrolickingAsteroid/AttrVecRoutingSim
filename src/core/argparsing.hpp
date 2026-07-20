@@ -15,141 +15,136 @@
 
 #include "core/config.hpp"
 
-namespace config
-{
-// ---------------------------------------------------------------------------- *
-//
-// Helper print functions
-//
-// ---------------------------------------------------------------------------- *
+namespace config {
+    // ---------------------------------------------------------------------------- *
+    //
+    // Helper print functions
+    //
+    // ---------------------------------------------------------------------------- *
 
-void PrintUsage(const char *prog);
-void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats);
+    void PrintUsage(const char *prog);
 
-// ---------------------------------------------------------------------------- *
-//
-// Helper parsing functions
-//
-// ---------------------------------------------------------------------------- *
+    void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats);
 
-SimulationConfig ParseArgs(int argc, char *const *argv);
-Metric		 ParseAlgebra(const std::string &s);
-int		 ParseDest(const std::string &s);
+    // ---------------------------------------------------------------------------- *
+    //
+    // Helper parsing functions
+    //
+    // ---------------------------------------------------------------------------- *
 
-// ---------------------------------------------------------------------------- *
-//
-// Parameter map builders
-//
-// ---------------------------------------------------------------------------- *
+    SimulationConfig ParseArgs(int argc, char *const *argv);
 
-inline std::string ScenarioName(ScenarioType m)
-{
-	switch (m) {
-	case Normal:
-		return "normal";
-	case LinkFailure:
-		return "linkFailure";
-	case Withdrawal:
-		return "withdrawal";
-	default:
-		throw std::runtime_error("unknown scenario");
-	}
-}
+    Metric ParseAlgebra(const std::string &s);
 
-inline std::string AlgebraName(Metric m)
-{
-	switch (m) {
-	case LENGTHS:
-		return "lengths";
-	case HOPS:
-		return "hops";
-	default:
-		throw std::runtime_error("unknown algebra");
-	}
-}
+    int ParseDest(const std::string &s);
 
-inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cfg)
-{
-	return {
-		{ "append", std::to_string(cfg.append) },
-		{ "A_", AlgebraName(cfg.algebra) },
-		{ "N_", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative" },
-		{ "period_", formatParam(cfg.period.value()) },
-		{ "S_", ScenarioName(cfg.scenario) },
-	};
-}
+    // ---------------------------------------------------------------------------- *
+    //
+    // Parameter map builders
+    //
+    // ---------------------------------------------------------------------------- *
 
-inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig &cfg)
-{
-	return {
-		{ "append", std::to_string(cfg.append) },
-		{ "A_", AlgebraName(cfg.algebra) },
-		{ "dprop_", utils::ui::formatParam(cfg.dprop.value()) },
-		{ "period_", utils::ui::formatParam(cfg.period.value()) },
-		{ "S_", ScenarioName(cfg.scenario) },
-	};
-}
+    inline std::string ScenarioName(ScenarioType m) {
+        switch (m) {
+            case Normal:
+                return "normal";
+            case LinkFailure:
+                return "linkFailure";
+            case Withdrawal:
+                return "withdrawal";
+            default:
+                throw std::runtime_error("unknown scenario");
+        }
+    }
 
-inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
-{
-	return {
-		{ "append", std::to_string(cfg.append) },
-		{ "A_", AlgebraName(cfg.algebra) },
-		{ "S_", ScenarioName(cfg.scenario) },
-	};
-}
+    inline std::string AlgebraName(Metric m) {
+        switch (m) {
+            case LENGTHS:
+                return "lengths";
+            case HOPS:
+                return "hops";
+            default:
+                throw std::runtime_error("unknown algebra");
+        }
+    }
 
-// ---------------------------------------------------------------------------- *
-//
-// Simulator Factory
-//
-// ---------------------------------------------------------------------------- *
+    inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cfg) {
+        return {
+            {"append", std::to_string(cfg.append)},
+            {"A_", AlgebraName(cfg.algebra)},
+            {"N_", cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative"},
+            {"period_", formatParam(cfg.period.value())},
+            {"S_", ScenarioName(cfg.scenario)},
+        };
+    }
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
-{
-	return std::make_unique<Simulator::RpBOBSimulation<RA>>(cfg, RPBOBParams(cfg));
-}
+    inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig &cfg) {
+        return {
+            {"notif_", std::to_string(cfg.append)},
+            {"append", std::to_string(cfg.append)},
+            {"A_", AlgebraName(cfg.algebra)},
+            {"dprop_", formatParam(cfg.dprop.value())},
+            {"period_", formatParam(cfg.period.value())},
+            {"S_", ScenarioName(cfg.scenario)},
+        };
+    }
 
-template <class RA>
-std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg)
-{
-	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg, BeaconingParams(cfg));
-}
+    inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg) {
+        return {
+            {"append", std::to_string(cfg.append)},
+            {"A_", AlgebraName(cfg.algebra)},
+            {"S_", ScenarioName(cfg.scenario)},
+        };
+    }
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> BGPSimulation(SimulationConfig &cfg)
-{
-	return std::make_unique<Simulator::BGPSimulation<RA>>(cfg, BGPParams(cfg));
-}
+    // ---------------------------------------------------------------------------- *
+    //
+    // Simulator Factory
+    //
+    // ---------------------------------------------------------------------------- *
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg)
-{
-	return std::make_unique<Simulator::RCNSimulation<RA>>(cfg, BGPParams(cfg));
-}
+    template<class RA>
+    std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg) {
+        return std::make_unique<Simulator::RpBOBSimulation<RA> >(cfg, RPBOBParams(cfg));
+    }
 
-inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg)
-{
-	if (cfg.protocol == RPBOB) {
-		switch (cfg.algebra) {
-		case LENGTHS:
-		case HOPS:
-			return RPBOBSimulation<Sequenced<L>>(cfg);
-		}
-	} else if (cfg.protocol == RCN) {
-		switch (cfg.algebra) {
-		case LENGTHS:
-		case HOPS:
-			return RCNSimulation<L>(cfg);
-		}
+    template<class RA>
+    std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg) {
+        return std::make_unique<Simulator::BECINGSimulation<RA> >(cfg, BeaconingParams(cfg));
+    }
 
-	} else if (cfg.protocol == BGP) {
-		switch (cfg.algebra) {
-		case LENGTHS:
-		case HOPS:
-			return BGPSimulation<L>(cfg);
-		}
-	}
-	throw std::runtime_error("unknown protocol");
-}
+    template<class RA>
+    std::unique_ptr<Simulator::ISimulation> BGPSimulation(SimulationConfig &cfg) {
+        return std::make_unique<Simulator::BGPSimulation<RA> >(cfg, BGPParams(cfg));
+    }
+
+    template<class RA>
+    std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg) {
+        return std::make_unique<Simulator::RCNSimulation<RA> >(cfg, BGPParams(cfg));
+    }
+
+    inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg) {
+        if (cfg.protocol == RPBOB) {
+            switch (cfg.algebra) {
+                case LENGTHS:
+                case HOPS:
+                    return RPBOBSimulation<Sequenced<L> >(cfg);
+            }
+        } else if (cfg.protocol == RCN) {
+            switch (cfg.algebra) {
+                case LENGTHS:
+                case HOPS:
+                    return RCNSimulation<L>(cfg);
+            }
+        } else if (cfg.protocol == BGP) {
+            switch (cfg.algebra) {
+                case LENGTHS:
+                case HOPS:
+                    return BGPSimulation<L>(cfg);
+            }
+        }
+        throw std::runtime_error("unknown protocol");
+    }
 }
 
 #endif

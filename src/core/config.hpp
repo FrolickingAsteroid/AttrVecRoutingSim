@@ -18,6 +18,9 @@ struct SimulationConfig {
 
 	bool append = false;
 
+	// RPBOB: run with notification
+	bool notif = false;
+
 	// optional args
 	std::optional<double> dprop  = std::nullopt;
 	std::optional<double> period = std::nullopt;
