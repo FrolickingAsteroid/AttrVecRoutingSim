@@ -16,10 +16,13 @@ plt.rcParams.update({
 File = "DelayLength"
 Mode = "equal"
 Metric = "lengths"
-DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
 
-#DATA_ROOT = "../../data/output/rocketfuel"
-DATA_ROOT = "../../data/output/clique"
+
+DATA_ROOT = "../../data/output/rocketfuel"
+#DATA_ROOT = "../../data/output/clique"
+#DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
+DATASET_TAG = f"{File}_A_{Metric}"
+SCENARIO = "linkFailure"
 
 OUTPUT_DIR = os.path.join("outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -29,8 +32,8 @@ METRIC_SUFFIX = "convergence"
 
 LABEL_RULES = [
     (r"rpbob.*notif", "RPBOB-CN"),
-    (r"rpbob",        "RPBOB"),
-    (r"rcn",          "BGP-RCN"),
+    #(r"rpbob",        "RPBOB"),
+    #(r"rcn",          "BGP-RCN"),
     (r"bgp",          "BGP"),
 ]
 
@@ -46,7 +49,8 @@ def discover_networks(root):
 
 def load_metric(network_dir):
     frames = []
-    pattern = os.path.join(network_dir, "*", f"{DATASET_TAG}*_{METRIC_SUFFIX}.csv")
+    pattern = os.path.join(network_dir, "*", f"{DATASET_TAG}*_{SCENARIO}*_{METRIC_SUFFIX}.csv")
+
     for path in sorted(glob.glob(pattern)):
         protocol_folder = os.path.basename(os.path.dirname(path))
         filename = os.path.basename(path)
@@ -60,17 +64,30 @@ def load_metric(network_dir):
     return pd.concat(frames, ignore_index=True)
 
 def plot_ccdf(df, network_name):
-    plt.figure(figsize=(8, 6))
-    ax = sns.ecdfplot(data=df, x="stab_time", hue="Protocol", complementary=True, lw=1.5)
+    # Calculate average stab_time per protocol
+    avg_times = df.groupby("Protocol")["stab_time"].mean()
+
+    # Create a new column with the protocol name + average
+    df["Protocol"] = df["Protocol"].map(
+        lambda p: f"{p} (avg: {avg_times[p]:.2f} ms)"
+    )
+
+    plt.figure(figsize=(6, 4))
+
+    # Use the new column for the hue parameter
+    ax = sns.ecdfplot(
+        data=df,
+        x="stab_time",
+        hue="Protocol",
+        complementary=True,
+        lw=1.8,
+    )
 
     plt.xlabel("Time [ms]")
     plt.ylabel("CCDF")
 
-    # Apply log scale to the x-axis
-    ax.set_xscale('log')
-
-    plt.ylim([0,1.1])
-    plt.xlim([0,df["stab_time"].max()])
+    plt.ylim([-0.001, 1.1])
+    plt.xlim([-0.1, df["stab_time"].max()])
     plt.grid(alpha=0.3, which="both")
     plt.tight_layout()
 

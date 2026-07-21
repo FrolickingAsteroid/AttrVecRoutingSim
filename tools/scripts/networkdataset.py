@@ -272,7 +272,7 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="NetworkDataSets.py",
-        description="Rocketfuel topology toolkit")
+        description="Topology toolkit")
 
     p.add_argument("-a", "--as", dest="AS", default=DEFAULT_AS,
                    help="AS number (default: %(default)s)")
@@ -289,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
     bc = sub.add_parser("bclique", help="generate a B-Clique synthetic topology")
     bc.add_argument("-n", type=int, default=4,
                     help="B-Clique size")
+
     bc.add_argument("--mode", choices=["unit", "equal","uniform"], default="equal",
                     help="delay/length distribution (default: unit)")
 
@@ -325,7 +326,7 @@ def main():
         # Rocketfuel commands need a graph loaded
         g = load_graph(args.AS, args.topdir)
         dispatch = {
-            "build": lambda: write_datasets(g, args.AS, args.testdir),
+            "build": lambda: write_datasets(g, args.AS, args.topdir),
             "info": lambda: cmd_info(g, args.AS),
         }
         dispatch[args.cmd]()
