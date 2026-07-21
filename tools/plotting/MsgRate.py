@@ -18,10 +18,11 @@ plt.rcParams.update(
 file = "DelayHops"
 metric = "hops"
 mode = "unit"
-n = "128"
+n = "64"
 node_counts = [4, 8, 16, 32, 64]
 
 df_rpbob = pd.read_csv(f'../../data/output/clique/bclique_n{n}/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_period_1.0_msglog.csv')
+df_rpbob_rcn = pd.read_csv(f'../../data/output/clique/bclique_n{n}/rpbob/{file}_{mode}_A_{metric}_N_adaptative_S_linkFailure_notif_period_1.0_msglog.csv')
 df_bgp = pd.read_csv(f'../../data/output/clique/bclique_n{n}/bgp/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv')
 df_rcn = pd.read_csv(f"../../data/output/clique/bclique_n{n}/rcn/{file}_{mode}_A_{metric}_S_linkFailure_msglog.csv")
 
@@ -36,6 +37,7 @@ def bin_series(df, bin_freq='1s'):
     return binned
 
 binned_rpbob = bin_series(df_rpbob, "1s")
+binned_rpbob_rcn = bin_series(df_rpbob_rcn, "1s")
 binned_bgp = bin_series(df_bgp, "1s")
 binned_rcn = bin_series(df_rcn, "1s")
 
@@ -49,6 +51,7 @@ binned_rcn = binned_rcn.reindex(full_range, fill_value=0)
 
 df = pd.concat([
     pd.DataFrame({"time": binned_rpbob.index, "msg": binned_rpbob.values, "protocol": r"RPBOB SP $\Delta=1.0$"}),
+    pd.DataFrame({"time": binned_rpbob_rcn.index, "msg": binned_rpbob_rcn.values, "protocol": r"RPBOB SP $\Delta=1.0$"}),
     pd.DataFrame({"time": binned_rcn.index, "msg": binned_rcn.values, "protocol": "RCN SP"}),
     pd.DataFrame({"time": binned_bgp.index, "msg": binned_bgp.values, "protocol": "BGP SP"}),
 ], ignore_index=True)
@@ -67,11 +70,12 @@ plt.ylabel(r'Messages / $\Delta$')
 
 plt.ylim([-0.1, max(binned_bgp.values) + 10**8])
 plt.xlim([-0.1, max(df_bgp["time"])- FAILURE_TIME+0.1])
+# plt.xlim([-0.1,3.5])
 plt.legend()
 plt.grid(alpha=0.3, which='both')
 plt.tight_layout()
 
-out_path = os.path.join(OUTPUT_DIR, f"msgRate_n{n}.png")
+out_path = os.path.join(OUTPUT_DIR, f"msgRate_n{n}_{mode}.png")
 plt.savefig(out_path, dpi=300)
 plt.close()
 print(f"saved {out_path}")

@@ -1,62 +1,89 @@
 #!/usr/bin/env python3
 import os
+import re
+import glob
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "font.serif": ["Computer Modern Roman", "DejaVu Serif"],
-        "mathtext.fontset": "cm",
-        "font.size": 9,
-    }
-)
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman", "DejaVu Serif"],
+    "mathtext.fontset": "cm",
+    "font.size": 9,
+})
 
-
-File = "DelayHops"
-Mode = "unit"
-Metric = "hops"
+File = "DelayLength"
+Mode = "equal"
+Metric = "lengths"
 DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
-DATA_ROOT = "../../data/output/clique"
-OUTPUT_DIR = os.path.join("outputs")
 
+#DATA_ROOT = "../../data/output/rocketfuel"
+DATA_ROOT = "../../data/output/clique"
+
+OUTPUT_DIR = os.path.join("outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-NODE_COUNTS = [4, 8, 16, 32, 64, 128]
-
-def load_convergence(n):
-    base = f"{DATA_ROOT}/bclique_n{n}"
-    term_rpbob = pd.read_csv(f"{base}/rpbob/{DATASET_TAG}_N_adaptative_S_linkFailure_period_1.0_convergence.csv")
-    term_rcn = pd.read_csv(f"{base}/rcn/{DATASET_TAG}_S_linkFailure_convergence.csv")
-    term_bgp = pd.read_csv(f"{base}/bgp/{DATASET_TAG}_S_linkFailure_convergence.csv")
-
-    term_rpbob["Protocol"] = "RPBOB"
-    term_bgp["Protocol"] = "BGP"
-    term_rcn["Protocol"] = "RCN"
-
-    return pd.concat([term_rpbob, term_bgp, term_rcn], ignore_index=True)
+METRIC_SUFFIX = "convergence"
 
 
-def plot_ccdf(df, n):
-    plt.figure(figsize=(6, 4))
-    sns.ecdfplot(data=df, x="stab_time", hue="Protocol", complementary=True, lw=1.5)
-    plt.xlabel('time [ms]')
+LABEL_RULES = [
+    (r"rpbob.*notif", "RPBOB-CN"),
+    (r"rpbob",        "RPBOB"),
+    (r"rcn",          "BGP-RCN"),
+    (r"bgp",          "BGP"),
+]
+
+def label_for(protocol_folder, filename):
+    key = f"{protocol_folder}_{filename}".lower()
+    for pattern, label in LABEL_RULES:
+        if re.search(pattern, key):
+            return label
+    return protocol_folder
+
+def discover_networks(root):
+    return sorted(d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)))
+
+def load_metric(network_dir):
+    frames = []
+    pattern = os.path.join(network_dir, "*", f"{DATASET_TAG}*_{METRIC_SUFFIX}.csv")
+    for path in sorted(glob.glob(pattern)):
+        protocol_folder = os.path.basename(os.path.dirname(path))
+        filename = os.path.basename(path)
+
+        df = pd.read_csv(path)
+        df = df[df["change_count"] != 0]
+        df["Protocol"] = label_for(protocol_folder, filename)
+        frames.append(df)
+    if not frames:
+        raise FileNotFoundError(f"no matching files under {network_dir}")
+    return pd.concat(frames, ignore_index=True)
+
+def plot_ccdf(df, network_name):
+    plt.figure(figsize=(8, 6))
+    ax = sns.ecdfplot(data=df, x="stab_time", hue="Protocol", complementary=True, lw=1.5)
+
+    plt.xlabel("Time [ms]")
     plt.ylabel("CCDF")
-    plt.title(f"n = {n}")
-    plt.grid(alpha=0.3, which='both')
+
+    # Apply log scale to the x-axis
+    ax.set_xscale('log')
+
+    plt.ylim([0,1.1])
+    plt.xlim([0,df["stab_time"].max()])
+    plt.grid(alpha=0.3, which="both")
     plt.tight_layout()
 
-    out_path = os.path.join(OUTPUT_DIR, f"ccdf_n{n}.png")
+    out_path = os.path.join(OUTPUT_DIR, f"ccdf_{network_name}.png")
     plt.savefig(out_path, dpi=300)
     plt.close()
     print(f"saved {out_path}")
 
-
-for n in NODE_COUNTS:
+for network in discover_networks(DATA_ROOT):
+    network_dir = os.path.join(DATA_ROOT, network)
     try:
-        df = load_convergence(n)
+        df = load_metric(network_dir)
     except FileNotFoundError as e:
-        print(f"skipping n={n}: {e}")
+        print(f"skipping {network}: {e}")
         continue
-    plot_ccdf(df, n)
+    plot_ccdf(df, network)

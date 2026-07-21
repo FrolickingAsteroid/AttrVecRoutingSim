@@ -10,7 +10,7 @@ function ProgressBar {
     local _left=$(( 40 - _done ))
     local _fill=$(printf "%${_done}s")
     local _empty=$(printf "%${_left}s")
-    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%%"
+    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%% nodes ${3} : run ${4}/${5}"
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -98,7 +98,7 @@ fi
 echo "type: $type, metric: $metric, network: $dataset, filetype: $filetype, append: $append, regen: $regen, runs: $runs"
 
 SIMULATOR="./build/Simulator"
-NODE_COUNTS=(4 16 32 64 128)
+NODE_COUNTS=(4 8 16 32 64)
 if [[ ! -x "${SIMULATOR}" ]]; then
     echo "Error: ${SIMULATOR} not found or not executable (run from repo root, or build first)." >&2
     exit 1
@@ -113,38 +113,36 @@ step=0
 
 for n in "${NODE_COUNTS[@]}"; do
     for ((run = 1; run <= runs; run++)); do
-        if [[ "$runs" -gt 1 ]]; then
-            printf "\n=== n=%s : run %s/%s ===\n" "${n}" "${run}" "${runs}"
-        fi
         if [[ "$regen" -eq 1 ]]; then
-            printf "\nregenerating dataset (./networkdataset.py bclique -n %s --%s)\n" "${n}" "${type}"
             cd "${SCRIPT_DIR}"
-            ./networkdataset.py bclique -n "${n}" --mode "${type}"
+            ./networkdataset.py bclique -n "${n}" --mode "${type}" > /dev/null
             cd "${REPO_ROOT}"
         fi
+
         DATASET="data/datasets/clique/bclique_n${n}/${filetype}_${type}.tsv"
+
         if [[ ! -f "${DATASET}" ]]; then
             printf "\nWarning: dataset not found, skipping n=%s: %s\n" "${n}" "${DATASET}" >&2
             step=$(( step + 3 ))
-            ProgressBar "$step" "$total_steps"
+            ProgressBar "$step" "$total_steps" "${n}" "${run}" "${runs}"
             continue
         fi
 
-        "${SIMULATOR}" -f "${DATASET}" -R -m 300 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
+        "${SIMULATOR}" -f "${DATASET}" -R -m 200 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
         step=$(( step + 1 ))
-        ProgressBar "$step" "$total_steps"
+        ProgressBar "$step" "$total_steps" "${n}" "${run}" "${runs}"
 
-        "${SIMULATOR}" -f "${DATASET}" -R notif -m 300 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
+        "${SIMULATOR}" -f "${DATASET}" -R notif -m 200 -F 0 "${n}" -i 1.0 -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
         step=$(( step + 1 ))
-        ProgressBar "$step" "$total_steps"
+        ProgressBar "$step" "$total_steps" "${n}" "${run}" "${runs}"
 
         "${SIMULATOR}" -f "${DATASET}" -G -F 0 "${n}" -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
         step=$(( step + 1 ))
-        ProgressBar "$step" "$total_steps"
+        ProgressBar "$step" "$total_steps" "${n}" "${run}" "${runs}"
 
         "${SIMULATOR}" -f "${DATASET}" -C -F 0 "${n}" -t 0 -a "${metric}" "${extra_args[@]}" > /dev/null
         step=$(( step + 1 ))
-        ProgressBar "$step" "$total_steps"
+        ProgressBar "$step" "$total_steps" "${n}" "${run}" "${runs}"
     done
 done
 

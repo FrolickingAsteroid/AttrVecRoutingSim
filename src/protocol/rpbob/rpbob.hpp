@@ -46,7 +46,7 @@ namespace Protocol::Rpbob {
 
         void HandleMsg(int u, int v, std::pair<int, Path<A> > notif);
 
-        void DestinationAnnouncement(int t, int n, double period, int max = 1000);
+        void DestinationAnnouncement(int t, int n, double period, int max);
 
         void LinkFailure(int u, int v) override;
 

@@ -155,7 +155,7 @@ namespace Simulator {
             };
 
             if (u && v) {
-                proto.DestinationAnnouncement(t, 0, *cfg.period, *cfg.max);
+                proto.DestinationAnnouncement(t, 0, *cfg.period, cfg.max.value_or(1000));
                 proto.cal.schedule(100, [&]() { proto.LinkFailure(*u, *v); });
                 proto.Run();
                 graph.activate(*u, *v);
