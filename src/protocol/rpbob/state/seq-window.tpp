@@ -103,6 +103,13 @@ namespace Protocol::Rpbob {
 
         set_seq_attr.push_back(c);
 
+        UpdateBestAttr();
+
+        return c;
+    }
+
+    template<class A,class Ord>
+    void SequenceWindow<A, Ord>::UpdateBestAttr() {
         // sort by sequence number
         std::sort(set_seq_attr.begin(),
                   set_seq_attr.end(),
@@ -112,9 +119,8 @@ namespace Protocol::Rpbob {
         path new_best = set_seq_attr.front();
         if (new_best.attr != best_attr.attr)
             best_attr = new_best;
-
-        return c;
     }
+
 
     template<class A, class Ord>
     std::ostream &operator<<(std::ostream &os,

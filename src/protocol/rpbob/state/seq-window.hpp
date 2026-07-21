@@ -21,6 +21,8 @@ namespace Protocol::Rpbob {
 
         void SetOrigin(int n, int u);
 
+        void UpdateBestAttr();
+
         const path &GetBestAttr() const;
 
         const std::vector<path> &GetSetAttr() const;

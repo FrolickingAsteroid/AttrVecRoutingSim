@@ -37,6 +37,7 @@ namespace Protocol::Rpbob {
                 if (!removed.empty()) {
                     s[node].failed_link = link;
                     for (const auto &current: removed) {
+                        s[u].UpdateBestAttr();
                         auto notif = std::make_tuple(current.getAttr().n, link, current);
                         this->Send(node, Msg{notif});
                     }
@@ -58,6 +59,7 @@ namespace Protocol::Rpbob {
 
         if (auto removed = s[u].FailureNotif(get<2>(notif)); !removed.empty()) {
             s[u].failed_link = get<1>(notif);
+            s[u].UpdateBestAttr();
             for (const auto &current: removed) {
                 auto notif_ = std::make_tuple(current.getAttr().n, get<1>(notif), current);
                 this->Send(u, Msg{notif_});
