@@ -115,5 +115,31 @@ namespace Protocol::Rpbob {
 
         return c;
     }
+
+    template<class A, class Ord>
+    std::ostream &operator<<(std::ostream &os,
+                             const SequenceWindow<A, Ord> &sw) {
+        const auto &best = sw.GetBestAttr();
+
+        os << "best attr : " << best << " (";
+        for (std::size_t i = 0; i < best.path.size(); ++i) {
+            os << best.path[i];
+            if (i + 1 < best.path.size()) {
+                os << ",";
+            }
+        }
+        os << ") ";
+
+        os << "[";
+        const auto &set = sw.GetSetAttr();
+        for (std::size_t i = 0; i < set.size(); ++i) {
+            os << set[i].attr;
+            if (i + 1 < set.size()) {
+                os << ",";
+            }
+        }
+        os << "]";
+        return os;
+    }
 }
 #endif // SEQ_WINDOW_TPP

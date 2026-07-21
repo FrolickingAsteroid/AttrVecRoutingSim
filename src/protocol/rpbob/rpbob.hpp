@@ -13,8 +13,10 @@ namespace Protocol::Rpbob {
     struct RPBOB
             : IProtocol<typename RA::BaseAttr,
                 Path<typename RA::Attr>,
-                std::variant<Path<typename RA::Attr>, std::pair<int, Path<typename RA::Attr> > > > {
-        using Msg = std::variant<Path<typename RA::Attr>, std::pair<int, Path<typename RA::Attr> > >;
+                std::variant<Path<typename RA::Attr>, std::tuple<int, std::pair<int, int>, Path<typename
+                    RA::Attr> > > > {
+        using Msg = std::variant<Path<typename RA::Attr>, std::tuple<int, std::pair<int, int>, Path<typename
+            RA::Attr> > >;
         using Base = IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>, Msg>;
 
         using A = RA::Attr;
@@ -44,7 +46,7 @@ namespace Protocol::Rpbob {
 
         void HandleMsg(int u, int v, Path<A> p);
 
-        void HandleMsg(int u, int v, std::pair<int, Path<A> > notif);
+        void HandleMsg(int u, int v, std::tuple<int, std::pair<int, int>, Path<A> > notif);
 
         void DestinationAnnouncement(int t, int n, double period, int max);
 

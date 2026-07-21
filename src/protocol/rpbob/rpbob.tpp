@@ -35,8 +35,9 @@ namespace Protocol::Rpbob {
             for (auto [node, link]: {std::tuple{u, std::pair{u, v}}, std::tuple{v, std::pair{v, u}}}) {
                 auto removed = s[node].FailureNotif(link);
                 if (!removed.empty()) {
+                    s[node].failed_link = link;
                     for (const auto &current: removed) {
-                        auto notif = std::make_pair(current.getAttr().n, current);
+                        auto notif = std::make_tuple(current.getAttr().n, link, current);
                         this->Send(node, Msg{notif});
                     }
                 }
@@ -50,14 +51,15 @@ namespace Protocol::Rpbob {
     }
 
     template<class RA>
-    void RPBOB<RA>::HandleMsg(int u, int v, std::pair<int, Path<A> > notif) {
+    void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, std::pair<int, int>, Path<A> > notif) {
         (void) v;
 
-        notif.second.addAsEntry(u);
+        get<2>(notif).addAsEntry(u);
 
-        if (auto removed = s[u].FailureNotif(notif.second); !removed.empty()) {
+        if (auto removed = s[u].FailureNotif(get<2>(notif)); !removed.empty()) {
+            s[u].failed_link = get<1>(notif);
             for (const auto &current: removed) {
-                auto notif_ = std::make_pair(current.getAttr().n, current);
+                auto notif_ = std::make_tuple(current.getAttr().n, get<1>(notif), current);
                 this->Send(u, Msg{notif_});
             }
         }
@@ -67,16 +69,32 @@ namespace Protocol::Rpbob {
     void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p) {
         if (std::get<1>(graph.adjListIn[u].at(v)) == false)
             return;
-
+        if (s[u].failed_link.has_value() && s[u].
+            ContainsFailedLink(p, s[u].failed_link.value().first, s[u].failed_link.value().second)) {
+            return;
+        }
         Ext extension;
 
         A lw(std::get<2>(graph.adjListOut[u].at(v))); // Fetch link attr
         A candidate = extension(lw, p.getAttr());
-
-        p.addAsEntry(u);
         p.addAttr(candidate);
+        p.addAsEntry(u);
 
         std::optional<Path<A> > changed = s[u].CompareSetAttr(p);
+
+        if (u == 8 && data.log == true) {
+            auto log = LOG_DEBUG;
+            log << "Node " << u << " received " << p.attr << " (";
+            for (std::size_t i = 0; i < p.path.size(); ++i) {
+                log << p.path[i];
+                if (i + 1 < p.path.size()) {
+                    log << ",";
+                }
+            }
+            log << ") ";
+            log << " at time " << cal.now() << " change count: " << data.changeCounts.at(8);
+            LOG_DEBUG << s[u] << "\n";
+        }
 
         if (changed.has_value()) {
             this->Send(u, Msg{p});

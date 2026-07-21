@@ -28,16 +28,21 @@ namespace Protocol::Rpbob {
         std::optional<path> CompareSetAttr(const path &c);
 
         std::vector<path> FailureNotif(std::pair<int, int> link_notif);
+
         std::vector<path> FailureNotif(const path &path_notif);
+
+        static bool ContainsFailedLink(const path &p, int u, int v);
+
+        std::optional<std::pair<int, int> > failed_link = std::nullopt;
 
     private:
         std::size_t N;
         std::vector<path> set_seq_attr;
         path best_attr;
 
+
         template<class Pred>
         std::vector<path> RemoveMatching(Pred pred);
-        static bool ContainsFailedLink(const path &p, int u, int v);
     };
 }
 
