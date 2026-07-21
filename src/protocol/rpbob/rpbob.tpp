@@ -84,20 +84,6 @@ namespace Protocol::Rpbob {
 
         std::optional<Path<A> > changed = s[u].CompareSetAttr(p);
 
-        if (u == 8 && data.log == true) {
-            auto log = LOG_DEBUG;
-            log << "Node " << u << " received " << p.attr << " (";
-            for (std::size_t i = 0; i < p.path.size(); ++i) {
-                log << p.path[i];
-                if (i + 1 < p.path.size()) {
-                    log << ",";
-                }
-            }
-            log << ") ";
-            log << " at time " << cal.now() << " change count: " << data.changeCounts.at(8);
-            LOG_DEBUG << s[u] << "\n";
-        }
-
         if (changed.has_value()) {
             this->Send(u, Msg{p});
             converged();

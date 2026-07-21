@@ -111,6 +111,10 @@ namespace Protocol::Rpbob {
     template<class A,class Ord>
     void SequenceWindow<A, Ord>::UpdateBestAttr() {
         // sort by sequence number
+    	if (set_seq_attr.empty()) {
+    		best_attr = path(-1, Ord::Null());
+    		return;
+    	}
         std::sort(set_seq_attr.begin(),
                   set_seq_attr.end(),
                   [](const path &l, const path &r) { return l.attr.n < r.attr.n; });
