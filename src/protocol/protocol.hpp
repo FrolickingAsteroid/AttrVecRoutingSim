@@ -2,54 +2,58 @@
 #define PROTOCOL_HPP
 
 #include <variant>
-
 #include "graph/graph.hpp"
-#include "utils/stats/data.hpp"
 #include "scheduler/calendar.hpp"
+#include "utils/stats/data.hpp"
 
 namespace Protocol
 {
 
-template <class A, class R, class Msg = R> struct IProtocol {
-	Graphs::Graph<A>     &graph;
-	scheduler::Calendar   cal;
-	utils::stats::Data<R> data;
+    template <class A, class R, class Msg = R>
+    struct IProtocol
+    {
+        Graphs::Graph<A>     &graph;
+        scheduler::Calendar   cal;
+        utils::stats::Data<R> data;
 
-	explicit IProtocol(Graphs::Graph<A> &graph_)
-		: graph(graph_)
-		, data(graph_.V)
-	{
-	}
-	virtual ~IProtocol() = default;
+        explicit IProtocol(Graphs::Graph<A> &graph_)
+            : graph(graph_),
+              data(graph_.V)
+        {}
 
-	virtual void MsgReception(int u, int v, Msg msg) = 0;
-	virtual void LinkFailure(int u, int v)		 = 0;
+        virtual ~IProtocol() = default;
 
-	// callbacks
-	virtual void process()
-	{
-	}
+        virtual void MsgReception(int u, int v, Msg msg) = 0;
+        virtual void LinkFailure(int u, int v)           = 0;
 
-	void Run()
-	{
-		cal.run([this]() { process(); });
-	}
+        // callbacks
+        virtual void process()
+        {}
 
-	void Send(int t, Msg msg)
-	{
-		for (auto &[r, edge] : graph.adjListIn[t]) {
-			auto &[delay, active, attr] = edge;
+        void Run()
+        {
+            cal.run([this]() {
+                process();
+            });
+        }
 
-			if (!active)
-				continue;
+        void Send(int t, Msg msg)
+        {
+            for (auto &[r, edge] : graph.adjListIn[t])
+            {
+                auto &[delay, active, attr] = edge;
 
-			cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
-				this->MsgReception(r, t, msg);
-			});
-			data.recordMessage(t, cal.now());
-		}
-	}
-};
+                if (!active)
+                    continue;
+
+                cal.schedule(cal.now() + delay, [this, r, t, msg]() mutable {
+                    this->MsgReception(r, t, msg);
+                });
+
+                data.recordMessage(t, cal.now());
+            }
+        }
+    };
 
 } // namespace Protocol
 #endif
