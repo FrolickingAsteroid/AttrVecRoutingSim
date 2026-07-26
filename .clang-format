@@ -5,7 +5,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: true
 AlignConsecutiveMacros: true
 AlignConsecutiveAssignments: true
-AlignConsecutiveDeclarations: true
+AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments:
@@ -29,7 +29,7 @@ BinPackParameters: true
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
-  AfterControlStatement: true
+  AfterControlStatement: false
   AfterEnum: true
   AfterFunction: true
   AfterNamespace: true
@@ -39,7 +39,7 @@ BraceWrapping:
   AfterExternBlock: true
   BeforeCatch: true
   BeforeElse: true
-  IndentBraces: false
+  IndentBraces: true
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
