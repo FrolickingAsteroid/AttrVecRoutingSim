@@ -61,7 +61,7 @@ template <class R> struct Record {
  * Files are opened once in the constructor and closed automatically
  * when the recorder is destroyed.
  *
- * @tparam R Routing message metric to be recorded
+ * @tparam R Routing metric to be recorded
  */
 template <class R> class Recorder {
     public:
