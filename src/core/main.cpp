@@ -1,32 +1,35 @@
 #include "core/argparsing.hpp"
-#include "utils/stats/data.hpp"
+#include "scheduler/rng.hpp"
 
 #include <chrono>
 
 using namespace std;
 using namespace config;
 
-int main(int argc, char *const *argv)
-{
-	try {
-		const auto cfg = ParseArgs(argc, argv);
-		auto	   sim = MakeSimulation(cfg);
+int main(int argc, char *const *argv) {
+    try {
+        const auto cfg = ParseArgs(argc, argv);
 
-		sim->setup();
+        unsigned int seed = cfg.seed != 0 ? cfg.seed : std::random_device{}();
+        rng_seed(seed);
 
-		const auto start = chrono::steady_clock::now();
-		sim->run();
-		const auto end = chrono::steady_clock::now();
+        auto sim = MakeSimulation(cfg);
 
-		auto stats = sim->postProcess();
+        sim->setup();
 
-		const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+        const auto start = chrono::steady_clock::now();
+        sim->run();
+        const auto end = chrono::steady_clock::now();
 
-		PrintSummary(elapsed,stats);
+        auto stats = sim->postProcess();
 
-		return 0;
-	} catch (const std::exception &err) {
-		std::cerr << "error: " << err.what() << '\n';
-		return 1;
-	}
+        const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+
+        PrintSummary(elapsed, stats);
+
+        return 0;
+    } catch (const std::exception &err) {
+        std::cerr << "error: " << err.what() << '\n';
+        return 1;
+    }
 }

@@ -3,35 +3,39 @@
 
 #include <optional>
 
-namespace config
-{
-enum ScenarioType { Normal, LinkFailure, Withdrawal };
-enum Options { RPBOB, Beaconing, BGP, RCN, N };
-enum Metric { LENGTHS, HOPS };
+namespace config {
+    enum ScenarioType { Normal, LinkFailure, Withdrawal };
 
-struct SimulationConfig {
-	// required args
-	std::string network_file;
-	Options	    protocol	= Options::N;
-	Metric	    algebra	= LENGTHS;
-	int	    destination = -1;
+    enum Options { RPBOB, Beaconing, BGP, RCN, N };
 
-	bool append = false;
+    enum Metric { LENGTHS, HOPS };
 
-	// RPBOB: run with notification
-	bool notif = false;
+    struct SimulationConfig {
+        // required args
+        std::string network_file;
+        Options protocol = Options::N;
+        Metric algebra = LENGTHS;
+        int destination = -1;
 
-	// optional args
-	std::optional<double> dprop  = std::nullopt;
-	std::optional<double> period = std::nullopt;
-	std::optional<int>    max    = std::nullopt;
-	std::optional<int>    N	     = std::nullopt;
+        // append to existing file
+        bool append = false;
 
-	// Type of simulation being run
-	ScenarioType scenario	= Normal;
-	int	     u		= -1; // used by LinkFailure
-	int	     v		= -1; // used by LinkFailure
-	int	     withdrawal = -1; // used by Withdrawal
-};
+        // RPBOB: run with notification
+        bool notif = false;
+
+        unsigned int seed = 0;
+
+        // optional args
+        std::optional<double> dprop = std::nullopt;
+        std::optional<double> period = std::nullopt;
+        std::optional<int> max = std::nullopt;
+        std::optional<int> N = std::nullopt;
+
+        // Type of simulation being run
+        ScenarioType scenario = Normal;
+        int u = -1; // used by LinkFailure
+        int v = -1; // used by LinkFailure
+        int withdrawal = -1; // used by Withdrawal
+    };
 }
 #endif

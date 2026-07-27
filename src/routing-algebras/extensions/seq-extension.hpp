@@ -3,21 +3,19 @@
 
 #include "routing-algebras/seq.hpp"
 
-namespace RoutingAlgebras
-{
-template <class A, class ExtBase> struct SeqExtension {
-	SeqAttr<A> operator()(const SeqAttr<A> &l, const SeqAttr<A> &r) const
-	{
-		ExtBase ext;
+namespace RoutingAlgebras {
+    template<class A, class ExtBase>
+    struct SeqExtension {
+        SeqAttr<A> operator()(const SeqAttr<A> &l, const SeqAttr<A> &r) const {
+            ExtBase ext;
 
-		// Keep the sequence number from the new attr
-		// Extend base attribute
-		SeqAttr<A> result;
-		result.n = r.n;
-		result.a = ext(l.a, r.a);
-		return result;
-	}
-};
+
+            SeqAttr<A> result;
+            result.n = r.n; // Keep the sequence number from the new attr
+            result.a = ext(l.a, r.a); // Extend base attribute
+            return result;
+        }
+    };
 }
 
 #endif
