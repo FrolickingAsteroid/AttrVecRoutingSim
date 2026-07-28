@@ -10,8 +10,39 @@ import networkx as nx
 
 DEFAULT_AS = "1221"
 DEFAULT_TOPDIR = "../../data/topologies/rocketfuel"
+DEFAULT_ROCKET_DIR = "../../data/datasets/rocketfuel"
 DEFAULT_CLIQUE_DIR = "../../data/datasets/clique"
 DEFAULT_TRIANGLE_DIR = "../../data/datasets/triangle"
+
+# ──────────────────────────────────────────────────────────────────────
+# Aux functions
+# ──────────────────────────────────────────────────────────────────────
+
+_rng: np.random.Generator | None = None
+
+
+def get_rng() -> np.random.Generator:
+    global _rng
+    if _rng is None:
+        _rng = np.random.default_rng()
+    return _rng
+
+
+def seed_rng(seed: int | None):
+    global _rng
+    _rng = np.random.default_rng(seed)
+
+
+def _unit_delay(u: int, v: int) -> int:
+    return 1
+
+
+def _uniform_delay(low=1, high=10):
+    return get_rng().uniform(low, high)
+
+
+def _proportional_length(base: int = 10) -> int:
+    return int(np.random.uniform(1, base))
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -44,7 +75,6 @@ def print_graph_info(g: nx.DiGraph, AS: str):
     print(f"\tDistinct delays:  {len(set(d for _, _, d in g.edges.data('Delay')))}")
 
 
-# Each entry: (file prefix, description, attribute columns)
 _DATASET_SPECS = [
     ("DelayLength", "delay + length", ["Delay", "Length"]),
     ("DelayHops", "delay + hop count", ["Delay", "Hops"]),
@@ -62,7 +92,10 @@ def write_datasets(graph: nx.DiGraph, AS: str, testdir: str):
             f.write(f"{graph.number_of_nodes()}\n")
             for u, v, data in graph.edges(data=True):
                 line = f"{u}\t{v}"
-                if "Delay" in attrs: line += f"\t{data['Delay']}"
+                if "Delay" in attrs:
+                    delay = _uniform_delay(0.8 * data['Delay'], data['Delay'])
+                    #line += f"\t{delay:.6f}"
+                    line += f"\t{data['Delay']}"
                 if "Hops" in attrs: line += "\t1"
                 if "Length" in attrs: line += f"\t{data['Length']}"
                 f.write(line + "\n")
@@ -71,29 +104,12 @@ def write_datasets(graph: nx.DiGraph, AS: str, testdir: str):
 # ──────────────────────────────────────────────────────────────────────
 # B-Clique dataset writer
 # ──────────────────────────────────────────────────────────────────────
-def _unit_delay(u: int, v: int) -> int:
-    """Constant unit delay"""
-    return 1
-
-
-def _lognormal_delay(u: int, v: int, mu: float = 3.0, sigma: float = 0.4) -> int:
-    return max(1, int(np.random.lognormal(mu, sigma)))
-
-def _uniform_delay(u, v, low=1, high=10):
-    return int(np.random.uniform(low, high))
-
-
-def _proportional_length(u: int, v: int, base: int = 10) -> int:
-    return int(np.random.uniform(1, base))
-
-
 def b_clique_network(
         n: int,
         mode: str = "unit",
         delay_fn=None,
         length_fn=None,
 ) -> nx.DiGraph:
-
     if delay_fn is None:
         delay_fn = _uniform_delay if mode == "uniform" else _unit_delay
     if length_fn is None:
@@ -123,13 +139,13 @@ def b_clique_network(
 
     # special edges, behavior depends on mode
     if mode == "unit":
-        add(0, n)                             # unit delay, unit/default length
-        add(0, 1, delay=1, length=n)      # unit delay, length forced to n
+        add(0, n)  # unit delay, unit/default length
+        add(0, 1, delay=1, length=n)  # unit delay, length forced to n
     elif mode == "equal":
         add(0, n, delay=n, length=n)
         add(0, 1, delay=n + 2, length=n + 2)
     elif mode == "uniform":
-        add(0, n)                        # random delay via delay_fn; length follows is_hops rule
+        add(0, n)  # random delay via delay_fn; length follows is_hops rule
         add(0, 1)
     else:
         raise ValueError(f"Unknown mode: {mode!r}")
@@ -173,67 +189,6 @@ def b_clique_layout(n: int) -> dict:
         pos[node] = (j * 1.2, -1.2)
 
     return pos
-
-
-def plot_b_clique(n: int, out_path: str = None, show: bool = True):
-    """
-    Draw the B-Clique topology and either display it or save to a file.
-
-    Parameters
-    ----------
-    n        : B-Clique size
-    out_path : if given, save the figure here (PNG/PDF/SVG)
-    show     : if True, call plt.show() (set False when saving to file)
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
-
-    g = b_clique_network(n)
-    pos = b_clique_layout(n)
-
-    chain_nodes = list(range(n))
-    clique_nodes = list(range(n, 2 * n))
-    chain_edges = [(i, i + 1) for i in range(n - 1)]
-    clique_edges = [(u, v) for u in clique_nodes for v in clique_nodes if u != v]
-    cross_edges = [(0, n), (n - 1, 2 * n - 1)]
-
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.set_aspect("equal")
-    ax.axis("off")
-
-    def draw_edges(edges, **kw):
-        nx.draw_networkx_edges(
-            g, pos, edgelist=edges, ax=ax,
-            arrows=True, arrowsize=15,
-            **kw)
-
-    draw_edges(chain_edges, edge_color="#555555", width=1.4)
-    draw_edges(clique_edges, edge_color="#1a6faf", width=1.0, alpha=0.6)
-    draw_edges(cross_edges, edge_color="#c0392b", width=2.0, style="dashed")
-
-    nx.draw_networkx_nodes(g, pos, nodelist=chain_nodes,
-                           node_color="#f0f0f0", edgecolors="#333333",
-                           node_size=600, ax=ax)
-    nx.draw_networkx_nodes(g, pos, nodelist=clique_nodes,
-                           node_color="#d0e8f7", edgecolors="#1a6faf",
-                           node_size=600, ax=ax)
-    nx.draw_networkx_labels(g, pos, font_size=11, font_weight="bold", ax=ax)
-
-    legend = [
-        mpatches.Patch(color="#555555", label="Chain edges"),
-        mpatches.Patch(color="#1a6faf", label="Clique edges"),
-        mpatches.Patch(color="#c0392b", label="Cross-links"),
-    ]
-    ax.legend(handles=legend, loc="upper right", fontsize=9)
-    ax.set_title(f"B-Clique topology  (n={n},  {2 * n} nodes)", fontsize=13)
-    plt.tight_layout()
-
-    if out_path:
-        plt.savefig(out_path, dpi=150)
-        print(f"Saved: {out_path}")
-    if show:
-        plt.show()
-    plt.close()
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -280,6 +235,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--topdir", dest="topdir", default=DEFAULT_TOPDIR)
     p.add_argument("--cliquedir", dest="cliquedir", default=DEFAULT_CLIQUE_DIR)
     p.add_argument("--triangledir", dest="triangledir", default=DEFAULT_TRIANGLE_DIR)
+    p.add_argument("--rocketdir", dest="rocketdir", default=DEFAULT_ROCKET_DIR)
+
+    p.add_argument("--seed", type=int, default=None,
+                   help="RNG seed for reproducible delay/length sampling "
+                        "(default: unseeded, different every run)")
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -287,21 +247,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("info", help="print graph statistics for a Rocketfuel AS")
 
     bc = sub.add_parser("bclique", help="generate a B-Clique synthetic topology")
-    bc.add_argument("-n", type=int, default=4,
-                    help="B-Clique size")
+    bc.add_argument("-n", type=int, default=4, help="B-Clique size")
 
-    bc.add_argument("--mode", choices=["unit", "equal","uniform"], default="equal",
+    bc.add_argument("--mode", choices=["unit", "equal", "uniform"], default="equal",
                     help="delay/length distribution (default: unit)")
 
-    bp = sub.add_parser("plot", help="plot a B-Clique topology")
-    bp.add_argument("-n", type=int, default=4,
-                    help="B-Clique size to plot (default: 4)")
-    bp.add_argument("--save", metavar="FILE",
-                    help="save figure to FILE instead of displaying it")
-
     tri = sub.add_parser("triangle", help="print a triangle network to stdout")
-    tri.add_argument("-n", type=int, default=6,
-                     help="triangle size parameter (default: 6)")
+    tri.add_argument("-n", type=int, default=6, help="triangle size parameter (default: 6)")
 
     return p
 
@@ -309,15 +261,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main():
     parser = build_parser()
     args = parser.parse_args()
+    seed_rng(args.seed)
 
     if args.cmd == "bclique":
         write_b_clique(args.n, args.cliquedir, mode=args.mode)
-
-    elif args.cmd == "plot":
-        if args.save:
-            plot_b_clique(args.n, out_path=args.save, show=False)
-        else:
-            plot_b_clique(args.n, show=True)
 
     elif args.cmd == "triangle":
         triangle_network(args.n, args.triangledir)
@@ -326,7 +273,7 @@ def main():
         # Rocketfuel commands need a graph loaded
         g = load_graph(args.AS, args.topdir)
         dispatch = {
-            "build": lambda: write_datasets(g, args.AS, args.topdir),
+            "build": lambda: write_datasets(g, args.AS, args.rocketdir),
             "info": lambda: cmd_info(g, args.AS),
         }
         dispatch[args.cmd]()

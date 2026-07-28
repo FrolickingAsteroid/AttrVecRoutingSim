@@ -37,8 +37,9 @@ namespace Protocol::Rpbob {
 
         std::optional<std::pair<int, int> > failed_link = std::nullopt;
 
-    private:
         std::size_t N;
+    private:
+        //std::size_t N;
         std::vector<path> set_seq_attr;
         path best_attr;
 

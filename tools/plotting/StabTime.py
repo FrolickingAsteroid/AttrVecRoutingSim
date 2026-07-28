@@ -7,35 +7,34 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Computer Modern Roman", "DejaVu Serif"],
+    "font.family": "Liberation Sans",
+    # "font.serif": ["Computer Modern Roman", "DejaVu Serif"],
     "mathtext.fontset": "cm",
-    "font.size": 9,
+    "font.size": 10,
 })
 
 File = "DelayLength"
-Mode = "equal"
+Mode = "placeholder"
 Metric = "lengths"
 
-
 DATA_ROOT = "../../data/output/rocketfuel"
-#DATA_ROOT = "../../data/output/clique"
-#DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
+# DATA_ROOT = "../../data/output/clique"
+# DATASET_TAG = f"{File}_{Mode}_A_{Metric}"
 DATASET_TAG = f"{File}_A_{Metric}"
-SCENARIO = "linkFailure"
+SCENARIO = "normal"
 
 OUTPUT_DIR = os.path.join("outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 METRIC_SUFFIX = "convergence"
 
-
 LABEL_RULES = [
     (r"rpbob.*notif", "RPBOB-CN"),
-    #(r"rpbob",        "RPBOB"),
-    #(r"rcn",          "BGP-RCN"),
-    (r"bgp",          "BGP"),
+    (r"rpbob", "RPBOB"),
+    (r"rcn", "BGP-RCN"),
+    (r"bgp", "BGP"),
 ]
+
 
 def label_for(protocol_folder, filename):
     key = f"{protocol_folder}_{filename}".lower()
@@ -44,8 +43,10 @@ def label_for(protocol_folder, filename):
             return label
     return protocol_folder
 
+
 def discover_networks(root):
     return sorted(d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)))
+
 
 def load_metric(network_dir):
     frames = []
@@ -63,18 +64,20 @@ def load_metric(network_dir):
         raise FileNotFoundError(f"no matching files under {network_dir}")
     return pd.concat(frames, ignore_index=True)
 
+
 def plot_ccdf(df, network_name):
+    df = df[df.Protocol != "BGP-RCN"]
+    df = df[df["Protocol"] != "RPBOB-CN"]
+
     # Calculate average stab_time per protocol
     avg_times = df.groupby("Protocol")["stab_time"].mean()
 
-    # Create a new column with the protocol name + average
     df["Protocol"] = df["Protocol"].map(
         lambda p: f"{p} (avg: {avg_times[p]:.2f} ms)"
     )
 
     plt.figure(figsize=(6, 4))
 
-    # Use the new column for the hue parameter
     ax = sns.ecdfplot(
         data=df,
         x="stab_time",
@@ -82,19 +85,33 @@ def plot_ccdf(df, network_name):
         complementary=True,
         lw=1.8,
     )
+    ax.set_xlim([-0.0, df["stab_time"].max()])
+    for line in ax.lines:
+        x = line.get_xdata()
+        x[0] = 0
+        line.set_xdata(x)
 
     plt.xlabel("Time [ms]")
     plt.ylabel("CCDF")
 
     plt.ylim([-0.001, 1.1])
-    plt.xlim([-0.1, df["stab_time"].max()])
     plt.grid(alpha=0.3, which="both")
     plt.tight_layout()
 
-    out_path = os.path.join(OUTPUT_DIR, f"ccdf_{network_name}.png")
+    legend = ax.legend_
+    legend.set_title("Protocol")
+    legend.get_title().set_fontweight("bold")
+
+    if Mode not in DATASET_TAG:
+        name = f"ccdf_{network_name}_{SCENARIO}.png"
+    else:
+        name = f"ccdf_{network_name}_{Mode}_{SCENARIO}.png"
+
+    out_path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(out_path, dpi=300)
     plt.close()
     print(f"saved {out_path}")
+
 
 for network in discover_networks(DATA_ROOT):
     network_dir = os.path.join(DATA_ROOT, network)

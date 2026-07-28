@@ -1,0 +1,40 @@
+import os
+
+configfile: "config.yaml"
+
+REPO_ROOT = os.path.abspath(os.path.join(workflow.basedir, "..", ".."))
+workdir: REPO_ROOT
+
+include: "helpers.smk"
+
+# ────────────────────────────────────────────────────────────────
+# Network generation
+# ────────────────────────────────────────────────────────────────
+
+
+# ────────────────────────────────────────────────────────────────
+# Simulator
+# ────────────────────────────────────────────────────────────────
+rule run_rocketfuel_normal:
+input:
+    dataset = lambda wc: rocketfuel_dataset_path(
+        wc.as_num, config["rocketfuel"]["filetype"])
+output:
+    lambda wc: output_files(
+        f"data/output/rocketfuel/{wc.as_num}/{wc.proto}", wc.proto,
+        config["rocketfuel"]["filetype"])
+params:
+    flags = lambda wc: sim_flags(wc.proto),
+shell:
+    """
+    for i in $(seq 1 {RUNS}); do
+        if [ "$i" -eq 1 ]; then
+            append_flag=""
+        else
+            append_flag="-A"
+        fi
+        {SIMULATOR} -f {input.dataset} {params.flags} \
+            -i {PERIOD} -m 0 -a {METRIC} \
+            $append_flag > /dev/null
+    done
+    """

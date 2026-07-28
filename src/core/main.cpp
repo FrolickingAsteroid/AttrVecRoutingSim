@@ -1,35 +1,42 @@
+#include <chrono>
+
 #include "core/argparsing.hpp"
 #include "scheduler/rng.hpp"
-
-#include <chrono>
+#include "utils/ui/logger.hpp"
 
 using namespace std;
 using namespace config;
 
-int main(int argc, char *const *argv) {
-    try {
-        const auto cfg = ParseArgs(argc, argv);
+int main(int argc, char* const* argv)
+{
+  try
+  {
+    const auto cfg = ParseArgs(argc, argv);
 
-        unsigned int seed = cfg.seed != 0 ? cfg.seed : std::random_device{}();
-        rng_seed(seed);
+    unsigned int seed = cfg.seed != 0 ? cfg.seed : std::random_device{}();
+    rng_seed(seed);
 
-        auto sim = MakeSimulation(cfg);
+    LOG_DEBUG << "Seed: " << seed;
 
-        sim->setup();
+    auto sim = MakeSimulation(cfg);
 
-        const auto start = chrono::steady_clock::now();
-        sim->run();
-        const auto end = chrono::steady_clock::now();
+    sim->setup();
 
-        auto stats = sim->postProcess();
+    const auto start = chrono::steady_clock::now();
+    sim->run();
+    const auto end = chrono::steady_clock::now();
 
-        const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+    auto stats = sim->postProcess();
 
-        PrintSummary(elapsed, stats);
+    const auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
 
-        return 0;
-    } catch (const std::exception &err) {
-        std::cerr << "error: " << err.what() << '\n';
-        return 1;
-    }
+    PrintSummary(elapsed, stats);
+
+    return 0;
+  }
+  catch (const std::exception& err)
+  {
+    std::cerr << "error: " << err.what() << '\n';
+    return 1;
+  }
 }

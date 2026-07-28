@@ -18,3 +18,4 @@ __pycache__/
 # Folders
 # ------------------------------------------------------------
 data/output/
+tools/workflow/.snakemake
