@@ -23,7 +23,7 @@ DATA_ROOT = "../../data/output/rocketfuel"
 DATASET_TAG = f"{File}_A_{Metric}"
 SCENARIO = "normal"
 
-OUTPUT_DIR = os.path.join("outputs")
+OUTPUT_DIR = "../../data/plots"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 METRIC_SUFFIX = "convergence"

@@ -6,12 +6,12 @@ clique:
   filetype: "DelayHops"                                         # DelayHops, DelayLengths
 
 rocketfuel:
-  as_list: [ "1221", "1755", "1239", "3257", "3967", "6461" ]
+  as_list: ["1221", "1755"]
   filetype: "DelayLength"                                       # DelayHops, DelayLengths
 
-runs: 5
-metric: "hops"                                                  # hops, lengths
-append: false                                                   # append on existing output file
+runs: 1
+metric: "lengths"                                                 # must be "hops" or "lengths" (matches output filenames); -a flag is auto-translated to singular "length"
+period: 1.0                                                       # destination-announcement period (-i), also shown in RPBOB/RPBOB-notif filenames
 
 simulator: "build/Simulator"
 
@@ -20,15 +20,19 @@ protocols:
     flags: [ "-R" ]
     period: true
     notif: false
+    output_proto: "rpbob"                                       # folder the simulator actually writes into (proto string is hardcoded per simulator, not "rpbob_notif")
   rpbob_notif:
     flags: [ "-R", "notif" ]
     period: true
     notif: true
+    output_proto: "rpbob"
   bgp:
     flags: [ "-G" ]
     period: false
     notif: false
+    output_proto: "bgp"
   rcn:
     flags: [ "-C" ]
     period: false
     notif: false
+    output_proto: "rcn"
