@@ -56,14 +56,18 @@ std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::Failu
 {
 	auto [u, v] = link_notif;
 
-	return RemoveMatching([u, v](const path &p) { return ContainsFailedLink(p, u, v); });
+	return RemoveMatching([u, v](const path &p) {
+		return ContainsFailedLink(p, u, v);
+	});
 }
 
 // Reception of a failure notif: remove paths that match
 template <class A, class Ord>
 std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::FailureNotif(const path &path_notif)
 {
-	return RemoveMatching([&path_notif](const path &p) { return p.path == path_notif.path; });
+	return RemoveMatching([&path_notif](const path &p) {
+		return p.path == path_notif.path;
+	});
 }
 
 template <class A, class Ord> const SequenceWindow<A, Ord>::path &SequenceWindow<A, Ord>::GetBestAttr() const
@@ -95,7 +99,9 @@ std::optional<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::Com
 
 	// remove anything worse than the candidate
 	set_seq_attr.erase(std::remove_if(set_seq_attr.begin(), set_seq_attr.end(),
-					  [&](const path &current) { return ord(c.attr, current.attr); }),
+					  [&](const path &current) {
+		return ord(c.attr, current.attr);
+	}),
 			   set_seq_attr.end());
 
 	set_seq_attr.push_back(c);
@@ -113,8 +119,9 @@ template <class A, class Ord> void SequenceWindow<A, Ord>::UpdateBestAttr()
 		best_attr = path(-1, Ord::Null());
 		return;
 	}
-	std::sort(set_seq_attr.begin(), set_seq_attr.end(),
-		  [](const path &l, const path &r) { return l.attr.n < r.attr.n; });
+	std::sort(set_seq_attr.begin(), set_seq_attr.end(), [](const path &l, const path &r) {
+		return l.attr.n < r.attr.n;
+	});
 
 	// update best
 	path new_best = set_seq_attr.front();

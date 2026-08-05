@@ -60,7 +60,9 @@ template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
 
 template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
 {
-	std::visit([&](auto &&m) { this->HandleMsg(u, v, m); }, msg);
+	std::visit([&](auto &&m) {
+		this->HandleMsg(u, v, m);
+	}, msg);
 }
 
 template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, std::pair<int, int>, Path<A>> notif)
@@ -134,8 +136,9 @@ template <class RA> void RPBOB<RA>::DestinationAnnouncement(int t, int n, double
 
 	if (should_continue)
 	{
-		cal.schedule(d,
-			     [t, n, period, max, this]() mutable { this->DestinationAnnouncement(t, n, period, max); });
+		cal.schedule(d, [t, n, period, max, this]() mutable {
+			this->DestinationAnnouncement(t, n, period, max);
+		});
 	}
 }
 } // namespace Protocol::Rpbob

@@ -11,10 +11,13 @@ template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
 {
 	Ord ord;
 
-	auto better = [&ord](const A &a, const A &b) { return ord(a, b) && !ord(b, a); };
+	auto better = [&ord](const A &a, const A &b) {
+		return ord(a, b) && !ord(b, a);
+	};
 
-	auto same_path = std::find_if(candidates.begin(), candidates.end(),
-				      [&bea](const Beacon<A> &e) { return e.path == bea.path; });
+	auto same_path = std::find_if(candidates.begin(), candidates.end(), [&bea](const Beacon<A> &e) {
+		return e.path == bea.path;
+	});
 
 	if (same_path != candidates.end())
 	{
@@ -47,9 +50,11 @@ template <class A, class Ord> void BeaconStore<A, Ord>::Remove(double now)
 		return;
 	}
 
-	candidates.erase(
-	    std::remove_if(candidates.begin(), candidates.end(), [now](beacon &b) { return b.expired(now); }),
-	    candidates.end());
+	candidates.erase(std::remove_if(candidates.begin(), candidates.end(),
+					[now](beacon &b) {
+		return b.expired(now);
+	}),
+			 candidates.end());
 }
 
 template <class A, class Ord> std::vector<Beacon<A>> BeaconStore<A, Ord>::BeaconsToPropagate(double now)

@@ -33,6 +33,7 @@ BraceWrapping:
 BreakAfterAttributes: Always
 BreakConstructorInitializers: BeforeComma
 LambdaBodyIndentation: OuterScope
+AllowShortLambdasOnASingleLine: None
 SortIncludes: CaseSensitive
 IncludeBlocks: Regroup
 IncludeCategories:

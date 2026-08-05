@@ -19,8 +19,9 @@ template <class RA> void BECING<RA>::DestinationAnnouncement(int t, int n, doubl
 	double d = period * n;
 	if (n < max)
 	{
-		cal.schedule(d,
-			     [t, n, period, max, this]() mutable { this->DestinationAnnouncement(t, n, period, max); });
+		cal.schedule(d, [t, n, period, max, this]() mutable {
+			this->DestinationAnnouncement(t, n, period, max);
+		});
 	}
 }
 
@@ -48,11 +49,14 @@ template <class RA> void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon
 
 template <class RA> void BECING<RA>::SchedulePropagation(int u, double d_prop, int max)
 {
-	cal.schedule(cal.now(), [this, u]() { this->Propagate(u); });
+	cal.schedule(cal.now(), [this, u]() {
+		this->Propagate(u);
+	});
 
 	if (cal.now() + d_prop < 1000)
-		cal.schedule(cal.now() + d_prop,
-			     [this, u, d_prop, max]() { this->SchedulePropagation(u, d_prop, max); });
+		cal.schedule(cal.now() + d_prop, [this, u, d_prop, max]() {
+			this->SchedulePropagation(u, d_prop, max);
+		});
 }
 
 template <class RA> void BECING<RA>::Propagate(int u)

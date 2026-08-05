@@ -54,7 +54,9 @@ class BGPSimulation
 		if (u && v)
 		{
 			proto.Run();
-			proto.cal.schedule(100, [&]() { proto.LinkFailure(*u, *v); });
+			proto.cal.schedule(100, [&]() {
+				proto.LinkFailure(*u, *v);
+			});
 			proto.Run();
 		}
 		else

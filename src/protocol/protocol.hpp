@@ -35,7 +35,9 @@ template <class A, class R, class Msg = R> struct IProtocol
 
 	void Run()
 	{
-		cal.run([this]() { process(); });
+		cal.run([this]() {
+			process();
+		});
 	}
 
 	void Send(int t, Msg msg)
@@ -57,7 +59,9 @@ template <class A, class R, class Msg = R> struct IProtocol
 			}
 			it->second = arrival;
 
-			cal.schedule(arrival, [this, r, t, msg]() mutable { this->MsgReception(r, t, msg); });
+			cal.schedule(arrival, [this, r, t, msg]() mutable {
+				this->MsgReception(r, t, msg);
+			});
 			data.recordMessage(t, cal.now());
 		}
 	}

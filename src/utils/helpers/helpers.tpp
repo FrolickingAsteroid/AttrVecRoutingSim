@@ -73,17 +73,25 @@ std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vecto
 	std::vector<std::vector<std::pair<double, A>>> opt_time(V);
 
 	using Quad = std::tuple<double, int, A, int>; // (tau, node, attr)
-	auto comp  = [](const Quad &lhs, const Quad &rhs) { return std::get<0>(lhs) > std::get<0>(rhs); };
+	auto comp  = [](const Quad &lhs, const Quad &rhs) {
+                return std::get<0>(lhs) > std::get<0>(rhs);
+	};
 
 	auto in = [](const A &a, const std::vector<A> &set) {
-		return std::find_if(set.begin(), set.end(), [&](const A &p) { return p == a; }) != set.end();
+		return std::find_if(set.begin(), set.end(), [&](const A &p) {
+			return p == a;
+		}) != set.end();
 	};
 
 	auto select = [&](std::vector<A> &set, const A &a) -> bool {
 		for (const auto &p : set)
 			if (ord(p, a))
 				return false;
-		set.erase(std::remove_if(set.begin(), set.end(), [&](const A &p) { return ord(a, p); }), set.end());
+		set.erase(std::remove_if(set.begin(), set.end(),
+					 [&](const A &p) {
+			return ord(a, p);
+		}),
+			  set.end());
 		set.push_back(a);
 		return true;
 	};

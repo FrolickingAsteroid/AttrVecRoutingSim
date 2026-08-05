@@ -23,7 +23,9 @@ template <class A, class Ord> class LiveMonitor
 	void start()
 	{
 		running_ = true;
-		thread_  = std::thread([this]() { loop(); });
+		thread_  = std::thread([this]() {
+                        loop();
+                });
 	}
 
 	void stop()

@@ -107,7 +107,9 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 
 		if (u && v)
 		{
-			proto.cal.schedule(100, [&]() { proto.LinkFailure(*u, *v); });
+			proto.cal.schedule(100, [&]() {
+				proto.LinkFailure(*u, *v);
+			});
 			proto.Run();
 		}
 		else
