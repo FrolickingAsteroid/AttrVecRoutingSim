@@ -1,9 +1,11 @@
 #ifndef _GRAPHS_TPP_
 #define _GRAPHS_TPP_
 
-#include <stdexcept>
-
 #include "graph.hpp"
+
+#include <stdexcept>
+#include <fstream>
+
 
 namespace Graphs {
     template<class S>

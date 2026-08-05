@@ -10,12 +10,13 @@ namespace Protocol::BGP {
             auto it = data.finalValue.find(u);
             auto best = s[u].GetElected();
 
-            if (best.attribute == Ord::Null()) {
+            // skip nodes that have yet to receive an estimate toward t
+            if (best.attribute == Ord::Null() && it == data.finalValue.end()) {
                 continue;
             }
 
             if (it == data.finalValue.end() || best != it->second) {
-                // A msg is sent each time the estimate to the destination change
+                // A msg is sent each time the estimate to the destination changes
                 this->Send(u, s[u].GetElected());
                 data.recordChange(u, cal.now(), best);
             }

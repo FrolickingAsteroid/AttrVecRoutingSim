@@ -7,6 +7,7 @@
 namespace RoutingAlgebras {
     typedef struct Lengths {
         using BaseAttr = int;
+
         using Attr = int;
         using Ext = LE;
         using Ord = TOL;

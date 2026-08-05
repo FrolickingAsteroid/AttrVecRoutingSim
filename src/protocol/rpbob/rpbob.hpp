@@ -74,7 +74,7 @@ struct RPBOB
     void process() override;
 
     // Callbacks
-    std::function<bool(int)> nodeConverged = nullptr;
+    //std::function<bool(int)> nodeConverged = nullptr;
     std::function<void()> converged = nullptr;
 
     bool cn = false;

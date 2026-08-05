@@ -8,10 +8,10 @@
 #include "routing-algebras/lengths.hpp"
 #include "routing-algebras/seq.hpp"
 
-#include "simulator/becing-simulator.hpp"
-#include "simulator/bgp-simulator.hpp"
-#include "simulator/rcn-simulator.hpp"
-#include "simulator/rpbob-simulator.hpp"
+#include "simulator/instances/becing-simulator.hpp"
+#include "simulator/instances/bgp-simulator.hpp"
+#include "simulator/instances/rcn-simulator.hpp"
+#include "simulator/instances/rpbob-simulator.hpp"
 
 #include "core/config.hpp"
 
@@ -105,7 +105,7 @@ namespace config {
 
     template<class RA>
     std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg) {
-        return std::make_unique<Simulator::RpBOBSimulation<RA> >(cfg, RPBOBParams(cfg));
+        return std::make_unique<Simulator::RpBOBSimulation<RA> >(cfg, RPBOBParams(cfg),"rpbob");
     }
 
     template<class RA>
