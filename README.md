@@ -6,3 +6,40 @@ find . -name "*.csv" -type f -delete
 ./run_simulations.sh -d rocketfuel --as "1221" --regen -N 2
 ./run_simulations.sh -d rocketfuel   # uses default AS list
 ```
+
+```
+├── core
+│   ├── argparsing.cpp
+│   ├── argparsing.hpp
+│   ├── config.hpp
+│   └── main.cpp
+├── graph
+├── protocol
+│   ├── beaconing
+│   ├── bgp
+│   ├── bgp-rcn
+│   ├── rpbob
+│   └── protocol.hpp
+├── routing-algebras
+│   ├── extensions
+│   ├── orders
+│   ├── lengths.hpp
+│   └── seq.hpp
+├── scheduler
+│   ├── calendar.hpp
+│   ├── event.hpp
+│   └── rng.hpp
+├── simulator
+│   ├── instances
+│   │   ├── becing-simulator.hpp
+│   │   ├── bgp-simulator.hpp
+│   │   ├── rcn-simulator.hpp
+│   │   └── rpbob-simulator.hpp
+│   ├── simulator-common.hpp
+│   └── simulator.hpp
+└── utils
+    ├── helpers
+    ├── stats
+    └── ui
+
+```
