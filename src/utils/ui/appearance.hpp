@@ -1,9 +1,10 @@
 #ifndef APPEARANCE_HPP
 #define APPEARANCE_HPP
 
-#include <cmath>
 #include <sys/ioctl.h>
 #include <tabulate/tabulate.hpp>
+
+#include <cmath>
 
 namespace utils::ui
 {
@@ -35,7 +36,8 @@ inline tabulate::Table::Row_t Row(std::initializer_list<std::string> cells)
 {
 	tabulate::Table::Row_t row;
 
-	for (const auto &cell : cells) {
+	for (const auto &cell : cells)
+	{
 		row.emplace_back(cell);
 	}
 
@@ -50,10 +52,10 @@ static std::string formatParam(double x)
 
 namespace colors
 {
-constexpr const char *bold = "\033[1m";
-constexpr const char *cyan = "\033[36m";
+constexpr const char *bold   = "\033[1m";
+constexpr const char *cyan   = "\033[36m";
 constexpr const char *yellow = "\033[33m";
-constexpr const char *reset = "\033[0m";
+constexpr const char *reset  = "\033[0m";
 constexpr const char *purple = "\033[35m";
 } // namespace colors
 

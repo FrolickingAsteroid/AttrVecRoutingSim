@@ -5,15 +5,13 @@
 #include <memory>
 #include <string>
 
+#include "core/config.hpp"
 #include "routing-algebras/lengths.hpp"
 #include "routing-algebras/seq.hpp"
-
 #include "simulator/instances/becing-simulator.hpp"
 #include "simulator/instances/bgp-simulator.hpp"
 #include "simulator/instances/rcn-simulator.hpp"
 #include "simulator/instances/rpbob-simulator.hpp"
-
-#include "core/config.hpp"
 
 namespace config
 {

@@ -11,65 +11,67 @@
 
 namespace Protocol
 {
-  template<class A, class R, class Msg = R>
-  struct IProtocol
-  {
-    Graphs::Graph<A>& graph;
-    scheduler::Calendar cal;
-    utils::stats::Data<R> data;
+template <class A, class R, class Msg = R> struct IProtocol
+{
+	Graphs::Graph<A>     &graph;
+	scheduler::Calendar   cal;
+	utils::stats::Data<R> data;
 
-    explicit IProtocol(Graphs::Graph<A>& graph_) : graph(graph_), data(graph_.V)
-    {
-    }
+	explicit IProtocol(Graphs::Graph<A> &graph_)
+	    : graph(graph_)
+	    , data(graph_.V)
+	{
+	}
 
-    virtual ~IProtocol() = default;
+	virtual ~IProtocol() = default;
 
-    virtual void MsgReception(int u, int v, Msg msg) = 0;
+	virtual void MsgReception(int u, int v, Msg msg) = 0;
 
-    virtual void LinkFailure(int u, int v) = 0;
+	virtual void LinkFailure(int u, int v) = 0;
 
-    virtual void process()
-    {
-    }
+	virtual void process()
+	{
+	}
 
-    void Run()
-    {
-      cal.run([this]() { process(); });
-    }
+	void Run()
+	{
+		cal.run([this]() { process(); });
+	}
 
-    void Send(int t, Msg msg)
-    {
-      for (auto& [r, edge] : graph.adjListIn[t])
-      {
-        auto& [delay, active, attr] = edge;
+	void Send(int t, Msg msg)
+	{
+		for (auto &[r, edge] : graph.adjListIn[t])
+		{
+			auto &[delay, active, attr] = edge;
 
-        if (!active)
-          continue;
+			if (!active)
+				continue;
 
-        double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
+			double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
 
-        auto key = link_key(t, r);
-        auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
-        if (arrival <= it->second)
-        {
-          arrival = it->second + e;
-        }
-        it->second = arrival;
+			auto key            = link_key(t, r);
+			auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
+			if (arrival <= it->second)
+			{
+				arrival = it->second + e;
+			}
+			it->second = arrival;
 
-        cal.schedule(arrival, [this, r, t, msg]() mutable { this->MsgReception(r, t, msg); });
-        data.recordMessage(t, cal.now());
-      }
-    }
+			cal.schedule(arrival, [this, r, t, msg]() mutable { this->MsgReception(r, t, msg); });
+			data.recordMessage(t, cal.now());
+		}
+	}
 
-   private:
-    static constexpr double e = 0.01;
+    private:
+	static constexpr double e = 0.01;
 
-    static std::uint64_t link_key(int from, int to)
-    {
-      return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(from)) << 32) | static_cast<std::uint32_t>(to);
-    }
+	static std::uint64_t link_key(int from, int to)
+	{
+		return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(from)) << 32) |
+		       static_cast<std::uint32_t>(to);
+	}
 
-    std::unordered_map<std::uint64_t, double> prev_time;
-  };
-}  // namespace Protocol
+	std::unordered_map<std::uint64_t, double> prev_time;
+};
+} // namespace Protocol
 #endif

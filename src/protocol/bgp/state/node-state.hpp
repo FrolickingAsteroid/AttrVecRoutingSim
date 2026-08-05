@@ -1,8 +1,9 @@
 #ifndef BGP_NODE_STATE_HPP
 #define BGP_NODE_STATE_HPP
 
-#include "protocol/bgp/state/bgp-attribute.hpp"
 #include <unordered_map>
+
+#include "protocol/bgp/state/bgp-attribute.hpp"
 
 namespace Protocol::BGP
 {
@@ -20,19 +21,20 @@ namespace Protocol::BGP
 // BGPNodeState never calls the algebra directly; it only stores and compares
 // BGPAttribute<A> values using operator< and operator!=.
 
-template <class Attr> struct BGPNodeState {
+template <class Attr> struct BGPNodeState
+{
 	using attr = Attr;
 
 	std::unordered_map<int, attr> aTab;
-	attr			      E;
-	attr			      Av;
-	attr			      O;
-	int			      succ{ -1 };
+	attr                          E;
+	attr                          Av;
+	attr                          O;
+	int                           succ{-1};
 
 	explicit BGPNodeState()
-		: E(attr::Invalid())
-		, Av(attr::Invalid())
-		, O(attr::Invalid())
+	    : E(attr::Invalid())
+	    , Av(attr::Invalid())
+	    , O(attr::Invalid())
 	{
 	}
 
@@ -96,7 +98,7 @@ template <class Attr> struct BGPNodeState {
 	bool commitAv();
 };
 
-}
+} // namespace Protocol::BGP
 
 #include "protocol/bgp/state/node-state.tpp"
 #endif

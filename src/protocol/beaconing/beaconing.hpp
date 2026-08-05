@@ -7,22 +7,22 @@
 
 namespace Protocol::Beaconing
 {
-template <class RA>
-struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>> {
+template <class RA> struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>
+{
 	using Base = IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>;
-	using Base::graph;
 	using Base::cal;
 	using Base::data;
+	using Base::graph;
 
-	using A	  = RA::BaseAttr;
+	using A   = RA::BaseAttr;
 	using Ord = RA::Ord;
 	using Ext = RA::Ext;
 
 	std::vector<BeaconStore<A, Ord>> s;
 
 	explicit BECING(Graphs::Graph<A> &graph_)
-		: Base(graph_)
-		, s(graph_.V, BeaconStore<A, Ord>())
+	    : Base(graph_)
+	    , s(graph_.V, BeaconStore<A, Ord>())
 	{
 	}
 
@@ -37,7 +37,7 @@ struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>> 
 		graph.deactivate(u, v);
 	}
 };
-}
+} // namespace Protocol::Beaconing
 
 #include "protocol/beaconing/beaconing.tpp"
 

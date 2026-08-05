@@ -1,11 +1,13 @@
+#include "core/argparsing.hpp"
+
+#include <tabulate/tabulate.hpp>
+
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <tabulate/tabulate.hpp>
 
-#include "core/argparsing.hpp"
 #include "utils/helpers/helpers.hpp"
 #include "utils/ui/logger.hpp"
 

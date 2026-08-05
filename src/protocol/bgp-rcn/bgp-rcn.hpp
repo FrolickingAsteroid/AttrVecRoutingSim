@@ -1,13 +1,13 @@
 #ifndef RCN_HPP
 #define RCN_HPP
 
+#include <functional>
+#include <vector>
+
 #include "protocol/bgp-rcn/state/bgp-rcn-attribute.hpp"
 #include "protocol/bgp-rcn/state/node-rcn-state.hpp"
 #include "protocol/bgp-rcn/state/rcn-msg.hpp"
 #include "protocol/protocol.hpp"
-
-#include <functional>
-#include <vector>
 
 namespace Protocol::RCN
 {

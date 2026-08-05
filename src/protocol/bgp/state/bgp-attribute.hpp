@@ -10,8 +10,9 @@ namespace Protocol::BGP
 
 static constexpr int MaxASPathLength = 35;
 
-template <class A, class Ext, class Ord> struct BGPAttribute {
-	A		 attribute;
+template <class A, class Ext, class Ord> struct BGPAttribute
+{
+	A                attribute;
 	std::vector<int> as_path;
 
 	BGPAttribute() = default;
@@ -19,16 +20,16 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	// Regular constructor: single origin ASN + metric attribute.
 	// This is the normal way to build a fresh attribute at origination.
 	BGPAttribute(int asn, A attr)
-		: attribute(attr)
-		, as_path({ asn })
+	    : attribute(attr)
+	    , as_path({asn})
 	{
 	}
 
 	// Internal constructor used by operator+ and static factories:
 	// takes a fully-formed path and a pre-built attribute.
 	BGPAttribute(std::vector<int> path, A attr)
-		: attribute(attr)
-		, as_path(std::move(path))
+	    : attribute(attr)
+	    , as_path(std::move(path))
 	{
 	}
 
@@ -118,7 +119,8 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	{
 		Ext ext;
 
-		if (a.isInvalid()) {
+		if (a.isInvalid())
+		{
 			return BGPAttribute::Invalid();
 		}
 
@@ -128,21 +130,20 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 		}*/
 
 		// the tail AS is already in the path (loop detection).
-		if (std::find(a.as_path.begin(), a.as_path.end(), link.as_path[0]) !=
-		    a.as_path.end()) {
+		if (std::find(a.as_path.begin(), a.as_path.end(), link.as_path[0]) != a.as_path.end())
+		{
 			return BGPAttribute::Invalid();
 		}
 
 		std::vector<int> new_path(a.as_path);
 		new_path.push_back(link.as_path[0]);
 
-		return BGPAttribute(std::move(new_path),
-				    ext(link.attribute, a.attribute));
+		return BGPAttribute(std::move(new_path), ext(link.attribute, a.attribute));
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const BGPAttribute &a)
 	{
-		auto old_flags	   = os.flags();
+		auto old_flags     = os.flags();
 		auto old_precision = os.precision();
 
 		os << a.attribute;
@@ -154,6 +155,6 @@ template <class A, class Ext, class Ord> struct BGPAttribute {
 	}
 };
 
-}
+} // namespace Protocol::BGP
 
 #endif

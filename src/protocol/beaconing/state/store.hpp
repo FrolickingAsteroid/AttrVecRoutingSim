@@ -7,17 +7,18 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord> struct BeaconStore {
+template <class A, class Ord> struct BeaconStore
+{
 	static constexpr int CandidateSetSize = 100;
-	static constexpr int BestSetSize = 1;
+	static constexpr int BestSetSize      = 1;
 
 	using beacon = Beacon<A>;
 
 	std::vector<beacon> candidates;
-	beacon best_candidate;
+	beacon              best_candidate;
 
 	BeaconStore()
-		: best_candidate(beacon(-1, Ord::Null()))
+	    : best_candidate(beacon(-1, Ord::Null()))
 	{
 	}
 

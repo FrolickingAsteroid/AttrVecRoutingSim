@@ -1,10 +1,9 @@
 #ifndef RCN_NODE_STATE_HPP
 #define RCN_NODE_STATE_HPP
 
-#include "rcn-msg.hpp"
-
 #include "protocol/bgp-rcn/state/bgp-rcn-attribute.hpp"
 #include "protocol/bgp/state/node-state.hpp"
+#include "rcn-msg.hpp"
 
 namespace Protocol::RCN
 {

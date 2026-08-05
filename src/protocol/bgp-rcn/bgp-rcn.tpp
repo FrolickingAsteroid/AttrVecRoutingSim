@@ -3,98 +3,105 @@
 
 #include "protocol/bgp-rcn/bgp-rcn.hpp"
 
-namespace Protocol::RCN {
-template<class RA>
-void
-RCN<RA>::process()
+namespace Protocol::RCN
 {
-    for (int u = 0; u < graph.V; ++u) {
-        auto it = data.finalValue.find(u);
-        auto best = s[u].GetElected();
-
-        if (best.attribute == Ord::Null()) {
-            continue;
-        }
-
-        if (it == data.finalValue.end() ||
-            best.attribute != it->second.attribute) {
-            data.recordChange(u, cal.now(), best);
-        }
-    }
-}
-
-template<class RA>
-void
-RCN<RA>::NodeDown(int t)
+template <class RA> void RCN<RA>::process()
 {
-    for (auto& [r, edge] : graph.adjListIn[t]) {
-        if (s[r].succ == t) {
-            s[r].RemoveNeighbor(t);
-            graph.deactivate(r, t);
-            if (s[r].ProcessBest()) {
-                rcn notif{ t, ++s[r].t };
+	for (int u = 0; u < graph.V; ++u)
+	{
+		auto it   = data.finalValue.find(u);
+		auto best = s[u].GetElected();
 
-                this->Send(r, Msg{ s[r].GetElected(), notif });
-                data.recordChange(r, cal.now(), s[r].GetElected());
-            }
-        }
-    }
-    data.log = true;
-    data.setOffset(cal.now());
+		if (best.attribute == Ord::Null())
+		{
+			continue;
+		}
+
+		if (it == data.finalValue.end() || best.attribute != it->second.attribute)
+		{
+			data.recordChange(u, cal.now(), best);
+		}
+	}
 }
 
-template<class RA>
-void
-RCN<RA>::LinkFailure(int u, int v)
+template <class RA> void RCN<RA>::NodeDown(int t)
 {
-    graph.deactivate(u, v);
+	for (auto &[r, edge] : graph.adjListIn[t])
+	{
+		if (s[r].succ == t)
+		{
+			s[r].RemoveNeighbor(t);
+			graph.deactivate(r, t);
+			if (s[r].ProcessBest())
+			{
+				rcn notif{t, ++s[r].t};
 
-    data.log = true;
-    data.setOffset(cal.now());
-
-    for (auto [node, neighbor] : { std::pair{ u, v }, std::pair{ v, u } }) {
-        if (s[node].succ == neighbor) {
-            s[node].RemoveNeighbor(neighbor);
-            if (s[node].ProcessBest()) {
-                rcn notif{ node, ++s[node].t };
-
-                this->Send(node, Msg{ s[node].GetElected(), notif });
-                data.recordChange(node, cal.now(), s[node].GetElected());
-            }
-        }
-    }
+				this->Send(r, Msg{s[r].GetElected(), notif});
+				data.recordChange(r, cal.now(), s[r].GetElected());
+			}
+		}
+	}
+	data.log = true;
+	data.setOffset(cal.now());
 }
 
-template<class RA>
-void
-RCN<RA>::DestinationAnnouncement(int t)
+template <class RA> void RCN<RA>::LinkFailure(int u, int v)
 {
-    s[t].SetOrigin(t);
-    this->Send(t, Msg{ s[t].O });
+	graph.deactivate(u, v);
+
+	data.log = true;
+	data.setOffset(cal.now());
+
+	for (auto [node, neighbor] : {
+		 std::pair{u, v},
+                 std::pair{v, u}
+        })
+	{
+		if (s[node].succ == neighbor)
+		{
+			s[node].RemoveNeighbor(neighbor);
+			if (s[node].ProcessBest())
+			{
+				rcn notif{node, ++s[node].t};
+
+				this->Send(node, Msg{s[node].GetElected(), notif});
+				data.recordChange(node, cal.now(), s[node].GetElected());
+			}
+		}
+	}
 }
 
-template<class RA>
-void
-RCN<RA>::MsgReception(int u, int v, Msg received)
+template <class RA> void RCN<RA>::DestinationAnnouncement(int t)
 {
-    if (std::get<1>(graph.adjListIn[u].at(v)) == false)
-        return;
-
-    if (s[u].UpdateSeqTable(received)) {
-        attr lw(u, std::get<2>(graph.adjListOut[u].at(v)), s[u].t);
-        attr extended = lw + received.route;
-        s[u].UpdateNeighbor(v, extended);
-
-        if (s[u].ProcessBest(v)) {
-
-            if (received.RCN.has_value()) {
-                this->Send(u, Msg{ s[u].GetElected(), *received.RCN });
-            } else {
-                this->Send(u, Msg{ s[u].GetElected() });
-            }
-        }
-    }
+	s[t].SetOrigin(t);
+	this->Send(t, Msg{s[t].O});
 }
+
+template <class RA> void RCN<RA>::MsgReception(int u, int v, Msg received)
+{
+	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
+		return;
+
+	if (s[u].UpdateSeqTable(received))
+	{
+		attr lw(u, std::get<2>(graph.adjListOut[u].at(v)), s[u].t);
+		attr extended = lw + received.route;
+		s[u].UpdateNeighbor(v, extended);
+
+		if (s[u].ProcessBest(v))
+		{
+
+			if (received.RCN.has_value())
+			{
+				this->Send(u, Msg{s[u].GetElected(), *received.RCN});
+			}
+			else
+			{
+				this->Send(u, Msg{s[u].GetElected()});
+			}
+		}
+	}
 }
+} // namespace Protocol::RCN
 
 #endif
