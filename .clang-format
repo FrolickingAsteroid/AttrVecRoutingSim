@@ -1,6 +1,8 @@
 ---
 BasedOnStyle: Microsoft
 TabWidth: 8
+IndentWidth: 8
+AccessModifierOffset: -4
 UseTab: ForContinuationAndIndentation
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments:
@@ -29,3 +31,23 @@ BraceWrapping:
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
 BreakAfterAttributes: Always
+BreakConstructorInitializers: BeforeComma
+LambdaBodyIndentation: OuterScope
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Specific external headers in <> to put first
+  - Regex: '<(catch2|gtest).*>'
+    Priority: 1
+  # External headers in <> with extension or /
+  - Regex: '<[-\w\/-_]+[\.\/][-\w\/-_]+>'
+    Priority: 2
+  # Standard headers in <>
+  - Regex: '<[-\w\/-_]+>'
+    Priority: 3
+  # Local headers in ""
+  - Regex: '"[-\w\/-_]*"'
+    Priority: 4
+
+
+

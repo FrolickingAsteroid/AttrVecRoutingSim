@@ -2,7 +2,6 @@
 #define RCN_TPP
 
 #include "protocol/bgp-rcn/bgp-rcn.hpp"
-#include <cassert>
 
 namespace Protocol::RCN {
 template<class RA>

@@ -10,69 +10,71 @@
 
 namespace scheduler
 {
-  class Calendar
-  {
-   public:
-    Calendar() = default;
+class Calendar
+{
+    public:
+	Calendar() = default;
 
-    template<class F>
-    void schedule(double time, F f)
-    {
-      q.emplace(time, next_seq++, std::function<void()>(std::move(f)));
-    }
+	template <class F> void schedule(double time, F f)
+	{
+		q.emplace(time, next_seq++, std::function<void()>(std::move(f)));
+	}
 
-    bool empty() const
-    {
-      return q.empty();
-    }
+	[[nodiscard]]
+	bool empty() const
+	{
+		return q.empty();
+	}
 
-    double now() const
-    {
-      return current_time;
-    }
+	[[nodiscard]]
+	double now() const
+	{
+		return current_time;
+	}
 
-    void clear()
-    {
-      q = std::priority_queue<Event, std::vector<Event>, EventCompare>();
-    }
+	void clear()
+	{
+		q = std::priority_queue<Event, std::vector<Event>, EventCompare>();
+	}
 
-    std::uint64_t getSeq() const
-    {
-      return next_seq;
-    }
+	[[nodiscard]]
+	std::uint64_t getSeq() const
+	{
+		return next_seq;
+	}
 
-    double getTopTime() const
-    {
-      return q.top().time;
-    }
+	[[nodiscard]]
+	double getTopTime() const
+	{
+		return q.top().time;
+	}
 
-    void step()
-    {
-      Event ev = std::move(const_cast<Event&>(q.top()));
-      q.pop();
-      current_time = ev.time;
-      ev();
-    }
+	void step()
+	{
+		Event ev = std::move(const_cast<Event &>(q.top()));
+		q.pop();
+		current_time = ev.time;
+		ev();
+	}
 
-    template<class F>
-    void run(F process)
-    {
-      while (!q.empty())
-      {
-        double snapshot = q.top().time;
-        while (!q.empty() && q.top().time == snapshot)
-        {
-          step();
-        }
-        process();
-      }
-    }
+	template <class F> void run(F process)
+	{
+		while (!q.empty())
+		{
+			const double snapshot = q.top().time;
+			while (!q.empty() && q.top().time == snapshot)
+			{
+				step();
+			}
+			process();
+		}
+	}
 
-   private:
-    std::priority_queue<Event, std::vector<Event>, EventCompare> q;
-    std::uint64_t next_seq = 0;
-    double current_time = 0.0;
-  };
+    private:
+	std::priority_queue<Event, std::vector<Event>, EventCompare> q;
+	std::uint64_t                                                next_seq     = 0;
+	double                                                       current_time = 0.0;
+};
 
-}  // namespace scheduler
+} // namespace scheduler
 #endif

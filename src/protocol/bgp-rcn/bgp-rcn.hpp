@@ -13,11 +13,10 @@ namespace Protocol::RCN
 {
 
 template <class RA>
-struct RCN
-	: IProtocol<typename RA::BaseAttr,
-		    RCNAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>,
-		    RCNMsg<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>> {
-	using A	  = RA::BaseAttr;
+struct RCN : IProtocol<typename RA::BaseAttr, RCNAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>,
+		       RCNMsg<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>
+{
+	using A   = RA::BaseAttr;
 	using Ext = RA::Ext;
 	using Ord = RA::Ord;
 
@@ -26,9 +25,9 @@ struct RCN
 
 	using Base = IProtocol<A, attr, Msg>;
 
-	using Base::graph;
 	using Base::cal;
 	using Base::data;
+	using Base::graph;
 	using Base::Send;
 
 	using node_state = RCNNodeState<A, Ext, Ord>;
@@ -36,8 +35,8 @@ struct RCN
 	std::vector<node_state> s;
 
 	explicit RCN(Graphs::Graph<A> &graph_)
-		: Base(graph_)
-		, s(graph_.V, node_state())
+	    : Base(graph_)
+	    , s(graph_.V, node_state())
 	{
 	}
 
@@ -51,10 +50,10 @@ struct RCN
 	void process() override;
 
 	std::function<bool(int)> nodeConverged = nullptr;
-	std::function<void()>	 converged     = nullptr;
+	std::function<void()>    converged     = nullptr;
 };
 
-}
+} // namespace Protocol::RCN
 
 #include "protocol/bgp-rcn/bgp-rcn.tpp"
 

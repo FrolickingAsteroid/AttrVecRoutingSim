@@ -2,6 +2,7 @@
 #define PROTOCOL_TPP
 
 #include "protocol/rpbob/rpbob.hpp"
+#include "utils/ui/logger.hpp"
 
 using namespace RoutingAlgebras;
 

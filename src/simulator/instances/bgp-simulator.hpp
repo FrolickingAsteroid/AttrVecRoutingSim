@@ -4,99 +4,68 @@
 #include "core/config.hpp"
 #include "protocol/bgp/bgp.hpp"
 #include "protocol/bgp/state/bgp-attribute.hpp"
-#include "simulator/simulator.hpp"
-#include "utils/helpers/helpers.hpp"
-#include "utils/stats/csv-writer.hpp"
-#include "utils/ui/logger.hpp"
-#include <numeric>
-#include <string>
+#include "simulator/simulator-common.hpp"
 
-using namespace Protocol::BGP;
-using namespace utils::stats;
-using namespace Graphs;
-
-namespace Simulator {
-template<class RA>
-class BGPSimulation : public ISimulation
+namespace Simulator
 {
-  public:
-    using BaseAttr = RA::BaseAttr;
-    using BaseExt = RA::Ext;
-    using BaseOrd = RA::Ord;
+template <class RA>
+class BGPSimulation
+    : public SimulationCommon<typename RA::BaseAttr,
+			      Protocol::BGP::BGPAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>
+{
+	using BaseAttr = RA::BaseAttr;
+	using BaseExt  = RA::Ext;
+	using BaseOrd  = RA::Ord;
 
-    BGPSimulation(config::SimulationConfig& cfg_,
-                  const std::map<std::string, std::string>& map)
-      : cfg(cfg_)
-      , graph(Graph<BaseAttr>::readGraph(cfg.network_file))
-      , recorder(cfg.network_file, "bgp", map)
-    {
-    }
+	using BGPAttribute = Protocol::BGP::BGPAttribute<BaseAttr, BaseExt, BaseOrd>;
 
-    void setup() override
-    {
-        if (cfg.destination < 0) {
-            targets.resize(graph.V);
-            std::iota(targets.begin(), targets.end(), 0);
-        } else {
-            targets = { cfg.destination };
-        }
-        if (cfg.scenario == config::Normal) {
-            return;
-        }
+	using Base = SimulationCommon<BaseAttr, BGPAttribute>;
 
-        if (cfg.u != -1 && cfg.v != -1) {
-            bid_links.emplace_back(cfg.u, cfg.v);
-        } else {
-            bid_links = graph.findBidLinks();
-        }
-    }
+    public:
+	using Base::Base;
 
-    void run() override
-    {
-        for (int t : targets) {
-            if (cfg.scenario == config::ScenarioType::Normal) {
-                recorder.recordDest(t, proto(t));
-            } else if (cfg.scenario == config::ScenarioType::LinkFailure) {
-                for (const auto& [u, v] : bid_links) {
-                    recorder.recordDest(
-                      t, proto(t, u, v), std::make_pair(u, v));
-                    graph.activate(u, v);
-                }
-            }
-        }
-    }
+	void run() override
+	{
+		for (int t : this->targets)
+		{
+			if (this->cfg.scenario == config::ScenarioType::Normal)
+			{
+				this->recorder.recordDest(t, proto(t));
+			}
+			else if (this->cfg.scenario == config::ScenarioType::LinkFailure)
+			{
+				for (const auto &[u, v] : this->bid_links)
+				{
+					this->recorder.recordDest(t, proto(t, u, v), std::make_pair(u, v));
+					this->graph.activate(u, v);
+				}
+			}
+		}
+	}
 
-    SummaryStats postProcess() override { return recorder.Summary(graph.V); }
+    private:
+	utils::stats::Data<BGPAttribute> proto(int t, std::optional<int> u = std::nullopt,
+					       std::optional<int> v = std::nullopt)
+	{
+		Protocol::BGP::BGP<RA> proto(this->graph);
 
-  private:
-    config::SimulationConfig& cfg;
-    Graph<BaseAttr> graph;
-    std::vector<int> targets;
+		proto.DestinationAnnouncement(t);
 
-    std::vector<std::pair<int, int>> bid_links;
-    Recorder<BGPAttribute<BaseAttr, BaseExt, BaseOrd>> recorder;
+		if (u && v)
+		{
+			proto.Run();
+			proto.cal.schedule(100, [&]() { proto.LinkFailure(*u, *v); });
+			proto.Run();
+		}
+		else
+		{
+			proto.data.log = true;
+			proto.Run();
+		}
 
-    Data<BGPAttribute<BaseAttr, BaseExt, BaseOrd>> proto(
-      int t,
-      std::optional<int> u = std::nullopt,
-      std::optional<int> v = std::nullopt)
-    {
-        BGP<RA> proto(graph);
-
-        proto.DestinationAnnouncement(t);
-
-        if (u && v) {
-            proto.Run();
-            proto.cal.schedule(100, [&]() { proto.LinkFailure(*u, *v); });
-            proto.Run();
-        } else {
-            proto.data.log = true;
-            proto.Run();
-        }
-
-        return proto.data;
-    }
+		return proto.data;
+	}
 };
-}
+} // namespace Simulator
 
 #endif
