@@ -37,13 +37,6 @@ struct RPBOB
 	std::vector<SequenceWindow<A, Ord>> s;
 
 	// Constructors
-	explicit RPBOB(Graph<BaseAttr> &graph_, std::size_t N_, bool cn_)
-	    : Base(graph_)
-	    , s(graph_.V, SequenceWindow<A, Ord>(N_))
-	    , cn(cn_)
-	{
-	}
-
 	explicit RPBOB(Graph<BaseAttr> &graph_, const std::vector<std::size_t> &Ns, bool cn_)
 	    : Base(graph_)
 	    , cn(cn_)
@@ -69,7 +62,6 @@ struct RPBOB
 	void process() override;
 
 	// Callbacks
-	// std::function<bool(int)> nodeConverged = nullptr;
 	std::function<void()> converged = nullptr;
 
 	bool cn = false;

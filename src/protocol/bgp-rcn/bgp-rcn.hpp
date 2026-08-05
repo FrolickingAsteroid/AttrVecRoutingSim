@@ -28,10 +28,8 @@ struct RCN : IProtocol<typename RA::BaseAttr, RCNAttribute<typename RA::BaseAttr
 	using Base::cal;
 	using Base::data;
 	using Base::graph;
-	using Base::Send;
 
 	using node_state = RCNNodeState<A, Ext, Ord>;
-
 	std::vector<node_state> s;
 
 	explicit RCN(Graphs::Graph<A> &graph_)
