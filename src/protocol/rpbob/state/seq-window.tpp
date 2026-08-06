@@ -7,7 +7,7 @@
 
 namespace Protocol::Rpbob
 {
-template <class A, class Ord> bool SequenceWindow<A, Ord>::ContainsFailedLink(const path &p, int u, int v)
+template <class RA> bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 {
 	const auto &nodes = p.path;
 	if (nodes.size() < 2)
@@ -26,9 +26,9 @@ template <class A, class Ord> bool SequenceWindow<A, Ord>::ContainsFailedLink(co
 	return false;
 }
 
-template <class A, class Ord>
+template <class RA>
 template <class Pred>
-std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::RemoveMatching(Pred pred)
+std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::RemoveMatching(Pred pred)
 {
 	std::vector<path> removed;
 
@@ -51,8 +51,8 @@ std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::Remov
 }
 
 // Node that detects the link failure: remove any path using edge (u, v)
-template <class A, class Ord>
-std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::FailureNotif(std::pair<int, int> link_notif)
+template <class RA>
+std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(std::pair<int, int> link_notif)
 {
 	auto [u, v] = link_notif;
 
@@ -62,34 +62,37 @@ std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::Failu
 }
 
 // Reception of a failure notif: remove paths that match
-template <class A, class Ord>
-std::vector<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::FailureNotif(const path &path_notif)
+template <class RA>
+std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(const path &path_notif)
 {
 	return RemoveMatching([&path_notif](const path &p) {
 		return p.path == path_notif.path;
 	});
 }
 
-template <class A, class Ord> const SequenceWindow<A, Ord>::path &SequenceWindow<A, Ord>::GetBestAttr() const
+template <class RA> const SequenceWindow<RA>::path &SequenceWindow<RA>::GetBestAttr() const
 {
 	return best_attr;
 }
 
-template <class A, class Ord>
-const std::vector<typename SequenceWindow<A, Ord>::path> &SequenceWindow<A, Ord>::GetSetAttr() const
+template <class RA> const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetSetAttr() const
 {
 	return set_seq_attr;
 }
 
-template <class A, class Ord> void SequenceWindow<A, Ord>::SetOrigin(int n, int u)
+template <class RA> void SequenceWindow<RA>::SetOrigin(int n, int u)
 {
 	best_attr = path(u, Ord::Neutral(n));
 	set_seq_attr.assign(1, best_attr);
 }
 
-template <class A, class Ord>
-std::optional<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::CompareSetAttr(const path &c)
+template <class RA> std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetAttr(const path &c)
 {
+	if (c.isInvalid())
+	{
+		return std::nullopt;
+	}
+
 	Ord ord(N);
 
 	// if anything in the set is better than the current candidate, discard it
@@ -111,7 +114,7 @@ std::optional<typename SequenceWindow<A, Ord>::path> SequenceWindow<A, Ord>::Com
 	return c;
 }
 
-template <class A, class Ord> void SequenceWindow<A, Ord>::UpdateBestAttr()
+template <class RA> void SequenceWindow<RA>::UpdateBestAttr()
 {
 	// sort by sequence number
 	if (set_seq_attr.empty())
@@ -129,7 +132,7 @@ template <class A, class Ord> void SequenceWindow<A, Ord>::UpdateBestAttr()
 		best_attr = new_best;
 }
 
-template <class A, class Ord> std::ostream &operator<<(std::ostream &os, const SequenceWindow<A, Ord> &sw)
+template <class RA> std::ostream &operator<<(std::ostream &os, const SequenceWindow<RA> &sw)
 {
 	const auto &best = sw.GetBestAttr();
 

@@ -10,11 +10,13 @@
 
 namespace Protocol::Rpbob
 {
-template <class A, class Ord> class SequenceWindow
+template <class RA> class SequenceWindow
 {
-    public:
-	using path = Path<A>;
+	using A    = RA::Attr;
+	using Ord  = RA::Ord;
+	using path = Path<RA>;
 
+    public:
 	SequenceWindow(const std::size_t N_)
 	    : N(N_)
 	    , best_attr(path(-1, Ord::Null()))
@@ -42,7 +44,6 @@ template <class A, class Ord> class SequenceWindow
 	std::size_t N;
 
     private:
-	// std::size_t N;
 	std::vector<path> set_seq_attr;
 	path              best_attr;
 

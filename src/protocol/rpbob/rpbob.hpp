@@ -14,8 +14,7 @@ namespace Protocol::Rpbob
 {
 template <class RA>
 struct RPBOB
-    : IProtocol<typename RA::BaseAttr, Path<typename RA::Attr>,
-		std::variant<Path<typename RA::Attr>, std::tuple<int, std::pair<int, int>, Path<typename RA::Attr>>>>
+    : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>, std::tuple<int, std::pair<int, int>, Path<RA>>>>
 {
 	// Type Aliases
 	using BaseAttr = RA::BaseAttr;
@@ -23,18 +22,18 @@ struct RPBOB
 	using Ord      = RA::Ord;
 	using Ext      = RA::Ext;
 
-	using PathAttr     = Path<A>;
-	using Notification = std::tuple<int, std::pair<int, int>, PathAttr>;
-	using Msg          = std::variant<PathAttr, Notification>;
+	using path         = Path<RA>;
+	using notification = std::tuple<int, std::pair<int, int>, path>;
+	using Msg          = std::variant<path, notification>;
 
-	using Base = IProtocol<BaseAttr, PathAttr, Msg>;
+	using Base = IProtocol<BaseAttr, path, Msg>;
 
 	using Base::cal;
 	using Base::data;
 	using Base::graph;
 
 	// State
-	std::vector<SequenceWindow<A, Ord>> s;
+	std::vector<SequenceWindow<RA>> s;
 
 	// Constructors
 	explicit RPBOB(Graph<BaseAttr> &graph_, const std::vector<std::size_t> &Ns, bool cn_)
@@ -51,9 +50,9 @@ struct RPBOB
 	// Message Processing
 	void MsgReception(int u, int v, Msg msg) override;
 
-	void HandleMsg(int u, int v, PathAttr p);
+	void HandleMsg(int u, int v, notification notif);
 
-	void HandleMsg(int u, int v, Notification notif);
+	void HandleMsg(int u, int v, path p);
 
 	void DestinationAnnouncement(int t, int n, double period, std::optional<int> max);
 

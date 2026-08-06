@@ -12,17 +12,15 @@
 
 namespace Simulator
 {
-template <class RA>
-class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol::Rpbob::Path<typename RA::Attr>>
+template <class RA> class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol::Rpbob::Path<RA>>
 {
-	using Attr = RA::Attr;
-	using Path = Protocol::Rpbob::Path<Attr>;
+	using Path = Protocol::Rpbob::Path<RA>;
 
-	using BaseAttr = RA::BaseAttr;
-	using BaseExt  = RA::BaseExt;
-	using BaseOrd  = RA::BaseOrd;
+	using bAttr = RA::BaseAttr;
+	using bExt  = RA::BaseExt;
+	using bOrd  = RA::BaseOrd;
 
-	using Base = SimulationCommon<BaseAttr, Path>;
+	using Base = SimulationCommon<bAttr, Path>;
 
     public:
 	using Base::Base;
@@ -32,7 +30,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
-			wind           = utils::helpers::ComputeWindu<BaseAttr>(*this->cfg.period, time);
+			wind           = utils::helpers::ComputeWindu<bAttr>(*this->cfg.period, time);
 
 			// conv_time = ConvergenceTime(time);
 
@@ -47,7 +45,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 				{
 					this->graph.deactivate(u, v);
 					auto [opt_time, opt] = delayDijkstra(t);
-					utils::helpers::updateWindu<BaseAttr>(*this->cfg.period, wind, opt_time);
+					utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
 					this->graph.activate(u, v);
 
 					convergence_attr[t] = std::move(opt);
@@ -61,15 +59,15 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
     private:
 	double conv_time = 0.0;
 
-	std::vector<std::size_t>                          wind;
-	std::map<int, std::vector<std::vector<BaseAttr>>> convergence_attr;
+	std::vector<std::size_t>                       wind;
+	std::map<int, std::vector<std::vector<bAttr>>> convergence_attr;
 
 	auto delayDijkstra(const int t)
 	{
-		return utils::helpers::DelayDijkstra<BaseAttr, BaseOrd, BaseExt>(this->graph, t);
+		return utils::helpers::DelayDijkstra<bAttr, bOrd, bExt>(this->graph, t);
 	}
 
-	double ConvergenceTime(const std::vector<std::vector<std::pair<double, BaseAttr>>> &opt_time)
+	double ConvergenceTime(const std::vector<std::vector<std::pair<double, bAttr>>> &opt_time)
 	{
 		double max_delay = 0.0;
 		for (const auto &node_paths : opt_time)

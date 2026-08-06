@@ -49,15 +49,7 @@ template <class A, class R, class Msg = R> struct IProtocol
 			if (!active)
 				continue;
 
-			double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
-
-			auto key            = link_key(t, r);
-			auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
-			if (arrival <= it->second)
-			{
-				arrival = it->second + e;
-			}
-			it->second = arrival;
+			double arrival = ScheduleTime(delay, r, t);
 
 			cal.schedule(arrival, [this, r, t, msg]() mutable {
 				this->MsgReception(r, t, msg);
@@ -67,7 +59,8 @@ template <class A, class R, class Msg = R> struct IProtocol
 	}
 
     private:
-	static constexpr double e = 0.01;
+	static constexpr double                   e = 0.01;
+	std::unordered_map<std::uint64_t, double> prev_time;
 
 	static std::uint64_t link_key(int from, int to)
 	{
@@ -75,7 +68,20 @@ template <class A, class R, class Msg = R> struct IProtocol
 		       static_cast<std::uint32_t>(to);
 	}
 
-	std::unordered_map<std::uint64_t, double> prev_time;
+	double ScheduleTime(double delay, int u, int v)
+	{
+		double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
+
+		auto key            = link_key(v, u);
+		auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
+		if (arrival <= it->second)
+		{
+			arrival = it->second + e;
+		}
+		it->second = arrival;
+
+		return arrival;
+	}
 };
 } // namespace Protocol
 #endif

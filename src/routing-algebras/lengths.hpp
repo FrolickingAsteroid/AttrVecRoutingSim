@@ -6,14 +6,19 @@
 
 namespace RoutingAlgebras
 {
-typedef struct Lengths
+
+struct Lengths
 {
 	using BaseAttr = int;
+	using BaseExt  = LE;
+	using BaseOrd  = TOL;
 
-	using Attr = int;
-	using Ext  = LE;
-	using Ord  = TOL;
-} L;
+	using Attr = BaseAttr;
+	using Ext  = BaseExt;
+	using Ord  = BaseOrd;
+};
+
+using L = Lengths;
 } // namespace RoutingAlgebras
 
 #endif

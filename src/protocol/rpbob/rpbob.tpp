@@ -12,8 +12,8 @@ template <class RA> void RPBOB<RA>::process()
 {
 	for (int u = 0; u < graph.V; ++u)
 	{
-		auto    it   = data.finalValue.find(u);
-		Path<A> best = s[u].GetBestAttr();
+		auto it   = data.finalValue.find(u);
+		path best = s[u].GetBestAttr();
 
 		if (best.attr == Ord::Null())
 		{
@@ -65,7 +65,7 @@ template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
 	}, msg);
 }
 
-template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, std::pair<int, int>, Path<A>> notif)
+template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, notification notif)
 {
 	(void)v;
 
@@ -83,7 +83,7 @@ template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, std::tuple<int, std:
 	}
 }
 
-template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p)
+template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, path p)
 {
 	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;
@@ -94,30 +94,14 @@ template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, Path<A> p)
 		return;
 	}
 
-	Ext extension;
+	path link(u, A(std::get<2>(graph.adjListOut[u].at(v))));
+	path extended = link + p;
 
-	A lw(std::get<2>(graph.adjListOut[u].at(v))); // Fetch link attr
-	A candidate = extension(lw, p.getAttr());
-
-	p.addAttr(candidate);
-	p.addAsEntry(u);
-
-	auto old_best = s[u].GetBestAttr().attr;
-
-	std::optional<Path<A>> changed = s[u].CompareSetAttr(p);
+	std::optional<path> changed = s[u].CompareSetAttr(extended);
 
 	if (changed.has_value())
 	{
-		if (u == 11)
-		{
-			LOG_DEBUG << "u: " << u << " v: " << v;
-			LOG_DEBUG << "Time: " << cal.now();
-			LOG_DEBUG << "N: " << s[u].N;
-			LOG_DEBUG << "best attr: " << old_best;
-			LOG_DEBUG << "candidate: " << candidate;
-			LOG_DEBUG << "changed attr: " << data.changeCounts.at(u) << "\n";
-		}
-		this->Send(u, Msg{p});
+		this->Send(u, Msg{extended});
 		converged();
 	}
 }
