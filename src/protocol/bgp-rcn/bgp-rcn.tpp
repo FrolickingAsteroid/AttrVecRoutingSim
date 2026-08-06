@@ -5,7 +5,8 @@
 
 namespace Protocol::RCN
 {
-template <class RA> void RCN<RA>::process()
+template <class RA>
+void RCN<RA>::process()
 {
 	for (int u = 0; u < graph.V; ++u)
 	{
@@ -24,7 +25,8 @@ template <class RA> void RCN<RA>::process()
 	}
 }
 
-template <class RA> void RCN<RA>::NodeDown(int t)
+template <class RA>
+void RCN<RA>::NodeDown(int t)
 {
 	for (auto &[r, edge] : graph.adjListIn[t])
 	{
@@ -45,7 +47,8 @@ template <class RA> void RCN<RA>::NodeDown(int t)
 	data.setOffset(cal.now());
 }
 
-template <class RA> void RCN<RA>::LinkFailure(int u, int v)
+template <class RA>
+void RCN<RA>::LinkFailure(int u, int v)
 {
 	graph.deactivate(u, v);
 
@@ -71,13 +74,15 @@ template <class RA> void RCN<RA>::LinkFailure(int u, int v)
 	}
 }
 
-template <class RA> void RCN<RA>::DestinationAnnouncement(int t)
+template <class RA>
+void RCN<RA>::DestinationAnnouncement(int t)
 {
 	s[t].SetOrigin(t);
 	this->Send(t, Msg{s[t].O});
 }
 
-template <class RA> void RCN<RA>::MsgReception(int u, int v, Msg received)
+template <class RA>
+void RCN<RA>::MsgReception(int u, int v, Msg received)
 {
 	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;

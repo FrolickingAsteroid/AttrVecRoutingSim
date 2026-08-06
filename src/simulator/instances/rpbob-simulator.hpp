@@ -12,7 +12,8 @@
 
 namespace Simulator
 {
-template <class RA> class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol::Rpbob::Path<RA>>
+template <class RA>
+class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol::Rpbob::Path<RA>>
 {
 	using Path = Protocol::Rpbob::Path<RA>;
 

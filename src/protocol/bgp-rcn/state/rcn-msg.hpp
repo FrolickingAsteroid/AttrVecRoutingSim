@@ -14,7 +14,8 @@ struct rcn
 	int ts;
 };
 
-template <class A, class Ext, class Ord> struct RCNMsg
+template <class A, class Ext, class Ord>
+struct RCNMsg
 {
 	using attr = RCNAttribute<A, Ext, Ord>;
 

@@ -47,7 +47,8 @@ void updateWindu(const double Delta, std::vector<std::size_t> &wind,
 	}
 }
 
-template <class A> double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
+template <class A>
+double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
 	double max_diff = 0.0;
 	for (const auto &node_paths : opt_time)
@@ -132,7 +133,8 @@ std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vecto
 	return {opt_time, opt};
 }
 
-template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta)
+template <class A, class Ord, class Ext>
+void Compute_N(const std::string &filename, double Delta)
 {
 	auto   graph = Graph<A>::readGraph(filename);
 	double D     = 0.0;

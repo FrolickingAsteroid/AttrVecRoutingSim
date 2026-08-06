@@ -6,7 +6,8 @@
 
 namespace Protocol::BGP
 {
-template <class RA> void BGP<RA>::process()
+template <class RA>
+void BGP<RA>::process()
 {
 	for (int u = 0; u < graph.V; ++u)
 	{
@@ -28,7 +29,8 @@ template <class RA> void BGP<RA>::process()
 	}
 }
 
-template <class RA> void BGP<RA>::LinkFailure(int u, int v)
+template <class RA>
+void BGP<RA>::LinkFailure(int u, int v)
 {
 	graph.deactivate(u, v);
 	data.log = true;
@@ -53,7 +55,8 @@ template <class RA> void BGP<RA>::LinkFailure(int u, int v)
 	}
 }
 
-template <class RA> void BGP<RA>::NodeDown(int t)
+template <class RA>
+void BGP<RA>::NodeDown(int t)
 {
 	for (auto &[r, edge] : graph.adjListIn[t])
 	{
@@ -72,13 +75,15 @@ template <class RA> void BGP<RA>::NodeDown(int t)
 	data.setOffset(cal.now());
 }
 
-template <class RA> void BGP<RA>::DestinationAnnouncement(int t)
+template <class RA>
+void BGP<RA>::DestinationAnnouncement(int t)
 {
 	s[t].SetOrigin(t);
 	this->Send(t, s[t].O);
 }
 
-template <class RA> void BGP<RA>::MsgReception(int u, int v, attr received)
+template <class RA>
+void BGP<RA>::MsgReception(int u, int v, attr received)
 {
 	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;

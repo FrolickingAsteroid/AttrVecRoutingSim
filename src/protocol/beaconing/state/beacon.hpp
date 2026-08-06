@@ -6,7 +6,8 @@
 
 namespace Protocol::Beaconing
 {
-template <class A> struct Beacon
+template <class A>
+struct Beacon
 {
 	A                attribute;
 	std::vector<int> path;

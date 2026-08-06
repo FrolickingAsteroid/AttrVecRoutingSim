@@ -7,7 +7,8 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
+template <class A, class Ord>
+void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
 {
 	Ord ord;
 
@@ -38,12 +39,14 @@ template <class A, class Ord> void BeaconStore<A, Ord>::Insert(Beacon<A> bea)
 	best_candidate = candidates.front();
 }
 
-template <class A, class Ord> bool BeaconStore<A, Ord>::IsEmpty()
+template <class A, class Ord>
+bool BeaconStore<A, Ord>::IsEmpty()
 {
 	return candidates.empty();
 }
 
-template <class A, class Ord> void BeaconStore<A, Ord>::Remove(double now)
+template <class A, class Ord>
+void BeaconStore<A, Ord>::Remove(double now)
 {
 	if (IsEmpty())
 	{
@@ -57,7 +60,8 @@ template <class A, class Ord> void BeaconStore<A, Ord>::Remove(double now)
 			 candidates.end());
 }
 
-template <class A, class Ord> std::vector<Beacon<A>> BeaconStore<A, Ord>::BeaconsToPropagate(double now)
+template <class A, class Ord>
+std::vector<Beacon<A>> BeaconStore<A, Ord>::BeaconsToPropagate(double now)
 {
 	Remove(now);
 	if (IsEmpty())
@@ -65,7 +69,8 @@ template <class A, class Ord> std::vector<Beacon<A>> BeaconStore<A, Ord>::Beacon
 	return SelectBeacons();
 }
 
-template <class A, class Ord> std::vector<Beacon<A>> BeaconStore<A, Ord>::SelectBeacons()
+template <class A, class Ord>
+std::vector<Beacon<A>> BeaconStore<A, Ord>::SelectBeacons()
 {
 	if ((int)candidates.size() <= BestSetSize)
 	{

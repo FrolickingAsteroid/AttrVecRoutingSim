@@ -13,8 +13,7 @@
 namespace Protocol::Rpbob
 {
 template <class RA>
-struct RPBOB
-    : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>, std::tuple<int, std::pair<int, int>, Path<RA>>>>
+struct RPBOB : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>, std::tuple<int, std::pair<int, int>>>>
 {
 	// Type Aliases
 	using BaseAttr = RA::BaseAttr;
@@ -23,7 +22,7 @@ struct RPBOB
 	using Ext      = RA::Ext;
 
 	using path         = Path<RA>;
-	using notification = std::tuple<int, std::pair<int, int>, path>;
+	using notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv)
 	using Msg          = std::variant<path, notification>;
 
 	using Base = IProtocol<BaseAttr, path, Msg>;

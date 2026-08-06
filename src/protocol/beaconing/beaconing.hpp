@@ -7,7 +7,8 @@
 
 namespace Protocol::Beaconing
 {
-template <class RA> struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>
+template <class RA>
+struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>
 {
 	using Base = IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>;
 	using Base::cal;

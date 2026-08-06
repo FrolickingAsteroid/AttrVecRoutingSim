@@ -9,7 +9,8 @@
 #include "protocol/bgp/state/bgp-attribute.hpp"
 namespace Protocol::RCN
 {
-template <class A, class Ext, class Ord> struct RCNAttribute : BGP::BGPAttribute<A, Ext, Ord>
+template <class A, class Ext, class Ord>
+struct RCNAttribute : BGP::BGPAttribute<A, Ext, Ord>
 {
 	using base = BGP::BGPAttribute<A, Ext, Ord>;
 

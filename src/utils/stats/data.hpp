@@ -6,7 +6,8 @@
 
 namespace utils::stats
 {
-template <class R> struct Data
+template <class R>
+struct Data
 {
 	explicit Data(const std::size_t V)
 	    : msgCount(V)

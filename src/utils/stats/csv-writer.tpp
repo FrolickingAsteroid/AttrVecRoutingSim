@@ -26,12 +26,14 @@ void Recorder<R>::writeConvergenceRow(std::ostream &out, int dest, int u, const 
 	    << data.changeCounts[u] << "," << it->second << "\n";
 }
 
-template <class R> void Recorder<R>::writeTrafficRow(std::ostream &out, int dest, int msgs)
+template <class R>
+void Recorder<R>::writeTrafficRow(std::ostream &out, int dest, int msgs)
 {
 	out << dest << "," << msgs << "\n";
 }
 
-template <class R> void Recorder<R>::writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs)
+template <class R>
+void Recorder<R>::writeTrafficRow(std::ostream &out, std::pair<int, int> failure, int msgs)
 {
 	out << "(" << failure.first << ";" << failure.second << ")," << msgs << "\n";
 }
@@ -45,7 +47,8 @@ void Recorder<R>::writeMsgLogRow(std::ostream &out, std::optional<std::pair<int,
 	out << dest << "," << node << "," << time << "," << msg << "\n";
 }
 
-template <class R> SummaryStats Recorder<R>::Summary(int V)
+template <class R>
+SummaryStats Recorder<R>::Summary(int V)
 {
 	SummaryStats stats{};
 

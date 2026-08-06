@@ -7,7 +7,8 @@
 
 namespace Protocol::RCN
 {
-template <class A, class Ext, class Ord> struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>
+template <class A, class Ext, class Ord>
+struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>
 {
 	using attr = RCNAttribute<A, Ext, Ord>;
 	using base = BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>;

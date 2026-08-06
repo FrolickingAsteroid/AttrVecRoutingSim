@@ -11,7 +11,8 @@
 
 namespace Protocol
 {
-template <class A, class R, class Msg = R> struct IProtocol
+template <class A, class R, class Msg = R>
+struct IProtocol
 {
 	Graphs::Graph<A>     &graph;
 	scheduler::Calendar   cal;

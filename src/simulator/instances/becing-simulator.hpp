@@ -15,7 +15,8 @@ using namespace Graphs;
 namespace Simulator
 {
 
-template <class RA> class BECINGSimulation : public ISimulation
+template <class RA>
+class BECINGSimulation : public ISimulation
 {
     public:
 	BECINGSimulation(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map)

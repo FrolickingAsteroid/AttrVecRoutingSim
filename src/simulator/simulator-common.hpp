@@ -32,7 +32,8 @@ std::vector<std::pair<int, int>> buildBidLinks(const config::SimulationConfig &c
 	}
 	return graph.findBidLinks();
 }
-template <class Attr, class RecordedT> class SimulationCommon : public ISimulation
+template <class Attr, class RecordedT>
+class SimulationCommon : public ISimulation
 {
     public:
 	SimulationCommon(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map, std::string tag)

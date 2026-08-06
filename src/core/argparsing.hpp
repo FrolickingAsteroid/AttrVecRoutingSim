@@ -109,22 +109,26 @@ inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
 //
 // ---------------------------------------------------------------------------- *
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
+template <class RA>
+std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::RpBOBSimulation<RA>>(cfg, RPBOBParams(cfg), "rpbob");
 }
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg)
+template <class RA>
+std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg, BeaconingParams(cfg));
 }
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> BGPSimulation(SimulationConfig &cfg)
+template <class RA>
+std::unique_ptr<Simulator::ISimulation> BGPSimulation(SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::BGPSimulation<RA>>(cfg, BGPParams(cfg), "bgp");
 }
 
-template <class RA> std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg)
+template <class RA>
+std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg)
 {
 	return std::make_unique<Simulator::RCNSimulation<RA>>(cfg, BGPParams(cfg), "rcn");
 }

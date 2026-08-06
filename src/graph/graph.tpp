@@ -17,7 +17,8 @@ Graph<S>::Graph(int V_)
 	adjListOut.resize(V);
 }
 
-template <class S> void Graph<S>::addEdge(int u, int v, double delay, S w)
+template <class S>
+void Graph<S>::addEdge(int u, int v, double delay, S w)
 {
 	if (0 > u or u >= V)
 	{
@@ -32,7 +33,8 @@ template <class S> void Graph<S>::addEdge(int u, int v, double delay, S w)
 	adjListOut[u][v] = {delay, true, w};
 }
 
-template <class S> void Graph<S>::removeEdge(int u, int v)
+template <class S>
+void Graph<S>::removeEdge(int u, int v)
 {
 	if (u < 0 or u >= V)
 	{
@@ -47,7 +49,8 @@ template <class S> void Graph<S>::removeEdge(int u, int v)
 	adjListOut[u].erase(v);
 }
 
-template <class S> void Graph<S>::activate(int u, int v)
+template <class S>
+void Graph<S>::activate(int u, int v)
 {
 	if (0 > u or u >= V)
 	{
@@ -61,7 +64,8 @@ template <class S> void Graph<S>::activate(int u, int v)
 	std::get<1>(adjListIn[v].at(u)) = true;
 }
 
-template <class S> void Graph<S>::deactivate(int u, int v)
+template <class S>
+void Graph<S>::deactivate(int u, int v)
 {
 	if (0 > u or u > V)
 	{
@@ -75,7 +79,8 @@ template <class S> void Graph<S>::deactivate(int u, int v)
 	std::get<1>(adjListIn[v].at(u)) = false;
 }
 
-template <class S> void Graph<S>::clear()
+template <class S>
+void Graph<S>::clear()
 {
 	V = 0;
 	E = 0;
@@ -83,7 +88,8 @@ template <class S> void Graph<S>::clear()
 	adjListOut.clear();
 }
 
-template <class S> Graph<S> Graph<S>::readGraph(const std::string &filename)
+template <class S>
+Graph<S> Graph<S>::readGraph(const std::string &filename)
 {
 	std::ifstream fileNetwork(filename);
 
@@ -111,7 +117,8 @@ template <class S> Graph<S> Graph<S>::readGraph(const std::string &filename)
 	return graph;
 }
 
-template <class S> std::vector<std::pair<int, int>> Graph<S>::findBidLinks()
+template <class S>
+std::vector<std::pair<int, int>> Graph<S>::findBidLinks()
 {
 	std::vector<std::pair<int, int>> bidirectional_links;
 	for (int u = 0; u < V; ++u)

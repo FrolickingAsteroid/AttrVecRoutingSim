@@ -8,7 +8,8 @@
 #include <iomanip>
 #include <thread>
 
-template <class A, class Ord> class LiveMonitor
+template <class A, class Ord>
+class LiveMonitor
 {
     public:
 	LiveMonitor(const std::vector<Protocol::Beaconing::BeaconStore<A, Ord>> &stores, const scheduler::Calendar &cal,

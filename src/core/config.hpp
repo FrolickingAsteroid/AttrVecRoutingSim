@@ -42,7 +42,7 @@ struct SimulationConfig
 	bool notif = false;
 
 	// unsigned int seed = 1307683871;
-	unsigned int seed = 0;
+	unsigned int seed = 2425713638;
 
 	// optional args
 	std::optional<double> dprop  = std::nullopt;

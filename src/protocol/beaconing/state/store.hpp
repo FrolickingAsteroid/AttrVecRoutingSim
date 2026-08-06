@@ -7,7 +7,8 @@
 
 namespace Protocol::Beaconing
 {
-template <class A, class Ord> struct BeaconStore
+template <class A, class Ord>
+struct BeaconStore
 {
 	static constexpr int CandidateSetSize = 100;
 	static constexpr int BestSetSize      = 1;

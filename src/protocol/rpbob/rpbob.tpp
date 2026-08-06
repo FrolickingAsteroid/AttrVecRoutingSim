@@ -8,7 +8,8 @@ using namespace RoutingAlgebras;
 
 namespace Protocol::Rpbob
 {
-template <class RA> void RPBOB<RA>::process()
+template <class RA>
+void RPBOB<RA>::process()
 {
 	for (int u = 0; u < graph.V; ++u)
 	{
@@ -20,19 +21,28 @@ template <class RA> void RPBOB<RA>::process()
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best.attr.a != it->second.attr.a)
+		if (it == data.finalValue.end() || best != it->second) // when considering a single path, applie
 		{
 			data.recordChange(u, cal.now(), best);
 		}
 	}
 }
 
-template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
+template <class RA>
+void RPBOB<RA>::LinkFailure(int u, int v)
 {
 	data.log = true;
 	data.setOffset(cal.now());
 
 	graph.deactivate(u, v);
+
+	LOG_DEBUG << s[34];
+	LOG_DEBUG << "change count: " << data.changeCounts.at(27);
+	LOG_DEBUG << cal.now() << "\n";
+
+	LOG_DEBUG << s[38];
+	LOG_DEBUG << "change count: " << data.changeCounts.at(38);
+	LOG_DEBUG << cal.now() << "\n";
 
 	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
 
@@ -47,43 +57,53 @@ template <class RA> void RPBOB<RA>::LinkFailure(int u, int v)
 			if (!removed.empty())
 			{
 				s[node].failed_link = link;
-				for (const auto &current : removed)
+				if (s[u].UpdateBestAttr())
 				{
-					s[u].UpdateBestAttr();
-					auto notif = std::make_tuple(current.getAttr().n, link, current);
-					this->Send(node, Msg{notif});
+					data.recordChange(u, cal.now(), s[u].GetBestAttr());
 				}
+
+				const auto &max =
+				    *std::max_element(removed.begin(), removed.end(), [](const auto &a, const auto &b) {
+					return a.getAttr().n < b.getAttr().n;
+				});
+
+				auto notif = std::make_tuple(max.getAttr().n, link);
+				this->Send(node, Msg{notif});
 			}
 		}
 	}
 }
 
-template <class RA> void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
+template <class RA>
+void RPBOB<RA>::MsgReception(int u, int v, Msg msg)
 {
 	std::visit([&](auto &&m) {
 		this->HandleMsg(u, v, m);
 	}, msg);
 }
 
-template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, notification notif)
+template <class RA>
+void RPBOB<RA>::HandleMsg(int u, int v, notification notif)
 {
 	(void)v;
 
-	get<2>(notif).addAsEntry(u);
-
-	if (auto removed = s[u].FailureNotif(get<2>(notif)); !removed.empty())
+	if (auto removed = s[u].FailureNotif(get<1>(notif)); !removed.empty())
 	{
 		s[u].failed_link = get<1>(notif);
-		s[u].UpdateBestAttr();
-		for (const auto &current : removed)
+		if (s[u].UpdateBestAttr())
 		{
-			auto notif_ = std::make_tuple(current.getAttr().n, get<1>(notif), current);
-			this->Send(u, Msg{notif_});
+			data.recordChange(u, cal.now(), s[u].GetBestAttr());
 		}
+		this->Send(u, Msg{notif});
+	}
+	if (u == 28)
+	{
+		LOG_DEBUG << s[u];
 	}
 }
 
-template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, path p)
+template <class RA>
+void RPBOB<RA>::HandleMsg(int u, int v, path p)
 {
 	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;
@@ -99,6 +119,13 @@ template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, path p)
 
 	std::optional<path> changed = s[u].CompareSetAttr(extended);
 
+	if ((u == 34 || u == 38))
+	{
+		LOG_DEBUG << s[u];
+		LOG_DEBUG << "change count: " << data.changeCounts.at(u);
+		LOG_DEBUG << cal.now() << "\n";
+	}
+
 	if (changed.has_value())
 	{
 		this->Send(u, Msg{extended});
@@ -106,7 +133,8 @@ template <class RA> void RPBOB<RA>::HandleMsg(int u, int v, path p)
 	}
 }
 
-template <class RA> void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, std::optional<int> max)
+template <class RA>
+void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, std::optional<int> max)
 {
 	s[t].SetOrigin(n, t);
 	auto o = s[t].GetBestAttr();

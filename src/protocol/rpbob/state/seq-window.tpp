@@ -7,7 +7,8 @@
 
 namespace Protocol::Rpbob
 {
-template <class RA> bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
+template <class RA>
+bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 {
 	const auto &nodes = p.path;
 	if (nodes.size() < 2)
@@ -70,23 +71,27 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(
 	});
 }
 
-template <class RA> const SequenceWindow<RA>::path &SequenceWindow<RA>::GetBestAttr() const
+template <class RA>
+const SequenceWindow<RA>::path &SequenceWindow<RA>::GetBestAttr() const
 {
 	return best_attr;
 }
 
-template <class RA> const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetSetAttr() const
+template <class RA>
+const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetSetAttr() const
 {
 	return set_seq_attr;
 }
 
-template <class RA> void SequenceWindow<RA>::SetOrigin(int n, int u)
+template <class RA>
+void SequenceWindow<RA>::SetOrigin(int n, int u)
 {
 	best_attr = path(u, Ord::Neutral(n));
 	set_seq_attr.assign(1, best_attr);
 }
 
-template <class RA> std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetAttr(const path &c)
+template <class RA>
+std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetAttr(const path &c)
 {
 	if (c.isInvalid())
 	{
@@ -114,13 +119,14 @@ template <class RA> std::optional<typename SequenceWindow<RA>::path> SequenceWin
 	return c;
 }
 
-template <class RA> void SequenceWindow<RA>::UpdateBestAttr()
+template <class RA>
+bool SequenceWindow<RA>::UpdateBestAttr()
 {
 	// sort by sequence number
 	if (set_seq_attr.empty())
 	{
 		best_attr = path(-1, Ord::Null());
-		return;
+		return false;
 	}
 	std::sort(set_seq_attr.begin(), set_seq_attr.end(), [](const path &l, const path &r) {
 		return l.attr.n < r.attr.n;
@@ -129,10 +135,15 @@ template <class RA> void SequenceWindow<RA>::UpdateBestAttr()
 	// update best
 	path new_best = set_seq_attr.front();
 	if (new_best.attr != best_attr.attr)
+	{
 		best_attr = new_best;
+		return true;
+	}
+	return false;
 }
 
-template <class RA> std::ostream &operator<<(std::ostream &os, const SequenceWindow<RA> &sw)
+template <class RA>
+std::ostream &operator<<(std::ostream &os, const SequenceWindow<RA> &sw)
 {
 	const auto &best = sw.GetBestAttr();
 

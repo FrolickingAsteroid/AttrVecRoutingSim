@@ -6,7 +6,8 @@
 namespace Protocol::BGP
 {
 
-template <class Attr> bool BGPNodeState<Attr>::ProcessBest(int v)
+template <class Attr>
+bool BGPNodeState<Attr>::ProcessBest(int v)
 {
 	// Ord ord;
 	if (aTab.at(v) < E)
@@ -30,13 +31,15 @@ template <class Attr> bool BGPNodeState<Attr>::ProcessBest(int v)
 	return commitAv();
 }
 
-template <class Attr> bool BGPNodeState<Attr>::ProcessBest()
+template <class Attr>
+bool BGPNodeState<Attr>::ProcessBest()
 {
 	fullScan();
 	return commitAv();
 }
 
-template <class Attr> void BGPNodeState<Attr>::fullScan()
+template <class Attr>
+void BGPNodeState<Attr>::fullScan()
 {
 	Av   = attr::Invalid();
 	succ = -1;
@@ -50,7 +53,8 @@ template <class Attr> void BGPNodeState<Attr>::fullScan()
 	}
 }
 
-template <class Attr> bool BGPNodeState<Attr>::commitAv()
+template <class Attr>
+bool BGPNodeState<Attr>::commitAv()
 {
 	if (Av != E)
 	{

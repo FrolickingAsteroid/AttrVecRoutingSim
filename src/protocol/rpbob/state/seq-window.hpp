@@ -10,7 +10,8 @@
 
 namespace Protocol::Rpbob
 {
-template <class RA> class SequenceWindow
+template <class RA>
+class SequenceWindow
 {
 	using A    = RA::Attr;
 	using Ord  = RA::Ord;
@@ -25,7 +26,7 @@ template <class RA> class SequenceWindow
 
 	void SetOrigin(int n, int u);
 
-	void UpdateBestAttr();
+	bool UpdateBestAttr();
 
 	const path &GetBestAttr() const;
 
@@ -47,7 +48,8 @@ template <class RA> class SequenceWindow
 	std::vector<path> set_seq_attr;
 	path              best_attr;
 
-	template <class Pred> std::vector<path> RemoveMatching(Pred pred);
+	template <class Pred>
+	std::vector<path> RemoveMatching(Pred pred);
 };
 } // namespace Protocol::Rpbob
 

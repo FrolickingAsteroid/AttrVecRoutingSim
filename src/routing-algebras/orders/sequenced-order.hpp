@@ -5,7 +5,8 @@
 
 namespace RoutingAlgebras
 {
-template <class A, class OrdBase> struct SeqOrd
+template <class A, class OrdBase>
+struct SeqOrd
 {
 	int N = 0;
 

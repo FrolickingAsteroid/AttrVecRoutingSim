@@ -5,7 +5,8 @@
 
 namespace Protocol::Rpbob
 {
-template <class RA> struct Path
+template <class RA>
+struct Path
 {
 	using A   = RA::Attr;
 	using Ext = RA::Ext;
@@ -55,7 +56,7 @@ template <class RA> struct Path
 
 	bool operator==(const Path &other) const
 	{
-		return attr == other.attr && path == other.path;
+		return attr.a == other.attr.a && path == other.path;
 	}
 
 	bool operator!=(const Path &other) const

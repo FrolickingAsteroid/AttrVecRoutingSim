@@ -32,6 +32,7 @@ BraceWrapping:
   SplitEmptyNamespace: true
 BreakAfterAttributes: Always
 BreakConstructorInitializers: BeforeComma
+BreakTemplateDeclarations: Yes
 LambdaBodyIndentation: OuterScope
 AllowShortLambdasOnASingleLine: None
 SortIncludes: CaseSensitive

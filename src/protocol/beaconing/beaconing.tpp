@@ -7,7 +7,8 @@
 
 namespace Protocol::Beaconing
 {
-template <class RA> void BECING<RA>::DestinationAnnouncement(int t, int n, double period, int max)
+template <class RA>
+void BECING<RA>::DestinationAnnouncement(int t, int n, double period, int max)
 {
 	Beacon<A> beacon(t, Ord::Neutral());
 	beacon.setTimeout(cal.now());
@@ -25,7 +26,8 @@ template <class RA> void BECING<RA>::DestinationAnnouncement(int t, int n, doubl
 	}
 }
 
-template <class RA> void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon)
+template <class RA>
+void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon)
 {
 	if (beacon.expired(cal.now()))
 	{
@@ -47,7 +49,8 @@ template <class RA> void BECING<RA>::MsgReception(int u, int v, Beacon<A> beacon
 	}
 }
 
-template <class RA> void BECING<RA>::SchedulePropagation(int u, double d_prop, int max)
+template <class RA>
+void BECING<RA>::SchedulePropagation(int u, double d_prop, int max)
 {
 	cal.schedule(cal.now(), [this, u]() {
 		this->Propagate(u);
@@ -59,7 +62,8 @@ template <class RA> void BECING<RA>::SchedulePropagation(int u, double d_prop, i
 		});
 }
 
-template <class RA> void BECING<RA>::Propagate(int u)
+template <class RA>
+void BECING<RA>::Propagate(int u)
 {
 	auto selected = s[u].BeaconsToPropagate(cal.now());
 

@@ -10,7 +10,8 @@ namespace Protocol::BGP
 
 static constexpr int MaxASPathLength = 35;
 
-template <class A, class Ext, class Ord> struct BGPAttribute
+template <class A, class Ext, class Ord>
+struct BGPAttribute
 {
 	A                attribute;
 	std::vector<int> as_path;

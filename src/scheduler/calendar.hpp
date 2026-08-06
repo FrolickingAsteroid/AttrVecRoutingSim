@@ -15,7 +15,8 @@ class Calendar
     public:
 	Calendar() = default;
 
-	template <class F> void schedule(double time, F f)
+	template <class F>
+	void schedule(double time, F f)
 	{
 		q.emplace(time, next_seq++, std::function<void()>(std::move(f)));
 	}
@@ -57,7 +58,8 @@ class Calendar
 		ev();
 	}
 
-	template <class F> void run(F process)
+	template <class F>
+	void run(F process)
 	{
 		while (!q.empty())
 		{

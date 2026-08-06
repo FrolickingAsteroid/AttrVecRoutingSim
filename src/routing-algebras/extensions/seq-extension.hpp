@@ -5,7 +5,8 @@
 
 namespace RoutingAlgebras
 {
-template <class A, class ExtBase> struct SeqExtension
+template <class A, class ExtBase>
+struct SeqExtension
 {
 	SeqAttr<A> operator()(const SeqAttr<A> &l, const SeqAttr<A> &r) const
 	{

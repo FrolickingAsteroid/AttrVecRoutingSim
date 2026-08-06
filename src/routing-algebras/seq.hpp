@@ -3,7 +3,8 @@
 
 namespace RoutingAlgebras
 {
-template <class A> struct SeqAttr
+template <class A>
+struct SeqAttr
 {
 	int n{}; // Sequence number
 	A   a;   // Base routing algebra attribute
@@ -45,10 +46,13 @@ template <class A> struct SeqAttr
 };
 
 // forward declaration
-template <class A, class ExtBase> struct SeqExtension;
-template <class A, class OrdBase> struct SeqOrd;
+template <class A, class ExtBase>
+struct SeqExtension;
+template <class A, class OrdBase>
+struct SeqOrd;
 
-template <class BaseAlgebra> struct Sequenced
+template <class BaseAlgebra>
+struct Sequenced
 {
 	using BaseAttr = typename BaseAlgebra::BaseAttr;
 	using BaseExt  = typename BaseAlgebra::BaseExt;

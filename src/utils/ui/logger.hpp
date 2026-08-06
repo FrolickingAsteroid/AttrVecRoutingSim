@@ -46,7 +46,8 @@ class LogLine
 			std::cout << ss_.str() << "\n";
 	}
 
-	template <typename T> LogLine &operator<<(const T &val)
+	template <typename T>
+	LogLine &operator<<(const T &val)
 	{
 		ss_ << val;
 		return *this;

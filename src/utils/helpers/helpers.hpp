@@ -13,7 +13,8 @@ template <class A>
 void updateWindu(double Delta, std::vector<std::size_t> &wind,
 		 const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
-template <class A> double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
+template <class A>
+double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class A, class Ord, class Ext>
 std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vector<A>>> DelayDijkstra(

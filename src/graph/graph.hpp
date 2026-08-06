@@ -6,7 +6,8 @@
 
 namespace Graphs
 {
-template <class S> struct Graph
+template <class S>
+struct Graph
 {
 	int                                                               V;
 	int                                                               E;

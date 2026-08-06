@@ -21,7 +21,8 @@ namespace Protocol::BGP
 // BGPNodeState never calls the algebra directly; it only stores and compares
 // BGPAttribute<A> values using operator< and operator!=.
 
-template <class Attr> struct BGPNodeState
+template <class Attr>
+struct BGPNodeState
 {
 	using attr = Attr;
 

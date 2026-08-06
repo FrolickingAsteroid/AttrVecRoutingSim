@@ -50,7 +50,8 @@ struct SummaryStats
 	std::map<std::pair<int, int>, MsgStats> msgs_per_link_failure;
 };
 
-template <class R> struct Record
+template <class R>
+struct Record
 {
 	int                                dest{};
 	std::optional<std::pair<int, int>> failure;
@@ -66,7 +67,8 @@ template <class R> struct Record
  *
  * @tparam R Routing metric to be recorded
  */
-template <class R> class Recorder
+template <class R>
+class Recorder
 {
     public:
 	Recorder(const std::filesystem::path &input, const std::string &proto,
