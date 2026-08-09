@@ -35,6 +35,7 @@ BreakConstructorInitializers: BeforeComma
 BreakTemplateDeclarations: Yes
 LambdaBodyIndentation: OuterScope
 AllowShortLambdasOnASingleLine: None
+AllowShortFunctionsOnASingleLine: None
 SortIncludes: CaseSensitive
 IncludeBlocks: Regroup
 IncludeCategories:
