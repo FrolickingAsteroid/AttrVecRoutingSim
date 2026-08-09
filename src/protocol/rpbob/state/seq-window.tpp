@@ -111,7 +111,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 		return ord(c.attr, current.attr);
 	}),
 			   set_seq_attr.end());
-
+ 
 	set_seq_attr.push_back(c);
 
 	UpdateBestAttr();

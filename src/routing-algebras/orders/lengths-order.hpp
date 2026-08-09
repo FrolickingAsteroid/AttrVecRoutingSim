@@ -12,7 +12,7 @@ typedef struct TotalOrderLength
 
 	bool operator()(const int l, const int r) const
 	{
-		return l <= r;
+		return l < r;
 	}
 
 	static int Neutral()

@@ -21,7 +21,8 @@ void RPBOB<RA>::process()
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best != it->second) // when considering a single path, applie
+		if (it == data.finalValue.end() ||
+		    best.attr.a != it->second.attr.a) // when considering a single path, applie
 		{
 			data.recordChange(u, cal.now(), best);
 		}
