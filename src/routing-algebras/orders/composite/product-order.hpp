@@ -3,23 +3,34 @@
 
 #include "routing-algebras/orders/comparison-vocab.hpp"
 
-namespace RoutingAlgebras {
-    template<class OrdA, class OrdB>
-    struct ProductOrder {
-        template<class Attr>
-        Order operator()(const Attr &l, const Attr &r) const {
-            OrdA ord_a;
-            OrdB ord_b;
+namespace RoutingAlgebras
+{
+template <class OrdA, class OrdB>
+struct ProductOrder
+{
+	template <class Attr>
+	Comp operator()(const Attr &l, const Attr &r) const
+	{
+		OrdA ord_a;
+		OrdB ord_b;
 
-            bool lR = ord_a(l.a, r.a) && ord_b(l.b, r.b); // l <= r componentwise
-            bool rL = ord_a(r.a, l.a) && ord_b(r.b, l.b); // r <= l componentwise
+		bool lR = beq(ord_a(l.a, r.a)) && beq(ord_b(l.b, r.b));
+		bool rL = beq(ord_a(r.a, l.a)) && beq(ord_b(r.b, l.b));
 
-            if (lR && rL) return Order::Equal;
-            if (lR) return Order::Better;
-            if (rL) return Order::Worse;
-
-            return Order::Incomparable;
-        }
-    };
-}
+		if (lR && rL)
+		{
+			return Comp::Equal;
+		}
+		if (lR)
+		{
+			return Comp::Better;
+		}
+		if (rL)
+		{
+			return Comp::Worse;
+		}
+		return Comp::Incomparable;
+	}
+};
+} // namespace RoutingAlgebras
 #endif

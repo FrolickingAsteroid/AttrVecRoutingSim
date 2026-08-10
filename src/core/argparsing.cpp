@@ -212,20 +212,20 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			throw std::runtime_error(
 			    "must specify propagation delay, period, and number of routing computations");
 	}
-	else if (cfg.protocol == N)
-	{
-		if (!cfg.period)
-			throw std::runtime_error("must specify period");
-
-		switch (cfg.algebra)
-		{
-		case LENGTHS:
-		case HOPS:
-			Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
-			break;
-		}
-		std::exit(0);
-	}
+	// else if (cfg.protocol == N)
+	// {
+	// 	if (!cfg.period)
+	// 		throw std::runtime_error("must specify period");
+	//
+	// 	switch (cfg.algebra)
+	// 	{
+	// 	case LENGTHS:
+	// 	case HOPS:
+	// 		Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
+	// 		break;
+	// 	}
+	// 	std::exit(0);
+	// }
 	return cfg;
 }
 } // namespace config

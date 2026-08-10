@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 
+#include "routing-algebras/orders/comparison-vocab.hpp"
 #include "utils/helpers/helpers.hpp"
 #include "utils/ui/appearance.hpp"
 #include "utils/ui/logger.hpp"
@@ -61,21 +62,24 @@ double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &op
 	return max_diff;
 }
 
-template <class A, class Ord, class Ext>
-std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vector<A>>> DelayDijkstra(
-    const Graph<A> &graph, int dest)
+template <class RA>
+std::pair<std::vector<std::vector<std::pair<double, typename RA::BaseAttr>>>,
+	  std::vector<std::vector<typename RA::BaseAttr>>>
+DelayDijkstra(const Graph<typename RA::BaseAttr> &graph, int dest)
 {
-	Ord ord;
-	Ext ext;
+	using A = RA::BaseAttr;
 
-	const int V = graph.V;
+	typename RA::BaseOrd ord;
+	typename RA::BaseExt ext;
 
+	const int                                      V = graph.V;
 	std::vector<std::vector<A>>                    opt(V);
 	std::vector<std::vector<std::pair<double, A>>> opt_time(V);
 
-	using Quad = std::tuple<double, int, A, int>; // (tau, node, attr)
-	auto comp  = [](const Quad &lhs, const Quad &rhs) {
-                return std::get<0>(lhs) > std::get<0>(rhs);
+	using Quad = std::tuple<double, int, A, int>; // (tau, node, attr, predecessor)
+
+	auto comp = [](const Quad &lhs, const Quad &rhs) {
+		return std::get<0>(lhs) > std::get<0>(rhs);
 	};
 
 	auto in = [](const A &a, const std::vector<A> &set) {
@@ -86,11 +90,16 @@ std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vecto
 
 	auto select = [&](std::vector<A> &set, const A &a) -> bool {
 		for (const auto &p : set)
-			if (ord(p, a))
+		{
+
+			if (a.empty() || RoutingAlgebras::beq(ord(p, a)))
+			{
 				return false;
+			}
+		}
 		set.erase(std::remove_if(set.begin(), set.end(),
 					 [&](const A &p) {
-			return ord(a, p);
+			return beq(ord(a, p));
 		}),
 			  set.end());
 		set.push_back(a);
@@ -99,15 +108,14 @@ std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vecto
 
 	std::priority_queue<Quad, std::vector<Quad>, decltype(comp)> pq(comp);
 
-	A neutral = Ord::Neutral();
+	A neutral = RA::Base::Neutral(dest);
 	pq.push(std::make_tuple(0.0, dest, neutral, -1));
-	std::set<int> visited;
 
+	std::set<int> visited;
 	while (!pq.empty())
 	{
 		auto [tau, u, a, succ] = pq.top();
 		pq.pop();
-
 		if (!in(a, opt[u]))
 		{
 			if (select(opt[u], a))
@@ -124,7 +132,10 @@ std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vecto
 					{
 						continue;
 					}
-					A candidate = ext(link_attr, a);
+					auto l = A(link_attr.a, x);
+
+					A candidate = ext(a, l);
+
 					pq.push(std::make_tuple(tau + delay, x, candidate, u));
 				}
 			}

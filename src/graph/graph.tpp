@@ -107,7 +107,7 @@ Graph<S> Graph<S>::readGraph(const std::string &filename)
 
 	fileNetwork >> V;
 
-	Graph<S> graph(V);
+	Graph graph(V);
 
 	while (fileNetwork >> u >> v >> delay >> attr)
 	{

@@ -3,23 +3,29 @@
 
 #include <climits>
 
-namespace RoutingAlgebras {
-    typedef struct LessThanOrEqual {
-        static constexpr int null = INT_MAX;
-        static constexpr int neutral = 0;
+#include "routing-algebras/orders/comparison-vocab.hpp"
 
-        bool operator()(const int l, const int r) const {
-            return l <= r;
-        }
+namespace RoutingAlgebras
+{
+typedef struct LessThanOrEqual
+{
+	static constexpr int null    = INT_MAX;
+	static constexpr int neutral = 0;
 
-        static int Neutral() {
-            return neutral;
-        }
+	Comp operator()(const int l, const int r) const
+	{
+		if (l < r)
+		{
+			return Comp::Better;
+		}
 
-        static int Null() {
-            return null;
-        }
-    } LEQ;
+		if (l == r)
+		{
+			return Comp::Equal;
+		}
+		return Comp::Worse;
+	}
+} LEQ;
 } // namespace RoutingAlgebras
 
 #endif

@@ -21,7 +21,7 @@ struct Data
 		offset = t;
 	}
 
-	void recordChange(const int node, const double time, const R &value)
+	void recordChange(const int node, const double time, const std::vector<R> &value)
 	{
 		finalValue[node] = value;
 
@@ -41,11 +41,11 @@ struct Data
 	double offset = 0.0;
 	bool   log    = false;
 
-	std::vector<int>                     msgCount;
-	std::vector<int>                     changeCounts;
-	std::vector<double>                  lastChangeTime;
-	std::unordered_map<int, R>           finalValue;
-	std::map<double, std::map<int, int>> msgLog;
+	std::vector<int>                        msgCount;
+	std::vector<int>                        changeCounts;
+	std::vector<double>                     lastChangeTime;
+	std::unordered_map<int, std::vector<R>> finalValue;
+	std::map<double, std::map<int, int>>    msgLog;
 };
 } // namespace utils::stats
 

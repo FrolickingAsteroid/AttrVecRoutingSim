@@ -16,9 +16,10 @@ void updateWindu(double Delta, std::vector<std::size_t> &wind,
 template <class A>
 double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
-template <class A, class Ord, class Ext>
-std::pair<std::vector<std::vector<std::pair<double, A>>>, std::vector<std::vector<A>>> DelayDijkstra(
-    const Graph<A> &graph, int dest);
+template <class RA>
+std::pair<std::vector<std::vector<std::pair<double, typename RA::BaseAttr>>>,
+	  std::vector<std::vector<typename RA::BaseAttr>>>
+DelayDijkstra(const Graph<typename RA::BaseAttr> &graph, int dest);
 
 void printDelays(std::vector<double> &results, double D);
 

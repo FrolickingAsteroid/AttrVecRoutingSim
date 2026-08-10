@@ -65,7 +65,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 
 	auto delayDijkstra(const int t)
 	{
-		return utils::helpers::DelayDijkstra<bAttr, bOrd, bExt>(this->graph, t);
+		return utils::helpers::DelayDijkstra<RA>(this->graph, t);
 	}
 
 	double ConvergenceTime(const std::vector<std::vector<std::pair<double, bAttr>>> &opt_time)
@@ -82,9 +82,15 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 	void SetupConv(Protocol::Rpbob::RPBOB<RA> &proto, int t)
 	{
 		proto.converged = [this, &proto, t]() {
+			if (proto.cal.now() > 20)
+				int a = 1;
 			for (int i = 0; i < this->graph.V; ++i)
 			{
-				bool ok = (i == t) || proto.s[i].GetBestAttr().attr == convergence_attr[t][i].front();
+				if (i == t)
+				{
+					continue;
+				}
+				bool ok = Protocol::Rpbob::CompareOpt(proto.s[i].GetBestAttr(), convergence_attr[t][i]);
 				if (!ok)
 				{
 					return;

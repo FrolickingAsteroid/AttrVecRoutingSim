@@ -6,32 +6,39 @@
 #include "routing-algebras/orders/composite/product-order.hpp"
 #include "routing-algebras/orders/primitive/greater-than-or-equal.hpp"
 
-namespace RoutingAlgebras {
-    template<class BaseAlgebra>
-    struct Sequenced {
-        using BaseAttr = BaseAlgebra::BaseAttr;
-        using BaseExt = BaseAlgebra::BaseExt;
-        using BaseOrd = BaseAlgebra::BaseOrd;
+namespace RoutingAlgebras
+{
+template <class BaseAlgebra>
+struct Sequenced
+{
+	using Base     = BaseAlgebra;
+	using BaseAttr = BaseAlgebra::Attr;
+	using BaseExt  = BaseAlgebra::Ext;
+	using BaseOrd  = BaseAlgebra::Ord;
 
-        using Attr = SeqAttr<BaseAttr>;
-        using Ext = SeqExtension<BaseAttr, BaseExt>;
-        using Ord = ProductOrder<GEQ, BaseOrd>;
+	using Attr = SeqAttr<BaseAttr>;
+	using Ext  = SeqExtension<BaseAttr, BaseExt>;
+	using Ord  = ProductOrder<GEQ, BaseOrd>;
 
-        static Attr Neutral() {
-            return Attr{0, BaseOrd::neutral};
-        }
+	static Attr Neutral()
+	{
+		return Attr{0, BaseOrd::neutral};
+	}
 
-        static Attr Neutral(int n) {
-            return Attr{n, BaseOrd::neutral};
-        }
+	static Attr Neutral(int n)
+	{
+		return Attr{n, BaseOrd::neutral};
+	}
 
-        static Attr Null() {
-            return Attr{0, BaseOrd::null};
-        }
+	static Attr Null()
+	{
+		return Attr{0, BaseOrd::null};
+	}
 
-        static Attr Null(int n) {
-            return Attr{n, BaseOrd::null};
-        }
-    };
-}
+	static Attr Null(int n)
+	{
+		return Attr{n, BaseOrd::null};
+	}
+};
+} // namespace RoutingAlgebras
 #endif

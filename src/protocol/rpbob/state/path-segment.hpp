@@ -1,76 +1,107 @@
 #ifndef MP_PATH_SEGMENT_H
 #define MP_PATH_SEGMENT_H
+namespace Protocol::Rpbob
+{
+template <class RA>
+struct Path
+{
+	using A   = RA::Attr;
+	using Ext = RA::Ext;
+	using Ord = RA::Ord;
 
-#include <vector>
+	A attr; //(n, attribute, path)
 
-namespace Protocol::Rpbob {
-    template<class RA>
-    struct Path {
-        using A = RA::Attr;
-        using Ext = RA::Ext;
-        using Ord = RA::Ord;
+	Path() = default;
 
-        A attr;
-        std::vector<int> path;
+	Path(A attr_)
+	    : attr(std::move(attr_))
+	{
+	}
 
-        Path() = default;
+	static Path Invalid()
+	{
+		return Path(RA::Null());
+	}
+	bool isInvalid() const
+	{
+		return attr.b.empty();
+	}
 
-        Path(int e, A a)
-            : attr(a) {
-            addAsEntry(e);
-        }
+	bool operator==(const Path &other) const
+	{
+		return attr == other.attr;
+	}
+	bool operator!=(const Path &other) const
+	{
+		return !(*this == other);
+	}
 
-        Path(std::vector<int> path_, A attr_)
-            : attr(attr_)
-              , path(std::move(path_)) {
-        }
+	friend Path operator+(const Path &link, const Path &p)
+	{
+		auto node = link.attr.b.b.front();
 
-        static Path Invalid() {
-            return Path(std::vector<int>{}, Ord::Null());
-        }
+		Ext ext;
+		return Path(ext(p.attr, link.attr, node));
+	}
 
-        bool isInvalid() const {
-            return path.empty();
-        }
+	friend std::ostream &operator<<(std::ostream &os, const Path &p)
+	{
+		return os << p.attr.b;
+	}
+};
 
-        void addAsEntry(const int &entry) {
-            path.insert(path.begin(), entry);
-        }
+// path-segment.hpp
+template <class RA>
+std::ostream &operator<<(std::ostream &os, const std::vector<Path<RA>> &v)
+{
 
-        A getAttr() const {
-            return attr;
-        }
+	for (std::size_t i = 0; i < v.size(); ++i)
+	{
+		os << v[i];
+		if (i + 1 < v.size())
+			os << "; ";
+	}
+	return os;
+}
 
-        void addAttr(A &attr_) {
-            attr = attr_;
-        }
+template <class RA>
+bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<Path<RA>> &r)
+{
+	if (l.size() != r.size())
+	{
+		return false;
+	}
+	for (const auto &l_ : l)
+	{
+		bool found = std::any_of(r.begin(), r.end(), [&](const Path<RA> &r_) {
+			return l_.attr.b == r_.attr.b;
+		});
+		if (!found)
+		{
+			return false;
+		}
+	}
+	return true;
+}
 
-        bool operator==(const Path &other) const {
-            return attr.b == other.attr.b && path == other.path;
-        }
-
-        bool operator!=(const Path &other) const {
-            return !(*this == other);
-        }
-
-        friend Path operator+(const Path &link, const Path &p) {
-            auto loop = std::find(p.path.begin(), p.path.end(), link.path.front()) != p.path.end();
-            if (loop) {
-                return Invalid();
-            }
-
-            Ext ext;
-            Path extended(p.path, ext(link.attr, p.attr));
-
-            extended.addAsEntry(link.path.front());
-            return extended;
-        }
-
-        friend std::ostream &operator<<(std::ostream &os, const Path &p) {
-            os << p.attr.a;
-            return os;
-        }
-    };
+template <class RA>
+bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<typename RA::BaseAttr> &r)
+{
+	if (l.size() != r.size())
+	{
+		return false;
+	}
+	for (const auto &l_ : l)
+	{
+		bool found = std::any_of(r.begin(), r.end(), [&](const typename RA::BaseAttr &r_) {
+			return l_.attr.b == r_;
+		});
+		if (!found)
+		{
+			return false;
+		}
+	}
+	return true;
+}
 } // namespace Protocol::Rpbob
-
 #endif
