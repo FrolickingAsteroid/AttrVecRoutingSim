@@ -14,8 +14,8 @@ struct ProductOrder
 		OrdA ord_a;
 		OrdB ord_b;
 
-		bool lR = beq(ord_a(l.a, r.a)) && beq(ord_b(l.b, r.b));
-		bool rL = beq(ord_a(r.a, l.a)) && beq(ord_b(r.b, l.b));
+		bool lR = BetterOrEqual(ord_a(l.a, r.a)) && BetterOrEqual(ord_b(l.b, r.b));
+		bool rL = BetterOrEqual(ord_a(r.a, l.a)) && BetterOrEqual(ord_b(r.b, l.b));
 
 		if (lR && rL)
 		{

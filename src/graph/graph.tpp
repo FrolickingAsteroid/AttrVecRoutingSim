@@ -18,6 +18,18 @@ Graph<S>::Graph(int V_)
 }
 
 template <class S>
+auto Graph<S>::edgeWeight(int u, int v) const
+{
+	return std::get<2>(adjListOut[u].at(v)).getAttr();
+}
+
+template <class S>
+bool Graph<S>::edgeState(int u, int v) const
+{
+	return std::get<1>(adjListIn[u].at(v));
+}
+
+template <class S>
 void Graph<S>::addEdge(int u, int v, double delay, S w)
 {
 	if (0 > u or u >= V)

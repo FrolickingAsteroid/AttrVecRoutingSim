@@ -5,8 +5,7 @@
 #include <vector>
 
 #include "path-segment.hpp"
-// #include "routing-algebras/extensions/seq-extension.hpp"
-#include "routing-algebras/orders/sequenced-order.hpp"
+#include "routing-algebras/sequenced-alegebra.hpp"
 
 namespace Protocol::Rpbob
 {
@@ -40,11 +39,13 @@ class SequenceWindow
 
 	static bool ContainsFailedLink(const path &p, int u, int v);
 
+	bool ContainsFailedLink(const path &p) const;
+
 	std::optional<std::pair<int, int>> failed_link = std::nullopt;
 
     private:
 	std::size_t W;
-	int         R;
+	std::size_t R;
 
 	std::vector<path> wind;
 	std::vector<path> opt;
@@ -61,15 +62,15 @@ std::ostream &operator<<(std::ostream &os, const SequenceWindow<RA> &sw)
 	os << "opt: [";
 	for (std::size_t i = 0; i < best.size(); ++i)
 	{
-		os << best[i].attr << " " << best[i].attr.b.getPath();
+		os << best[i].attr;
 		if (i + 1 < best.size())
 		{
-			os << ",";
+			os << ", ";
 		}
 	}
 	os << "]";
 
-	os << " wind [";
+	os << " wind: [";
 	const auto &set = sw.GetSetAttr();
 	for (std::size_t i = 0; i < set.size(); ++i)
 	{

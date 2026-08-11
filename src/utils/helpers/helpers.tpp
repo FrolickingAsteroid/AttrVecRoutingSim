@@ -92,14 +92,14 @@ DelayDijkstra(const Graph<typename RA::BaseAttr> &graph, int dest)
 		for (const auto &p : set)
 		{
 
-			if (a.empty() || RoutingAlgebras::beq(ord(p, a)))
+			if (a.empty() || RoutingAlgebras::BetterOrEqual(ord(p, a)))
 			{
 				return false;
 			}
 		}
 		set.erase(std::remove_if(set.begin(), set.end(),
 					 [&](const A &p) {
-			return beq(ord(a, p));
+			return BetterOrEqual(ord(a, p));
 		}),
 			  set.end());
 		set.push_back(a);

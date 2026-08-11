@@ -44,6 +44,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 			{
 				for (const auto &[u, v] : this->bid_links)
 				{
+
 					this->graph.deactivate(u, v);
 					auto [opt_time, opt] = delayDijkstra(t);
 					utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
@@ -93,7 +94,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 				bool ok = Protocol::Rpbob::CompareOpt(proto.s[i].GetBestAttr(), convergence_attr[t][i]);
 				if (!ok)
 				{
-					return;
+					return; // 45 still has its old opt val
 				}
 			}
 			if (!this->cfg.max.has_value() || this->cfg.max.value() == 0)

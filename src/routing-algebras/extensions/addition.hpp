@@ -1,13 +1,15 @@
 #ifndef LENGTHS_EXTENSION_H
 #define LENGTHS_EXTENSION_H
 
-namespace RoutingAlgebras {
-    typedef struct Addition {
-        int operator()(const int l, const int r) const {
-            const int sum = l + r;
-            return sum;
-        }
-    } ADD;
+namespace RoutingAlgebras
+{
+typedef struct Addition
+{
+	L operator()(const L &l, const L &r) const
+	{
+		return L{l.getAttr() + r.getAttr()};
+	}
+} ADD;
 } // namespace RoutingAlgebras
 
 #endif

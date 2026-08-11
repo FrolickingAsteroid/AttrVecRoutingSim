@@ -49,8 +49,9 @@ void SequenceWindow<RA>::SetOrigin(int n, int u)
 template <class RA>
 bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 {
-	// TODO: Make this less convoluted pt2
-	const auto &nodes = p.attr.b.getPath();
+	A seq_attr = p.getAttr();
+
+	const auto &nodes = seq_attr.getAttr().getPath();
 	if (nodes.size() < 2)
 	{
 		return false;
@@ -65,6 +66,12 @@ bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 		}
 	}
 	return false;
+}
+
+template <class RA>
+bool SequenceWindow<RA>::ContainsFailedLink(const path &p) const
+{
+	return failed_link.has_value() && ContainsFailedLink(p, failed_link->first, failed_link->second);
 }
 
 template <class RA>
@@ -116,7 +123,9 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 		return std::nullopt;
 	}
 
-	const int n = c.attr.a;
+	A candidate = c.getAttr();
+
+	const int n = candidate.getSeqNum();
 
 	// reject anything already outside the window
 	if (n < R - static_cast<int>(W))
@@ -129,7 +138,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 	// if anything in the set is better (or equals) the candidate, discard the candidate
 	for (const auto &current : wind)
 	{
-		if (auto result = ord(current.attr, c.attr); RoutingAlgebras::beq(result))
+		if (auto result = ord(current.getAttr(), candidate); RoutingAlgebras::BetterOrEqual(result))
 		{
 			return std::nullopt;
 		}
@@ -138,7 +147,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 	// remove anything that is worse than the candidate
 	wind.erase(std::remove_if(wind.begin(), wind.end(),
 				  [&](const path &current) {
-		return RoutingAlgebras::beq(ord(c.attr, current.attr));
+		return RoutingAlgebras::BetterOrEqual(ord(candidate, current.getAttr()));
 	}),
 		   wind.end());
 
@@ -166,7 +175,7 @@ bool SequenceWindow<RA>::UpdateBestAttr()
 	std::vector<path> new_opt{};
 
 	std::sort(wind.begin(), wind.end(), [](const path &l, const path &r) {
-		return l.attr.a < r.attr.a;
+		return l.getAttr().getSeqNum() < r.getAttr().getSeqNum();
 	});
 
 	if (!wind.empty())

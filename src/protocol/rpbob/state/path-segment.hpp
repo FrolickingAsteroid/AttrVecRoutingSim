@@ -18,13 +18,19 @@ struct Path
 	{
 	}
 
+	A getAttr() const
+	{
+		return attr;
+	}
+
 	static Path Invalid()
 	{
 		return Path(RA::Null());
 	}
 	bool isInvalid() const
 	{
-		return attr.b.empty();
+		auto p = attr.getAttr().getPath();
+		return p.empty();
 	}
 
 	bool operator==(const Path &other) const
@@ -36,12 +42,13 @@ struct Path
 		return !(*this == other);
 	}
 
-	friend Path operator+(const Path &link, const Path &p)
+	friend Path operator+(const Path &p, const A &link)
 	{
-		auto node = link.attr.b.b.front();
-
 		Ext ext;
-		return Path(ext(p.attr, link.attr, node));
+
+		auto extended = ext(p.getAttr(), link);
+
+		return Path(extended);
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const Path &p)

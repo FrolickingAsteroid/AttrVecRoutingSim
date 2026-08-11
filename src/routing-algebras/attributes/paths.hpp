@@ -28,6 +28,17 @@ struct Path
 		return !(*this == other);
 	}
 
+	// ---------------------------------------------------------------------------- *
+	//
+	// Getters and Setters
+	//
+	// ---------------------------------------------------------------------------- *
+
+	void setPath(std::vector<Node> path_)
+	{
+		path = std::move(path_);
+	}
+
 	const Path &getPath() const
 	{
 		return *this;
@@ -37,10 +48,12 @@ struct Path
 	{
 		return path.empty();
 	}
+
 	std::size_t size() const
 	{
 		return path.size();
 	}
+
 	const Node &operator[](std::size_t i) const
 	{
 		return path[i];

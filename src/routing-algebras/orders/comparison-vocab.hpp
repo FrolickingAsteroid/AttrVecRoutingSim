@@ -11,7 +11,7 @@ enum class Comp
 	Incomparable
 };
 
-inline bool beq(Comp r)
+inline bool BetterOrEqual(Comp r)
 {
 	return r == Comp::Better || r == Comp::Equal;
 }

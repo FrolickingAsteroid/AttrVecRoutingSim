@@ -12,15 +12,43 @@ struct SeqAttr
 	SeqAttr() = default;
 
 	SeqAttr(A a_)
-	    : a(0)
-	    , b(a_)
+	    : b(a_)
 	{
 	}
 
-	SeqAttr(const int n_, A a_)
+
+	// forwards extra arguments straight into A's constructor
+	template <class... Args>
+	SeqAttr(const int n_, Args &&...args)
 	    : a(n_)
-	    , b(a_)
+	    , b(std::forward<Args>(args)...)
 	{
+	}
+
+	// ---------------------------------------------------------------------------- *
+	//
+	// Getters and Setters
+	//
+	// ---------------------------------------------------------------------------- *
+
+	void setSeqNum(const int a_)
+	{
+		a = a_;
+	}
+
+	void setAttr(const A &b_)
+	{
+		b = b_;
+	}
+
+	const int &getSeqNum() const
+	{
+		return a;
+	}
+
+	const A &getAttr() const
+	{
+		return b;
 	}
 
 	bool empty() const

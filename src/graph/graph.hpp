@@ -20,6 +20,10 @@ struct Graph
 
 	explicit Graph(int V_);
 
+	auto edgeWeight(int u, int v) const;
+
+	bool edgeState(int u, int v) const;
+
 	static Graph readGraph(const std::string &filename);
 
 	std::vector<std::pair<int, int>> findBidLinks();

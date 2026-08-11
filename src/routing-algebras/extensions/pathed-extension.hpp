@@ -15,16 +15,15 @@ struct PathedExtension
 		ExtBase             ext;
 		Concatenation<Node> prepend;
 
-		Path<Node> p = prepend(l.b, r.b);
+		Path<Node> p = prepend(l.getPath(), r.getPath());
 
 		if (p.empty())
 		{
 			return PathAttr<A, Node>{A{}, p};
 		}
 
-		return PathAttr<A, Node>{ext(l.a, r.a), p};
+		return PathAttr<A, Node>{ext(l.getAttr(), r.getAttr()), p};
 	}
 };
 } // namespace RoutingAlgebras
 #endif
-

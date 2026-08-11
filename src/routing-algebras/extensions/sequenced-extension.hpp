@@ -13,9 +13,9 @@ struct SeqExtension
 		ExtBase ext;
 
 		SeqAttr<A> result;
-		result.a = r.a; // Keep the sequence number from the new attr
+		result.a = l.getSeqNum(); // Keep the sequence number from the new attr
 
-		result.b = ext(l.b, r.b); // Extend base attribute
+		result.b = ext(l.getAttr(), r.getAttr()); // Extend base attribute
 		return result;
 	}
 };

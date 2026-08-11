@@ -1,8 +1,6 @@
 #ifndef PROTOCOL_TPP
 #define PROTOCOL_TPP
 
-#include <bits/regex_constants.h>
-
 #include "protocol/rpbob/rpbob.hpp"
 #include "utils/ui/logger.hpp"
 
@@ -59,9 +57,9 @@ void RPBOB<RA>::LinkFailure(int u, int v)
 			if (!removed.empty())
 			{
 				s[node].failed_link = link;
-				if (s[u].UpdateBestAttr())
+				if (s[node].UpdateBestAttr())
 				{
-					data.recordChange(u, cal.now(), s[u].GetBestAttr());
+					data.recordChange(node, cal.now(), s[node].GetBestAttr());
 				}
 
 				const auto &max =
@@ -98,30 +96,24 @@ void RPBOB<RA>::HandleMsg(int u, int v, notification notif)
 		}
 		this->Send(u, Msg{notif});
 	}
-	if (u == 28)
-	{
-		LOG_DEBUG << s[u];
-	}
 }
 
 template <class RA>
 void RPBOB<RA>::HandleMsg(int u, int v, path p)
 {
-	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
-		return;
-
-	if (s[u].failed_link.has_value() &&
-	    s[u].ContainsFailedLink(p, s[u].failed_link.value().first, s[u].failed_link.value().second))
+	if (u == 45)
+	{
+		int a = 1;
+	}
+	if (!graph.edgeState(u, v) || s[u].ContainsFailedLink(p))
 	{
 		return;
 	}
 
-	// TODO: make this less convoluted
-	A    edgeAttr = A(BaseAttr(std::get<2>(graph.adjListOut[u].at(v)).a, u));
-	Ext  ext;
-	auto extended = path(ext(p.attr, edgeAttr));
+	A edgeAttr(0, graph.edgeWeight(u, v), u);
 
-	std::optional<path> changed = s[u].CompareSetAttr(extended);
+	auto                extended = p + edgeAttr;
+	std::optional<path> changed  = s[u].CompareSetAttr(extended);
 
 	LOG_DEBUG << s[u];
 	LOG_DEBUG << "change count: " << data.changeCounts.at(u);

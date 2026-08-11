@@ -9,7 +9,7 @@ namespace RoutingAlgebras
 {
 struct ShortestPath
 {
-	using BaseAttr = Length;
+	using BaseAttr = L;
 	using BaseExt  = ADD;
 	using BaseOrd  = LEQ;
 

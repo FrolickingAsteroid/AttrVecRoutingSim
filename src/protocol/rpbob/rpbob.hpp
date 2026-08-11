@@ -2,6 +2,7 @@
 #define RPBOB_HPP
 
 #include <functional>
+#include <limits>
 #include <tuple>
 #include <variant>
 #include <vector>
@@ -42,7 +43,8 @@ struct RPBOB : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>,
 		s.reserve(graph_.V);
 		for (std::size_t n : Ns)
 		{
-			s.emplace_back(n);
+			std::size_t N = cn ? static_cast<std::size_t>(std::numeric_limits<int>::max()) : n;
+			s.emplace_back(N);
 		}
 	}
 
