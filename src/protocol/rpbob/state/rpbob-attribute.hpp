@@ -1,9 +1,10 @@
 #ifndef MP_PATH_SEGMENT_H
 #define MP_PATH_SEGMENT_H
+
 namespace Protocol::Rpbob
 {
 template <class RA>
-struct Path
+struct RPBOBAttribute
 {
 	using A   = RA::Attr;
 	using Ext = RA::Ext;
@@ -11,9 +12,9 @@ struct Path
 
 	A attr; //(n, attribute, path)
 
-	Path() = default;
+	RPBOBAttribute() = default;
 
-	Path(A attr_)
+	RPBOBAttribute(A attr_)
 	    : attr(std::move(attr_))
 	{
 	}
@@ -23,43 +24,38 @@ struct Path
 		return attr;
 	}
 
-	static Path Invalid()
-	{
-		return Path(RA::Null());
-	}
 	bool isInvalid() const
 	{
 		auto p = attr.getAttr().getPath();
 		return p.empty();
 	}
 
-	bool operator==(const Path &other) const
+	bool operator==(const RPBOBAttribute &other) const
 	{
 		return attr == other.attr;
 	}
-	bool operator!=(const Path &other) const
+	bool operator!=(const RPBOBAttribute &other) const
 	{
 		return !(*this == other);
 	}
 
-	friend Path operator+(const Path &p, const A &link)
+	friend RPBOBAttribute operator+(const RPBOBAttribute &p, const A &link)
 	{
 		Ext ext;
 
 		auto extended = ext(p.getAttr(), link);
 
-		return Path(extended);
+		return RPBOBAttribute(extended);
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const Path &p)
+	friend std::ostream &operator<<(std::ostream &os, const RPBOBAttribute &p)
 	{
 		return os << p.attr.b;
 	}
 };
 
-// path-segment.hpp
 template <class RA>
-std::ostream &operator<<(std::ostream &os, const std::vector<Path<RA>> &v)
+std::ostream &operator<<(std::ostream &os, const std::vector<RPBOBAttribute<RA>> &v)
 {
 
 	for (std::size_t i = 0; i < v.size(); ++i)
@@ -72,7 +68,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Path<RA>> &v)
 }
 
 template <class RA>
-bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<Path<RA>> &r)
+bool CompareOpt(const std::vector<RPBOBAttribute<RA>> &l, const std::vector<RPBOBAttribute<RA>> &r)
 {
 	if (l.size() != r.size())
 	{
@@ -80,7 +76,7 @@ bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<Path<RA>> &r)
 	}
 	for (const auto &l_ : l)
 	{
-		bool found = std::any_of(r.begin(), r.end(), [&](const Path<RA> &r_) {
+		bool found = std::any_of(r.begin(), r.end(), [&](const RPBOBAttribute<RA> &r_) {
 			return l_.attr.b == r_.attr.b;
 		});
 		if (!found)
@@ -92,7 +88,7 @@ bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<Path<RA>> &r)
 }
 
 template <class RA>
-bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<typename RA::BaseAttr> &r)
+bool CompareOpt(const std::vector<RPBOBAttribute<RA>> &l, const std::vector<typename RA::Base::Attr> &r)
 {
 	if (l.size() != r.size())
 	{
@@ -100,7 +96,7 @@ bool CompareOpt(const std::vector<Path<RA>> &l, const std::vector<typename RA::B
 	}
 	for (const auto &l_ : l)
 	{
-		bool found = std::any_of(r.begin(), r.end(), [&](const typename RA::BaseAttr &r_) {
+		bool found = std::any_of(r.begin(), r.end(), [&](const typename RA::Base::Attr &r_) {
 			return l_.attr.b == r_;
 		});
 		if (!found)

@@ -5,7 +5,7 @@
 
 namespace config
 {
-enum ScenarioType
+enum Type
 {
 	Normal,
 	LinkFailure,
@@ -41,8 +41,11 @@ struct SimulationConfig
 	// RPBOB: run with notification
 	bool notif = false;
 
+	// simulation seed
+	unsigned int seed;
+
 	// unsigned int seed = 1307683871;
-	unsigned int seed = 2425713638;
+	// unsigned int seed = 2425713638;
 
 	// optional args
 	std::optional<double> dprop  = std::nullopt;
@@ -51,10 +54,10 @@ struct SimulationConfig
 	std::optional<int>    N      = std::nullopt;
 
 	// Type of simulation being run
-	ScenarioType scenario   = Normal;
-	int          u          = -1; // used by LinkFailure
-	int          v          = -1; // used by LinkFailure
-	int          withdrawal = -1; // used by Withdrawal
+	Type scenario   = Normal;
+	int  u          = -1; // used by LinkFailure
+	int  v          = -1; // used by LinkFailure
+	int  withdrawal = -1; // used by Withdrawal
 };
 } // namespace config
 #endif

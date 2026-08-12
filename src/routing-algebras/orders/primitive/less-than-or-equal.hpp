@@ -7,23 +7,25 @@
 
 namespace RoutingAlgebras
 {
-// less-than-or-equal.hpp
-template <class A>
 struct LessThanOrEqual
 {
 	static constexpr int null    = INT_MAX;
 	static constexpr int neutral = 0;
 
-	Comp operator()(const A &l, const A &r) const
+	Comp operator()(const int &l, const int &r) const
 	{
-		if (l.getAttr() < r.getAttr())
+		if (l < r)
+		{
 			return Comp::Better;
-		if (r.getAttr() < l.getAttr())
+		}
+		if (r < l)
+		{
 			return Comp::Worse;
+		}
 		return Comp::Equal;
 	}
 };
-using LEQ = LessThanOrEqual<L>;
+using LEQ = LessThanOrEqual;
 } // namespace RoutingAlgebras
 
 #endif

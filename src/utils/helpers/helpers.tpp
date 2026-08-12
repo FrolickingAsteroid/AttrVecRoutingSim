@@ -18,10 +18,9 @@ namespace utils::helpers
 {
 
 template <class A>
-std::vector<std::size_t> ComputeWindu(const double                                          Delta,
-				      const std::vector<std::vector<std::pair<double, A>>> &opt_time)
+std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
-	std::vector<std::size_t> Ns;
+	std::vector<int> Ns;
 	Ns.reserve(opt_time.size());
 	for (const auto &node_paths : opt_time)
 	{
@@ -31,13 +30,13 @@ std::vector<std::size_t> ComputeWindu(const double                              
 			continue;
 		}
 		double diff = 1.1 * node_paths.back().first - node_paths.front().first;
-		Ns.push_back(static_cast<std::size_t>(std::ceil(diff / Delta)));
+		Ns.push_back(static_cast<int>(std::ceil(diff / Delta)));
 	}
 	return Ns;
 }
 
 template <class A>
-void updateWindu(const double Delta, std::vector<std::size_t> &wind,
+void updateWindu(const double Delta, std::vector<int> &wind,
 		 const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
 
@@ -63,14 +62,14 @@ double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &op
 }
 
 template <class RA>
-std::pair<std::vector<std::vector<std::pair<double, typename RA::BaseAttr>>>,
-	  std::vector<std::vector<typename RA::BaseAttr>>>
-DelayDijkstra(const Graph<typename RA::BaseAttr> &graph, int dest)
+std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
+	  std::vector<std::vector<typename RA::Base::Attr>>>
+DelayDijkstra(const Graph<typename RA::Base::Attr> &graph, int dest)
 {
-	using A = RA::BaseAttr;
+	using A = RA::Base::Attr;
 
-	typename RA::BaseOrd ord;
-	typename RA::BaseExt ext;
+	typename RA::Base::Ord ord;
+	typename RA::Base::Ext ext;
 
 	const int                                      V = graph.V;
 	std::vector<std::vector<A>>                    opt(V);

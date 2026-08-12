@@ -5,9 +5,9 @@ namespace RoutingAlgebras
 {
 typedef struct Addition
 {
-	L operator()(const L &l, const L &r) const
+	int operator()(const int &l, const int &r) const
 	{
-		return L{l.getAttr() + r.getAttr()};
+		return l + r;
 	}
 } ADD;
 } // namespace RoutingAlgebras

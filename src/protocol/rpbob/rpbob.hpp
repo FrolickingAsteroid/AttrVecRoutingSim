@@ -8,25 +8,21 @@
 #include <vector>
 
 #include "protocol/protocol.hpp"
-#include "protocol/rpbob/state/path-segment.hpp"
+#include "protocol/rpbob/state/rpbob-attribute.hpp"
 #include "protocol/rpbob/state/seq-window.hpp"
 
 namespace Protocol::Rpbob
 {
 template <class RA>
-struct RPBOB : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>, std::tuple<int, std::pair<int, int>>>>
+struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
+			 std::variant<RPBOBAttribute<RA>, std::tuple<int, std::pair<int, int>>>>
 {
 	// Type Aliases
-	using BaseAttr = RA::BaseAttr;
-	using A        = RA::Attr;
-	using Ord      = RA::Ord;
-	using Ext      = RA::Ext;
+	using RpbobAttr    = RPBOBAttribute<RA>;
+	using Notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv), needs to be a subtype of RPBOBAttr
+	using Msg          = std::variant<RpbobAttr, Notification>;
 
-	using path         = Path<RA>;
-	using notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv)
-	using Msg          = std::variant<path, notification>;
-
-	using Base = IProtocol<BaseAttr, path, Msg>;
+	using Base = IProtocol<typename RA::Base::Attr, RpbobAttr, Msg>;
 
 	using Base::cal;
 	using Base::data;
@@ -36,24 +32,28 @@ struct RPBOB : IProtocol<typename RA::BaseAttr, Path<RA>, std::variant<Path<RA>,
 	std::vector<SequenceWindow<RA>> s;
 
 	// Constructors
-	explicit RPBOB(Graph<BaseAttr> &graph_, const std::vector<std::size_t> &Ns, bool cn_)
+	explicit RPBOB(Graph<typename RA::Base::Attr> &graph_, const std::vector<int> &Ws_, const bool cn_)
 	    : Base(graph_)
 	    , cn(cn_)
 	{
 		s.reserve(graph_.V);
-		for (std::size_t n : Ns)
+
+		constexpr int maxN = std::numeric_limits<int>::max();
+
+		const std::vector<int> &Ws = Ws_.empty() ? std::vector<int>(graph_.V, maxN) : Ws_;
+
+		for (int W : Ws)
 		{
-			std::size_t N = cn ? static_cast<std::size_t>(std::numeric_limits<int>::max()) : n;
-			s.emplace_back(N);
+			s.emplace_back(W);
 		}
 	}
 
 	// Message Processing
 	void MsgReception(int u, int v, Msg msg) override;
 
-	void HandleMsg(int u, int v, notification notif);
+	void HandleMsg(int u, int v, Notification notif);
 
-	void HandleMsg(int u, int v, path p);
+	void HandleMsg(int u, int v, RpbobAttr p);
 
 	void DestinationAnnouncement(int t, int n, double period, std::optional<int> max);
 

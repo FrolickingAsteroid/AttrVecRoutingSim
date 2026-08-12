@@ -1,5 +1,6 @@
 #include "core/argparsing.hpp"
 
+#include <getopt.h>
 #include <tabulate/tabulate.hpp>
 
 #include <cstdlib>
@@ -20,29 +21,41 @@ namespace config
 {
 void PrintUsage(const char *prog)
 {
-	std::cerr << yellow("\nusage:\n") << "  " << prog << " -f <network.tsv> -R|-G|-B [-a <algebra>]"
-		  << " [-t <dest|all>]\n"
-		  << "  " << prog << " -R -f <network.tsv> -i <period> -m <max> [-w <N>]\n"
-		  << "  " << prog << " -B -f <network.tsv> -i <period> -m <max> -d <dprop>\n"
-		  << "  " << prog << " -N -f <network.tsv> -i <period> [-a <algebra>]\n\n"
+	std::cerr << yellow("\nusage:\n") << "  " << prog << " -f <network.tsv> -<protocol>"
+		  << " [options...]\n\n"
 
-		  << yellow("protocols:\n") << "  -R               RPBOB (default)\n"
-		  << "  -G               BGP\n"
-		  << "  -B               Beaconing\n"
-		  << "  -N               compute window size N from network file and period\n\n"
+		  << "  " << prog << " -f <network.tsv> -R -i <period> [-m <max>] [-w <N>]\n"
+		  << "  " << prog << " -f <network.tsv> -B -i <period> -d <dprop> [-m <max>]\n"
+		  << "  " << prog << " -f <network.tsv> -G\n"
+		  << "  " << prog << " -f <network.tsv> -C\n\n"
 
-		  << yellow("required:\n") << "  -f <file>        path to network .tsv file\n"
-		  << "  -i <period>      destination announcement period\n"
-		  << "  -m <max>         number of routing computations\n\n"
+		  << yellow("protocols:\n")
+		  << "  -R, --rpbob[=notif]   RPBOB, optionally with link failure notification\n"
+		  << "  -G, --bgp             BGP\n"
+		  << "  -C, --rcn             BGP with RCN\n"
+		  << "  -B, --beaconing       Beaconing\n"
+		  << "  -N, --wind            compute window size N from network file and a arbitrary period\n\n"
 
-		  << yellow("optional:\n") << "  -a <algebra>     routing algebra: lengths (default), hops\n"
-		  << "  -t <dest>        destination node id, or 'all' (default: all)\n"
-		  << "  -w <N>           window size for RPBOB (default: auto from graph)\n"
-		  << "  -d <dprop>       propagation interval for Beaconing\n\n"
+		  << yellow("required:\n") << "  -f, --file <file>       path to network .tsv file\n"
+		  << "  -i, --period <period>   destination announcement period (beaconing and rpbob)\n"
+		  << "  -d, --dprop <dprop>     propagation event interval (beaconing) \n"
 
-		  << yellow("log level:\n") << "  -I               print basic information (default)\n"
-		  << "  -V               print additional protocol information\n"
-		  << "  -S               suppress printing\n";
+		  << yellow("optional:\n")
+		  << "  -m, --max <max>         number of routing computation events to schedule (beaconing and "
+		     "rpbob) \n"
+		  << "  -a, --algebra <algebra> routing algebra: shortest paths (default), hops\n"
+		  << "  -t, --dest <dest>       destination node id, or 'all' (default: all)\n"
+		  << "  -w, --window <N>        window size for RPBOB (default: deduced from dataset)\n"
+
+		  << "  -F, --failure [u v]     simulate a link failure, at 'uv' (default: all)\n"
+		  << "  -W, --withdraw <n>      simulate a node withdrawal at 'n' (default: all)\n"
+		  << "  -A, --append            append results to output file instead of overwriting\n\n"
+
+		  << yellow("log level:\n") << "  -I, --info       print basic information (default)\n"
+		  << "  -V, --verbose    print additional simulation information\n"
+		  << "  -S, --silent     suppress printing\n\n"
+
+		  << "  -h, --help       show this message\n";
 }
 
 void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::SummaryStats &stats)
@@ -59,16 +72,12 @@ void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::Summary
 		return fmt(s.avg) + "  (min: " + fmt(s.min) + " / max: " + fmt(s.max) + ")";
 	};
 
-	const bool has_failures = !stats.msgs_per_link_failure.empty();
-
 	Table table;
 	table.add_row({"Parameter", "Avg  (min / max)"});
 	table.add_row({"Elapsed time", std::to_string(elapsed.count()) + " ms"});
 	table.add_row({"Total nodes processed", std::to_string(stats.total_nodes)});
 	table.add_row({"Termination time (ms)", range(stats.term)});
 	table.add_row({"Attribute changes / node", range(stats.changes)});
-	table.add_row({"Messages / node", range(stats.nodes)});
-	table.add_row({has_failures ? "Messages / failure" : "Messages / destination", range(stats.msg)});
 
 	table[0].format().font_style({FontStyle::bold}).font_color(Color::yellow);
 	for (std::size_t i = 1; i < table.size(); ++i)
@@ -96,10 +105,40 @@ Metric ParseAlgebra(const std::string &s)
 
 SimulationConfig ParseArgs(int argc, char *const *argv)
 {
+
+	if (argc == 1)
+	{
+		PrintUsage(argv[0]);
+		std::exit(0);
+	}
+
 	SimulationConfig cfg;
 	int              c;
 
-	while ((c = getopt(argc, argv, "f:t:m:d:a:w:i:F::W:NR::GCBVSIA")) != -1)
+	struct option long_options[] = {
+	    {"file",     required_argument, nullptr,              'f'      },
+	    {"dest",     required_argument, nullptr,              't'      },
+	    {"max",      required_argument, nullptr,              'm'      },
+	    {"dprop",    required_argument, nullptr,              'd'      },
+	    {"algebra",  required_argument, nullptr,              'a'      },
+	    {"window",   required_argument, nullptr,              'w'      },
+	    {"period",   required_argument, nullptr,              'i'      },
+	    {"failure",  optional_argument, nullptr,              'F'      },
+	    {"withdraw", required_argument, nullptr,              'W'      },
+	    {"rpbob",    optional_argument, nullptr,              'R'      },
+	    {"bgp",      no_argument,       (int *)&cfg.protocol, BGP      },
+	    {"rcn",      no_argument,       (int *)&cfg.protocol, RCN      },
+	    {"beacon",   no_argument,       (int *)&cfg.protocol, Beaconing},
+	    {"W",        no_argument,       (int *)&cfg.protocol, N        },
+	    {"verbose",  no_argument,       nullptr,              'V'      },
+	    {"silent",   no_argument,       nullptr,              'S'      },
+	    {"info",     no_argument,       nullptr,              'I'      },
+	    {"append",   no_argument,       (int *)&cfg.append,   1        },
+	    {"help",     no_argument,       nullptr,              'h'      },
+	    {nullptr,    0,                 nullptr,              0        },
+	};
+
+	while ((c = getopt_long(argc, argv, "f:t:m:d:a:w:i:F::W:NR::GCBVSIA", long_options, nullptr)) != -1)
 	{
 		switch (c)
 		{
@@ -123,15 +162,6 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 				}
 			}
 			break;
-		case 'G':
-			cfg.protocol = BGP;
-			break;
-		case 'C':
-			cfg.protocol = RCN;
-			break;
-		case 'B':
-			cfg.protocol = Beaconing;
-			break;
 		case 'a':
 			cfg.algebra = ParseAlgebra(optarg);
 			break;
@@ -149,9 +179,6 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			break;
 		case 'w':
 			cfg.N = std::stoul(optarg);
-			break;
-		case 'N':
-			cfg.protocol = N;
 			break;
 		case 'F': {
 			cfg.scenario = LinkFailure;
@@ -171,24 +198,21 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			}
 			break;
 		}
-
 		case 'W': {
 			cfg.scenario   = Withdrawal;
 			cfg.withdrawal = std::stoi(optarg);
 			break;
 		}
-
 		case 'V':
 			setVerbose();
-			break;
-		case 'A':
-			cfg.append = true;
 			break;
 		case 'S':
 			setSilent();
 			break;
 		case 'I':
 			setInfo();
+			break;
+		case 0:
 			break;
 		case '?':
 		case 'h':
@@ -197,35 +221,26 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			std::exit(0);
 		}
 	}
-
-	if (cfg.network_file.empty())
+	if (cfg.protocol)
+	{
 		throw std::runtime_error("must specify a network file");
-
+	}
+	if (cfg.network_file.empty())
+	{
+		throw std::runtime_error("must specify a network file");
+	}
 	if (cfg.protocol == RPBOB)
 	{
 		if (!cfg.period)
 			throw std::runtime_error("must specify period");
 	}
-	else if (cfg.protocol == Beaconing)
+	if (cfg.protocol == Beaconing)
 	{
-		if (!cfg.period || !cfg.max || !cfg.dprop)
-			throw std::runtime_error(
-			    "must specify propagation delay, period, and number of routing computations");
+		if (!cfg.period)
+			throw std::runtime_error("must specify period");
+		if (!cfg.dprop)
+			throw std::runtime_error("must specify propagation delay");
 	}
-	// else if (cfg.protocol == N)
-	// {
-	// 	if (!cfg.period)
-	// 		throw std::runtime_error("must specify period");
-	//
-	// 	switch (cfg.algebra)
-	// 	{
-	// 	case LENGTHS:
-	// 	case HOPS:
-	// 		Compute_N<int, TOL, LE>(cfg.network_file, cfg.period.value());
-	// 		break;
-	// 	}
-	// 	std::exit(0);
-	// }
 	return cfg;
 }
 } // namespace config

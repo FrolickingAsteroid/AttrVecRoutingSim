@@ -7,19 +7,19 @@ namespace utils::helpers
 {
 
 template <class A>
-std::vector<std::size_t> ComputeWindu(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
+std::vector<int> ComputeWindu(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class A>
-void updateWindu(double Delta, std::vector<std::size_t> &wind,
+void updateWindu(double Delta, std::vector<int> &wind,
 		 const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class A>
 double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class RA>
-std::pair<std::vector<std::vector<std::pair<double, typename RA::BaseAttr>>>,
-	  std::vector<std::vector<typename RA::BaseAttr>>>
-DelayDijkstra(const Graph<typename RA::BaseAttr> &graph, int dest);
+std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
+	  std::vector<std::vector<typename RA::Base::Attr>>>
+DelayDijkstra(const Graph<typename RA::Base::Attr> &graph, int dest);
 
 void printDelays(std::vector<double> &results, double D);
 

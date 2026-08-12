@@ -11,33 +11,21 @@ namespace RoutingAlgebras
 template <class BaseAlgebra>
 struct Sequenced
 {
-	using Base     = BaseAlgebra;
-	using BaseAttr = BaseAlgebra::Attr;
-	using BaseExt  = BaseAlgebra::Ext;
-	using BaseOrd  = BaseAlgebra::Ord;
+	using Base = BaseAlgebra;
 
-	using Attr = SeqAttr<BaseAttr>;
-	using Ext  = SeqExtension<BaseAttr, BaseExt>;
-	using Ord  = ProductOrder<GEQ, BaseOrd>;
+	using Attr = SeqAttr<typename Base::Attr>;
+	using Ext  = SeqExtension<typename Base::Attr, typename Base::Ext>;
+	using Ord  = ProductOrder<GEQ, typename Base::Ord>;
 
-	static Attr Neutral()
+	template <class... Args>
+	static Attr Neutral(int n, Args &&...args)
 	{
-		return Attr{0, BaseOrd::neutral};
+		return Attr{n, Base::Neutral(std::forward<Args>(args)...)};
 	}
 
-	static Attr Neutral(int n)
+	static Attr Null(int n = 0)
 	{
-		return Attr{n, BaseOrd::neutral};
-	}
-
-	static Attr Null()
-	{
-		return Attr{0, BaseOrd::null};
-	}
-
-	static Attr Null(int n)
-	{
-		return Attr{n, BaseOrd::null};
+		return Attr{n, Base::Null()};
 	}
 };
 } // namespace RoutingAlgebras

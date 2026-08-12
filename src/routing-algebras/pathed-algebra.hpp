@@ -11,26 +11,29 @@ namespace RoutingAlgebras
 template <class BaseAlgebra, class Node = int>
 struct EqPathLex
 {
-	using BaseAttr = BaseAlgebra::Attr;
-	using BaseExt  = BaseAlgebra::Ext;
-	using BaseOrd  = BaseAlgebra::Ord;
+	using Base = BaseAlgebra;
 
-	using Attr = PathAttr<BaseAttr, Node>;
-	using Ext  = PathedExtension<BaseAttr, Node, BaseExt>;
-	using Ord  = LexicographicOrder<BaseOrd, PathEquality<Node>>;
+	using Attr = PathAttr<typename Base::Attr, Node>;
+	using Ext  = PathedExtension<typename Base::Attr, Node, typename Base::Ext>;
+	using Ord  = LexicographicOrder<typename Base::Ord, PathEquality<Node>>;
 
-	static Attr Neutral()
+	// P is either a full path or a single node, defaults to an empty vector
+	// for now, overload, there are no variadic functions with default values
+	template <class... Args>
+	static Attr Neutral(Args &&...args)
 	{
-		return Attr{BaseAlgebra::Neutral(), Path<Node>{}};
+		return Attr{Base::Neutral(std::forward<Args>(args)...), Path<Node>{}};
 	}
 
-	static Attr Neutral(Node p)
+	template <class P, class... Args>
+	static Attr Neutral(P p, Args &&...args)
 	{
-		return Attr{BaseAlgebra::Neutral(), {p}};
+		return Attr{Base::Neutral(std::forward<Args>(args)...), p};
 	}
+
 	static Attr Null()
 	{
-		return Attr{BaseAlgebra::Null(), Path<Node>{}};
+		return Attr{Base::Null(), Path<Node>{}};
 	}
 };
 } // namespace RoutingAlgebras

@@ -16,13 +16,13 @@ namespace Protocol::Rpbob
 // ---------------------------------------------------------------------------- *
 
 template <class RA>
-std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::GetBestAttr() const
+std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::GetOpt() const
 {
 	return opt;
 }
 
 template <class RA>
-const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetSetAttr() const
+const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetWind() const
 {
 	return wind;
 }
@@ -30,13 +30,10 @@ const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetSet
 template <class RA>
 void SequenceWindow<RA>::SetOrigin(int n, int u)
 {
-	using base = RA::Base;
 
-	auto base_attr = base::Neutral(u);
+	A e = RA::Neutral(n, u);
 
-	A attr(n, base_attr);
-
-	opt  = {path(attr)};
+	opt  = {path(e)};
 	wind = opt;
 }
 
@@ -75,9 +72,10 @@ bool SequenceWindow<RA>::ContainsFailedLink(const path &p) const
 }
 
 template <class RA>
-template <class Pred>
-std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::RemoveMatching(Pred pred)
+std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(std::pair<int, int> link_notif)
 {
+	auto [u, v] = link_notif;
+
 	std::vector<path> removed;
 
 	if (wind.empty())
@@ -86,7 +84,7 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::RemoveMatchin
 	}
 	wind.erase(std::remove_if(wind.begin(), wind.end(),
 				  [&](const path &p) {
-		if (!pred(p))
+		if (!ContainsFailedLink(p, u, v))
 		{
 			return false;
 		}
@@ -98,16 +96,6 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::RemoveMatchin
 	return removed;
 }
 
-template <class RA>
-std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(std::pair<int, int> link_notif)
-{
-	auto [u, v] = link_notif;
-
-	return RemoveMatching([u, v](const path &p) {
-		return ContainsFailedLink(p, u, v);
-	});
-}
-
 // ---------------------------------------------------------------------------- *
 //
 // Attribute comparison
@@ -115,7 +103,7 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(
 // ---------------------------------------------------------------------------- *
 
 template <class RA>
-std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetAttr(const path &c)
+std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind(const path &c)
 {
 	// reject empty paths
 	if (c.isInvalid())
@@ -128,7 +116,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 	const int n = candidate.getSeqNum();
 
 	// reject anything already outside the window
-	if (n < R - static_cast<int>(W))
+	if (n < R - W)
 	{
 		return std::nullopt;
 	}
@@ -164,13 +152,13 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareSetA
 			   wind.end());
 	}
 
-	UpdateBestAttr();
+	UpdateOpt();
 
 	return c;
 }
 
 template <class RA>
-bool SequenceWindow<RA>::UpdateBestAttr()
+bool SequenceWindow<RA>::UpdateOpt()
 {
 	std::vector<path> new_opt{};
 
@@ -180,14 +168,14 @@ bool SequenceWindow<RA>::UpdateBestAttr()
 
 	if (!wind.empty())
 	{
-		BaseOrd base_ord;
+		typename RA::Base::Ord ord;
 
 		for (const auto &a : wind)
 		{
 			bool dom = false;
 			for (const auto &b : wind)
 			{
-				if (base_ord(a.attr.b, b.attr.b) == RoutingAlgebras::Comp::Worse)
+				if (ord(a.attr.b, b.attr.b) == RoutingAlgebras::Comp::Worse)
 				{
 					dom = true;
 					break;
@@ -205,5 +193,6 @@ bool SequenceWindow<RA>::UpdateBestAttr()
 
 	return changed;
 }
+
 } // namespace Protocol::Rpbob
 #endif // SEQ_WINDOW_TPP

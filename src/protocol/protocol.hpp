@@ -48,7 +48,9 @@ struct IProtocol
 			auto &[delay, active, attr] = edge;
 
 			if (!active)
+			{
 				continue;
+			}
 
 			double arrival = ScheduleTime(delay, r, t);
 
@@ -63,17 +65,17 @@ struct IProtocol
 	static constexpr double                   e = 0.01;
 	std::unordered_map<std::uint64_t, double> prev_time;
 
-	static std::uint64_t link_key(int from, int to)
+	static std::uint64_t link_key(const int from, const int to)
 	{
 		return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(from)) << 32) |
 		       static_cast<std::uint32_t>(to);
 	}
 
-	double ScheduleTime(double delay, int u, int v)
+	double ScheduleTime(const double delay, const int u, const int v)
 	{
 		double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
 
-		auto key            = link_key(v, u);
+		const auto key            = link_key(v, u);
 		auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
 		if (arrival <= it->second)
 		{

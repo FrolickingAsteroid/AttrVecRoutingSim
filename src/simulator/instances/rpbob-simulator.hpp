@@ -6,22 +6,18 @@
 
 #include "core/config.hpp"
 #include "protocol/rpbob/rpbob.hpp"
-#include "protocol/rpbob/state/path-segment.hpp"
+#include "protocol/rpbob/state/rpbob-attribute.hpp"
 #include "simulator/simulator-common.hpp"
 #include "utils/helpers/helpers.hpp"
 
 namespace Simulator
 {
 template <class RA>
-class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol::Rpbob::Path<RA>>
+class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protocol::Rpbob::RPBOBAttribute<RA>>
 {
-	using Path = Protocol::Rpbob::Path<RA>;
-
-	using bAttr = RA::BaseAttr;
-	using bExt  = RA::BaseExt;
-	using bOrd  = RA::BaseOrd;
-
-	using Base = SimulationCommon<bAttr, Path>;
+	using RPBOBAttribute = Protocol::Rpbob::RPBOBAttribute<RA>;
+	using bAttr          = RA::Base::Attr;
+	using Base           = SimulationCommon<bAttr, RPBOBAttribute>;
 
     public:
 	using Base::Base;
@@ -31,26 +27,32 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
-			wind           = utils::helpers::ComputeWindu<bAttr>(*this->cfg.period, time);
 
-			// conv_time = ConvergenceTime(time);
+			if (!this->cfg.notif)
+			{
+				wind = utils::helpers::ComputeWindu<bAttr>(*this->cfg.period, time);
+			}
 
-			if (this->cfg.scenario == config::ScenarioType::Normal)
+			if (this->cfg.scenario == config::Type::Normal)
 			{
 				convergence_attr[t] = std::move(o);
 				this->recorder.recordDest(t, proto(t));
 			}
-			if (this->cfg.scenario == config::ScenarioType::LinkFailure)
+			if (this->cfg.scenario == config::Type::LinkFailure)
 			{
 				for (const auto &[u, v] : this->bid_links)
 				{
-
 					this->graph.deactivate(u, v);
 					auto [opt_time, opt] = delayDijkstra(t);
-					utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
 					this->graph.activate(u, v);
 
 					convergence_attr[t] = std::move(opt);
+
+					if (!this->cfg.notif)
+					{
+						utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
+					}
+
 					this->recorder.recordDest(t, proto(t, u, v), std::make_pair(u, v));
 					this->graph.activate(u, v);
 				}
@@ -61,7 +63,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
     private:
 	double conv_time = 0.0;
 
-	std::vector<std::size_t>                       wind;
+	std::vector<int>                               wind{};
 	std::map<int, std::vector<std::vector<bAttr>>> convergence_attr;
 
 	auto delayDijkstra(const int t)
@@ -83,18 +85,16 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 	void SetupConv(Protocol::Rpbob::RPBOB<RA> &proto, int t)
 	{
 		proto.converged = [this, &proto, t]() {
-			if (proto.cal.now() > 20)
-				int a = 1;
 			for (int i = 0; i < this->graph.V; ++i)
 			{
 				if (i == t)
 				{
 					continue;
 				}
-				bool ok = Protocol::Rpbob::CompareOpt(proto.s[i].GetBestAttr(), convergence_attr[t][i]);
+				bool ok = Protocol::Rpbob::CompareOpt(proto.s[i].GetOpt(), convergence_attr[t][i]);
 				if (!ok)
 				{
-					return; // 45 still has its old opt val
+					return;
 				}
 			}
 			if (!this->cfg.max.has_value() || this->cfg.max.value() == 0)
@@ -104,7 +104,8 @@ class RpBOBSimulation : public SimulationCommon<typename RA::BaseAttr, Protocol:
 		};
 	}
 
-	utils::stats::Data<Path> proto(int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt)
+	utils::stats::Data<RPBOBAttribute> proto(int t, std::optional<int> u = std::nullopt,
+						 std::optional<int> v = std::nullopt)
 	{
 		Protocol::Rpbob::RPBOB<RA> proto(this->graph, wind, this->cfg.notif);
 		SetupConv(proto, t);

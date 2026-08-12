@@ -44,7 +44,7 @@ int ParseDest(const std::string &s);
 //
 // ---------------------------------------------------------------------------- *
 
-inline std::string ScenarioName(ScenarioType m)
+inline std::string ScenarioName(Type m)
 {
 	switch (m)
 	{

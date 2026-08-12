@@ -59,7 +59,7 @@ struct Path
 		return path[i];
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const Path<Node> &p)
+	friend std::ostream &operator<<(std::ostream &os, const Path &p)
 	{
 		os << "[";
 		for (size_t i = 0; i < p.path.size(); ++i)

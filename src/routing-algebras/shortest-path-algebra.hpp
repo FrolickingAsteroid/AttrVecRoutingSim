@@ -9,21 +9,17 @@ namespace RoutingAlgebras
 {
 struct ShortestPath
 {
-	using BaseAttr = L;
-	using BaseExt  = ADD;
-	using BaseOrd  = LEQ;
-
-	using Attr = BaseAttr;
-	using Ext  = BaseExt;
-	using Ord  = BaseOrd;
+	using Attr = L;
+	using Ext  = ADD;
+	using Ord  = LEQ;
 
 	static Attr Neutral()
 	{
-		return BaseOrd::neutral;
+		return Ord::neutral;
 	}
 	static Attr Null()
 	{
-		return BaseOrd::null;
+		return Ord::null;
 	}
 };
 

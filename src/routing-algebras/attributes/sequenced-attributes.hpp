@@ -11,15 +11,9 @@ struct SeqAttr
 
 	SeqAttr() = default;
 
-	SeqAttr(A a_)
-	    : b(a_)
-	{
-	}
-
-
-	// forwards extra arguments straight into A's constructor
+	// forwards extra arguments into A's constructor
 	template <class... Args>
-	SeqAttr(const int n_, Args &&...args)
+	SeqAttr(const int n_ = 0, Args &&...args)
 	    : a(n_)
 	    , b(std::forward<Args>(args)...)
 	{
@@ -56,12 +50,12 @@ struct SeqAttr
 		return b.empty();
 	}
 
-	bool operator==(const SeqAttr<A> &other) const
+	bool operator==(const SeqAttr &other) const
 	{
 		return a == other.a && b == other.b;
 	}
 
-	bool operator!=(const SeqAttr<A> &other) const
+	bool operator!=(const SeqAttr &other) const
 	{
 		return !(*this == other);
 	}

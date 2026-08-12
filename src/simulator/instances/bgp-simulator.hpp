@@ -28,11 +28,11 @@ class BGPSimulation
 	{
 		for (int t : this->targets)
 		{
-			if (this->cfg.scenario == config::ScenarioType::Normal)
+			if (this->cfg.scenario == config::Type::Normal)
 			{
 				this->recorder.recordDest(t, proto(t));
 			}
-			else if (this->cfg.scenario == config::ScenarioType::LinkFailure)
+			else if (this->cfg.scenario == config::Type::LinkFailure)
 			{
 				for (const auto &[u, v] : this->bid_links)
 				{
