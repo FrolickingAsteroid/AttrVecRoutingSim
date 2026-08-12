@@ -12,7 +12,7 @@ template <class BaseAlgebra>
 struct Sequenced
 {
 	// Version numbers encapsulate a base algebra, which can either be primitive (ex.: shortest paths)
-	// or composite (ex.: Widest-shortest path).
+	// or composite (ex.: widest-shortest path).
 	using Base = BaseAlgebra;
 
 	using Attr = SeqAttr<typename Base::Attr>;
