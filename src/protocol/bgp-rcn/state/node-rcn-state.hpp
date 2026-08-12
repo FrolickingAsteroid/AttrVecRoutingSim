@@ -7,11 +7,11 @@
 
 namespace Protocol::RCN
 {
-template <class A, class Ext, class Ord>
-struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>
+template <class RA>
+struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<RA>>
 {
-	using attr = RCNAttribute<A, Ext, Ord>;
-	using base = BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>;
+	using attr = RCNAttribute<RA>;
+	using base = BGP::BGPNodeState<RCNAttribute<RA>>;
 
 	int                          t = 0;
 	std::unordered_map<int, int> seq_num;
@@ -25,7 +25,7 @@ struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>
 		return base::GetElected();
 	}
 
-	bool UpdateSeqTable(const RCNMsg<A, Ext, Ord> &learned)
+	bool UpdateSeqTable(const RCNMsg<RA> &learned)
 	{
 		// x in update.r.aspath, update.r.ts(x) > seqnum(v,x)
 		for (const auto &[x, ts_x] : learned.route.ts)
@@ -52,7 +52,7 @@ struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>
 			{
 				seq_num[x] = ts_x;
 			}
-			if (x == BGP::BGPNodeState<RCNAttribute<A, Ext, Ord>>::succ)
+			if (x == BGP::BGPNodeState<RCNAttribute<RA>>::succ)
 			{
 				++t;
 			}

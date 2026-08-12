@@ -152,14 +152,16 @@ inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig c
 	    case HOPS:
 		return RCNSimulation<SP>(cfg);
 	}
-    } else if (cfg.protocol == BGP) {
-	switch (cfg.algebra) {
-	    case LENGTHS:
-	    case HOPS:
-		return BGPSimulation<SP>(cfg);
+}*/
+	else if (cfg.protocol == BGP)
+	{
+		switch (cfg.algebra)
+		{
+		case LENGTHS:
+		case HOPS:
+			return BGPSimulation<SP>(cfg);
+		}
 	}
-    }
-    */
 	throw std::runtime_error("unknown protocol");
 }
 } // namespace config

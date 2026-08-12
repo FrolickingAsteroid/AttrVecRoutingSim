@@ -10,25 +10,22 @@
 namespace Protocol::BGP
 {
 template <class RA>
-struct BGP : IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>
+struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 {
 
-	using A   = RA::BaseAttr;
-	using Ext = RA::Ext;
-	using Ord = RA::Ord;
+	using BGPAttr= BGPAttribute<RA>;
 
-	using attr = BGPAttribute<A, Ext, Ord>;
-
-	using Base = IProtocol<A, attr>;
+	using Base = IProtocol<typename RA::Attr, BGPAttr>;
 
 	using Base::cal;
 	using Base::data;
 	using Base::graph;
 
-	using node_state = BGPNodeState<attr>;
+	using node_state = BGPNodeState<BGPAttr>;
+
 	std::vector<node_state> s;
 
-	explicit BGP(Graph<A> &graph_)
+	explicit BGP(Graph<typename RA::Attr> &graph_)
 	    : Base(graph_)
 	    , s(graph_.V, node_state())
 	{
@@ -40,12 +37,9 @@ struct BGP : IProtocol<typename RA::BaseAttr, BGPAttribute<typename RA::BaseAttr
 
 	void NodeDown(int t);
 
-	void MsgReception(int u, int v, attr received) override;
+	void MsgReception(int u, int v, BGPAttr received) override;
 
 	void process() override;
-
-	std::function<bool(int)> nodeConverged = nullptr;
-	std::function<void()>    converged     = nullptr;
 };
 } // namespace Protocol::BGP
 

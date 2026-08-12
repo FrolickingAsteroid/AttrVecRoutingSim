@@ -9,17 +9,11 @@
 namespace Simulator
 {
 template <class RA>
-class BGPSimulation
-    : public SimulationCommon<typename RA::BaseAttr,
-			      Protocol::BGP::BGPAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>
+class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::BGPAttribute<RA>>
 {
-	using BaseAttr = RA::BaseAttr;
-	using BaseExt  = RA::Ext;
-	using BaseOrd  = RA::Ord;
+	using BGPAttribute = Protocol::BGP::BGPAttribute<RA>;
 
-	using BGPAttribute = Protocol::BGP::BGPAttribute<BaseAttr, BaseExt, BaseOrd>;
-
-	using Base = SimulationCommon<BaseAttr, BGPAttribute>;
+	using Base = SimulationCommon<typename RA::Attr, BGPAttribute>;
 
     public:
 	using Base::Base;

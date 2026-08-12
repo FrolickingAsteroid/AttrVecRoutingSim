@@ -126,7 +126,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	    {"failure",  optional_argument, nullptr,              'F'      },
 	    {"withdraw", required_argument, nullptr,              'W'      },
 	    {"rpbob",    optional_argument, nullptr,              'R'      },
-	    {"bgp",      no_argument,       (int *)&cfg.protocol, BGP      },
+	    {"bgp",      no_argument,       nullptr,              'G'      },
 	    {"rcn",      no_argument,       (int *)&cfg.protocol, RCN      },
 	    {"beacon",   no_argument,       (int *)&cfg.protocol, Beaconing},
 	    {"W",        no_argument,       (int *)&cfg.protocol, N        },
@@ -161,6 +161,9 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 					throw std::runtime_error("Unknown Option");
 				}
 			}
+			break;
+		case 'G':
+			cfg.protocol = BGP;
 			break;
 		case 'a':
 			cfg.algebra = ParseAlgebra(optarg);
@@ -221,7 +224,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			std::exit(0);
 		}
 	}
-	if (cfg.protocol)
+	if (cfg.network_file.empty())
 	{
 		throw std::runtime_error("must specify a network file");
 	}

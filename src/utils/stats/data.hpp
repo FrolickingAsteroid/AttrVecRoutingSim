@@ -37,6 +37,11 @@ struct Data
 		++msgCount[node];
 		++msgLog[time][node];
 	}
+	// opt value may either be a set or a single attribute
+	void recordChange(const int node, const double time, const R &value)
+	{
+		recordChange(node, time, std::vector<R>{value});
+	}
 
 	double offset = 0.0;
 	bool   log    = false;

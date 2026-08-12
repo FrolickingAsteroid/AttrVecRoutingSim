@@ -14,10 +14,10 @@ struct rcn
 	int ts;
 };
 
-template <class A, class Ext, class Ord>
+template <class RA>
 struct RCNMsg
 {
-	using attr = RCNAttribute<A, Ext, Ord>;
+	using attr = RCNAttribute<RA>;
 
 	attr               route;
 	std::optional<rcn> RCN;

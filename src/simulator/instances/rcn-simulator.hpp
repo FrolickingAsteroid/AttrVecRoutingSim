@@ -8,17 +8,10 @@
 namespace Simulator
 {
 template <class RA>
-class RCNSimulation
-    : public SimulationCommon<typename RA::BaseAttr,
-			      Protocol::RCN::RCNAttribute<typename RA::BaseAttr, typename RA::Ext, typename RA::Ord>>
+class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::RCNAttribute<RA>>
 {
-	using BaseAttr = RA::BaseAttr;
-	using BaseExt  = RA::Ext;
-	using BaseOrd  = RA::Ord;
-
-	using RCNAttribute = Protocol::RCN::RCNAttribute<BaseAttr, BaseExt, BaseOrd>;
-
-	using Base = SimulationCommon<BaseAttr, RCNAttribute>;
+	using RCNAttribute = Protocol::RCN::RCNAttribute<RA>;
+	using Base         = SimulationCommon<typename RA::Attr, RCNAttribute>;
 
     public:
 	using Base::Base;

@@ -18,7 +18,7 @@ struct EqPathLex
 	using Ord  = LexicographicOrder<typename Base::Ord, PathEquality<Node>>;
 
 	// P is either a full path or a single node, defaults to an empty vector
-	// for now, overload, there are no variadic functions with default values
+	// for now, overload, there are no variadic functions with default values, only workarounds
 	template <class... Args>
 	static Attr Neutral(Args &&...args)
 	{

@@ -15,16 +15,16 @@ void BGP<RA>::process()
 		auto best = s[u].GetElected();
 
 		// skip nodes that have yet to receive an estimate toward t
-		if (best.attribute == Ord::Null() && it == data.finalValue.end())
+		if (best.attribute == RA::Null() && it == data.finalValue.end())
 		{
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best != it->second)
+		if (it == data.finalValue.end() || best != it->second.front())
 		{
 			// A msg is sent each time the estimate to the destination changes
 			this->Send(u, s[u].GetElected());
-			data.recordChange(u, cal.now(), best);
+			data.recordChange(u, cal.now(), best); // to be revised
 		}
 	}
 }
@@ -83,13 +83,13 @@ void BGP<RA>::DestinationAnnouncement(int t)
 }
 
 template <class RA>
-void BGP<RA>::MsgReception(int u, int v, attr received)
+void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 {
 	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
 		return;
 
-	attr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
-	attr extended = lw + received;
+	BGPAttr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
+	BGPAttr extended = lw + received;
 	s[u].UpdateNeighbor(v, extended);
 	s[u].ProcessBest(v);
 }

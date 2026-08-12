@@ -19,7 +19,7 @@ struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
 {
 	// Type Aliases
 	using RpbobAttr    = RPBOBAttribute<RA>;
-	using Notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv), needs to be a subtype of RPBOBAttr
+	using Notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv), should be a subtype of RPBOBAttr
 	using Msg          = std::variant<RpbobAttr, Notification>;
 
 	using Base = IProtocol<typename RA::Base::Attr, RpbobAttr, Msg>;
@@ -64,6 +64,7 @@ struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
 	// Callbacks
 	std::function<void()> converged = nullptr;
 
+	// flag for failure notification
 	bool cn = false;
 };
 } // namespace Protocol::Rpbob
