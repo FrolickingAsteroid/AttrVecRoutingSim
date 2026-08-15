@@ -32,7 +32,7 @@ struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
 	std::vector<SequenceWindow<RA>> s;
 
 	// Constructors
-	explicit RPBOB(Graph<typename RA::Base::Attr> &graph_, const std::vector<int> &Ws_, const bool cn_)
+	explicit RPBOB(Graphs::Graph<typename RA::Base::Attr> &graph_, const std::vector<int> &Ws_, const bool cn_)
 	    : Base(graph_)
 	    , cn(cn_)
 	{

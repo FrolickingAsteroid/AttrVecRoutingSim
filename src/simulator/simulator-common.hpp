@@ -22,7 +22,7 @@ inline std::vector<int> buildTargets(const config::SimulationConfig &cfg, const 
 }
 
 template <class Attr>
-std::vector<std::pair<int, int>> buildBidLinks(const config::SimulationConfig &cfg, Graph<Attr> &graph)
+std::vector<std::pair<int, int>> buildBidLinks(const config::SimulationConfig &cfg, Graphs::Graph<Attr> &graph)
 {
 	if (cfg.u != -1 && cfg.v != -1)
 	{
@@ -38,7 +38,7 @@ class SimulationCommon : public ISimulation
     public:
 	SimulationCommon(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map, std::string tag)
 	    : cfg(cfg_)
-	    , graph(Graph<Attr>::readGraph(cfg.network_file))
+	    , graph(Graphs::Graph<Attr>::readGraph(cfg.network_file))
 	    , recorder(cfg.network_file, tag, map)
 	{
 	}
@@ -54,10 +54,23 @@ class SimulationCommon : public ISimulation
 		return recorder.Summary(graph.V);
 	}
 
+	void Progress(const int t) const
+	{
+		const auto dest = static_cast<size_t>(t) + 1;
+		if (this->targets.size() == 1)
+		{
+			utils::ui::printProgressBar(dest, dest);
+		}
+		else
+		{
+			utils::ui::printProgressBar(dest, targets.size());
+		}
+	}
+
     protected:
 	config::SimulationConfig &cfg;
 
-	Graph<Attr>                       graph;
+	Graphs::Graph<Attr>               graph;
 	std::vector<int>                  targets;
 	utils::stats::Recorder<RecordedT> recorder;
 	std::vector<std::pair<int, int>>  bid_links;

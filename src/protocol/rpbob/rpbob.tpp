@@ -21,7 +21,7 @@ void RPBOB<RA>::process()
 			continue;
 		}
 
-		if (it == data.finalValue.end() || !CompareOpt(opt, it->second))
+		if (it == data.finalValue.end() || !utils::helpers::CompareOpt<RpbobAttr>(opt, it->second))
 		{
 			data.recordChange(u, cal.now(), opt);
 		}
@@ -106,13 +106,21 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 template <class RA>
 void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 {
-	if (!graph.edgeState(u, v) || s[u].ContainsFailedLink(p))
+	if (!graph.edgeState(v, u) || s[u].ContainsFailedLink(p))
 	{
 		return;
 	}
 
 	typename RA::Attr edgeAttr(0, graph.edgeWeight(u, v), u); // (0, l_attr, u)
 	auto              extended = p + edgeAttr;                // (n, l_attr (ext) r_attr, uP)
+
+	if ((u == 31 && data.log == true))
+	{
+		LOG_DEBUG << p;
+		LOG_DEBUG << s[u];
+		LOG_DEBUG << "change count: " << data.changeCounts.at(u);
+		LOG_DEBUG << cal.now() << "\n";
+	}
 
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
 

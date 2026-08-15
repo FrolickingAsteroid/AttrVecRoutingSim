@@ -17,6 +17,46 @@ using namespace utils::ui;
 namespace utils::helpers
 {
 
+template <class Msg>
+bool CompareOpt(const std::vector<Msg> &l, const std::vector<Msg> &r)
+{
+	if (l.size() != r.size())
+	{
+		return false;
+	}
+	for (const auto &l_ : l)
+	{
+		bool found = std::any_of(r.begin(), r.end(), [&](const Msg &r_) {
+			return l_.attr.b == r_.attr.b;
+		});
+		if (!found)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+template <class Msg, class A>
+bool CompareOpt(const std::vector<Msg> &l, const std::vector<A> &r)
+{
+	if (l.size() != r.size())
+	{
+		return false;
+	}
+	for (const auto &l_ : l)
+	{
+		bool found = std::any_of(r.begin(), r.end(), [&](const A &r_) {
+			return l_.attr.b == r_;
+		});
+		if (!found)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 template <class A>
 std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
@@ -64,9 +104,9 @@ double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &op
 template <class RA>
 std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
 	  std::vector<std::vector<typename RA::Base::Attr>>>
-DelayDijkstra(const Graph<typename RA::Base::Attr> &graph, int dest)
+DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 {
-	using A = RA::Base::Attr;
+	using A = RA::Base::Attr; // this access needs to be different...
 
 	typename RA::Base::Ord ord;
 	typename RA::Base::Ext ext;
@@ -146,7 +186,7 @@ DelayDijkstra(const Graph<typename RA::Base::Attr> &graph, int dest)
 template <class A, class Ord, class Ext>
 void Compute_N(const std::string &filename, double Delta)
 {
-	auto   graph = Graph<A>::readGraph(filename);
+	auto   graph = Graphs::Graph<A>::readGraph(filename);
 	double D     = 0.0;
 
 	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (" + std::to_string(graph.V) +

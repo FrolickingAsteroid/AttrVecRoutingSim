@@ -67,7 +67,7 @@ struct SeqAttr
 
 	friend std::ostream &operator<<(std::ostream &os, const SeqAttr &a)
 	{
-		os << "(" << a.a << ", " << a.b << ")";
+		os << "(" << a.a << " " << a.b << ")";
 		return os;
 	}
 };

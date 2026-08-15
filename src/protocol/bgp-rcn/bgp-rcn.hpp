@@ -14,14 +14,10 @@ namespace Protocol::RCN
 template <class RA>
 struct RCN : IProtocol<typename RA::Attr, RCNAttribute<RA>, RCNMsg<RA>>
 {
-	using A   = RA::BaseAttr;
-	using Ext = RA::Ext;
-	using Ord = RA::Ord;
 
-	using attr = RCNAttribute<RA>;
-	using Msg  = RCNMsg<RA>;
-
-	using Base = IProtocol<A, attr, Msg>;
+	using RCNAttr = RCNAttribute<RA>;
+	using Msg     = RCNMsg<RA>;
+	using Base    = IProtocol<typename RA::Attr, RCNAttr, Msg>;
 
 	using Base::cal;
 	using Base::data;
@@ -30,7 +26,7 @@ struct RCN : IProtocol<typename RA::Attr, RCNAttribute<RA>, RCNMsg<RA>>
 	using node_state = RCNNodeState<RA>;
 	std::vector<node_state> s;
 
-	explicit RCN(Graphs::Graph<A> &graph_)
+	explicit RCN(Graphs::Graph<typename RA::Attr> &graph_)
 	    : Base(graph_)
 	    , s(graph_.V, node_state())
 	{

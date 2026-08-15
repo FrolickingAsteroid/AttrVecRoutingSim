@@ -10,7 +10,7 @@ namespace RoutingAlgebras
 struct ShortestPath
 {
 	using Attr = L;
-	using Ext  = ADD;
+	using Ext  = Addition<Attr>;
 	using Ord  = LEQ;
 
 	static Attr Neutral()

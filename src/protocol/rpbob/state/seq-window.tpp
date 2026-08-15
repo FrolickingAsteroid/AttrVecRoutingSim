@@ -5,6 +5,7 @@
 
 #include "protocol/rpbob/state/seq-window.hpp"
 #include "routing-algebras/orders/comparison-vocab.hpp"
+#include "utils/helpers/helpers.hpp"
 
 namespace Protocol::Rpbob
 {
@@ -105,7 +106,7 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(
 template <class RA>
 std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind(const path &c)
 {
-	// reject empty paths
+	// reject empty paths (paths that are not simple paths)
 	if (c.isInvalid())
 	{
 		return std::nullopt;
@@ -147,7 +148,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind
 		R = n;
 		wind.erase(std::remove_if(wind.begin(), wind.end(),
 					  [&](const path &p) {
-			return p.attr.a < R - static_cast<int>(W);
+			return p.attr.a < R - W;
 		}),
 			   wind.end());
 	}
@@ -188,7 +189,7 @@ bool SequenceWindow<RA>::UpdateOpt()
 		}
 	}
 
-	auto changed = CompareOpt(new_opt, opt);
+	auto changed = utils::helpers::CompareOpt<path>(new_opt, opt);
 	opt          = new_opt;
 
 	return changed;

@@ -70,4 +70,4 @@ class LogLine
 #define LOG_INFO utils::ui::LogLine(utils::ui::LogLevel::Info)
 #define LOG_WARNING utils::ui::LogLine(utils::ui::LogLevel::Warning)
 
-#endif // LOGGER_H
+#endif

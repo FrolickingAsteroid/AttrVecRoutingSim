@@ -6,22 +6,29 @@
 
 namespace Protocol::Beaconing
 {
-template <class A>
+template <class RA>
 struct Beacon
 {
-	A                attribute;
-	std::vector<int> path;
+	using A   = RA::Attr;
+	using Ext = RA::Ext;
+	using Ord = RA::Ord;
+
+	A      attr; // (attr, path)
+	double timeout;
 
 	static constexpr double expiration = 1000000000; //(no idea)
 
-	double timeout;
-
 	Beacon() = default;
 
-	Beacon(int e, A a)
-	    : attribute(a)
+	Beacon(A attr_)
+	    : attr(std::move(attr_))
 	{
-		addAsEntry(e);
+	}
+
+	Beacon(A attr_, const double time)
+	    : attr(std::move(attr_))
+	{
+		this->setTimeout(time);
 	}
 
 	bool expired(const double now) const
@@ -34,24 +41,20 @@ struct Beacon
 		timeout = time + expiration;
 	}
 
-	void addAsEntry(const int &entry)
+	bool isInvalid() const
 	{
-		path.insert(path.begin(), entry);
+		auto p = attr.getAttr().getPath();
+		return p.empty();
 	}
 
 	A getAttr()
 	{
-		return attribute;
-	}
-
-	void addAttr(const A &attr)
-	{
-		attribute = attr;
+		return attr;
 	}
 
 	bool operator==(const Beacon<A> &other) const
 	{
-		return attribute == other.attribute && path == other.path;
+		return attr == other.attr;
 	}
 
 	bool operator!=(const Beacon<A> &other) const
@@ -59,16 +62,29 @@ struct Beacon
 		return !(*this == other);
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const Beacon<A> &b)
+	friend Beacon operator+(const Beacon &p, const A &link)
 	{
-		auto old_flags     = os.flags();
-		auto old_precision = os.precision();
+		Ext ext;
 
-		os << "(" << std::fixed << std::setprecision(2) << b.timeout << "; " << b.attribute << ")";
+		auto extended = ext(p.getAttr(), link);
 
-		os.flags(old_flags);
-		os.precision(old_precision);
+		return Beacon(extended);
+	}
 
+	friend std::ostream &operator<<(std::ostream &os, const Beacon &p)
+	{
+		return os << p.attr;
+	}
+
+	friend std::ostream &operator<<(std::ostream &os, const std::vector<Beacon> &v)
+	{
+
+		for (std::size_t i = 0; i < v.size(); ++i)
+		{
+			os << v[i];
+			if (i + 1 < v.size())
+				os << "; ";
+		}
 		return os;
 	}
 };

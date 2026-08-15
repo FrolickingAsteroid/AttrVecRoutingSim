@@ -127,7 +127,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	    {"withdraw", required_argument, nullptr,              'W'      },
 	    {"rpbob",    optional_argument, nullptr,              'R'      },
 	    {"bgp",      no_argument,       nullptr,              'G'      },
-	    {"rcn",      no_argument,       (int *)&cfg.protocol, RCN      },
+	    {"rcn",      no_argument,       nullptr,              'C'      },
 	    {"beacon",   no_argument,       (int *)&cfg.protocol, Beaconing},
 	    {"W",        no_argument,       (int *)&cfg.protocol, N        },
 	    {"verbose",  no_argument,       nullptr,              'V'      },
@@ -164,6 +164,9 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			break;
 		case 'G':
 			cfg.protocol = BGP;
+			break;
+		case 'C':
+			cfg.protocol = RCN;
 			break;
 		case 'a':
 			cfg.algebra = ParseAlgebra(optarg);

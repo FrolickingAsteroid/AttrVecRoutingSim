@@ -7,12 +7,13 @@
 
 namespace RoutingAlgebras
 {
-typedef struct GreaterThanOrEqual
+template <class A>
+struct GreaterThanOrEqual
 {
 	static constexpr int null    = INT_MAX;
 	static constexpr int neutral = 0;
 
-	Comp operator()(const int l, const int r) const
+	Comp operator()(const A l, const A r) const
 	{
 		if (l > r)
 		{
@@ -24,7 +25,7 @@ typedef struct GreaterThanOrEqual
 		}
 		return Comp::Worse;
 	}
-} GEQ;
+};
 } // namespace RoutingAlgebras
 
 #endif

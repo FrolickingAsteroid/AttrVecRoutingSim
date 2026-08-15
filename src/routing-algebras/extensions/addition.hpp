@@ -3,13 +3,14 @@
 
 namespace RoutingAlgebras
 {
-typedef struct Addition
+template <class A>
+struct Addition
 {
-	int operator()(const int &l, const int &r) const
+	A operator()(const A &l, const A &r) const
 	{
 		return l + r;
 	}
-} ADD;
+};
 } // namespace RoutingAlgebras
 
 #endif

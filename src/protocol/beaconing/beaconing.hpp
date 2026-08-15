@@ -8,35 +8,35 @@
 namespace Protocol::Beaconing
 {
 template <class RA>
-struct BECING : IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>
+struct BEACONING : IProtocol<typename RA::Base::Attr, Beacon<RA>>
 {
-	using Base = IProtocol<typename RA::BaseAttr, Beacon<typename RA::BaseAttr>>;
+	using Base = IProtocol<typename RA::Base::Attr, Beacon<RA>>;
+
 	using Base::cal;
 	using Base::data;
 	using Base::graph;
 
-	using A   = RA::BaseAttr;
-	using Ord = RA::Ord;
-	using Ext = RA::Ext;
+	using Bcn = Beacon<RA>;
 
-	std::vector<BeaconStore<A, Ord>> s;
+	std::vector<BeaconStore<RA>> s;
 
-	explicit BECING(Graphs::Graph<A> &graph_)
+	explicit BEACONING(Graphs::Graph<typename RA::Base::Attr> &graph_)
 	    : Base(graph_)
-	    , s(graph_.V, BeaconStore<A, Ord>())
+	    , s(graph_.V, BeaconStore<RA>())
 	{
 	}
 
-	void DestinationAnnouncement(int t, int n, double period, int max);
-
-	void MsgReception(int u, int v, Beacon<A> beacon) override;
+	void DestinationAnnouncement(int t, int n, double period, std::optional<int> max);
 	void SchedulePropagation(int u, double d_prop, int max);
 	void Propagate(int u);
 
-	void LinkFailure(int u, int v) override
-	{
-		graph.deactivate(u, v);
-	}
+	void MsgReception(int u, int v, Bcn beacon) override;
+	void LinkFailure(int u, int v) override;
+
+	void process() override;
+
+	// Callbacks
+	std::function<void()> converged = nullptr;
 };
 } // namespace Protocol::Beaconing
 

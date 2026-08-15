@@ -5,37 +5,48 @@
 
 #include "beacon.hpp"
 
-namespace Protocol::Beaconing {
-    template<class A, class Ord>
-    struct BeaconStore {
-        static constexpr int CandidateSetSize = 100;
-        static constexpr int BestSetSize = 1;
+namespace Protocol::Beaconing
+{
+template <class RA>
+class BeaconStore
+{
+	static constexpr int CandidateSetSize = 100; // degault is 100
+	static constexpr int BestSetSize      = 1;   // default is 20
 
-        using beacon = Beacon<A>;
+	using beacon = Beacon<RA>;
+	using A      = RA::Attr;
+	using Ord    = RA::Ord;
 
-        std::vector<beacon> candidates;
-        beacon best_candidate;
+    public:
+	BeaconStore()
+	{
+	}
 
-        BeaconStore()
-            : best_candidate(beacon(-1, Ord::Null())) {
-        }
+	void SetOrigin(int t, double timeout_);
 
-        // Insertion seems to be unbounded
-        void Insert(beacon bea);
+	std::vector<beacon> GetBest() const;
 
-        // https://github.com/scionproto/scion/blob/master/control/beaconing/propagator.go#L110
-        bool IsEmpty();
+	// Insertion is unbounded. Every beacon is inserted into the beacon store, provided that the path they transport
+	// is a simple path
+	void Insert(beacon b);
 
-        void Remove(double now);
+	// https://github.com/scionproto/scion/blob/master/control/beaconing/propagator.go#L110
+	bool IsEmpty();
 
-        // https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L156
-        std::vector<beacon> BeaconsToPropagate(double now);
+	void Remove(double now);
 
-        // https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L131
+	// https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L156
+	std::vector<beacon> BeaconsToPropagate(double now);
 
-        // https://github.com/scionproto/scion/blob/master/control/beacon/selection_algo.go
-        std::vector<beacon> SelectBeacons();
-    };
+	// https://github.com/scionproto/scion/blob/master/control/beacon/store.go#L131
+
+	// https://github.com/scionproto/scion/blob/master/control/beacon/selection_algo.go
+	std::vector<beacon> SelectBeacons();
+
+    private:
+	std::vector<beacon> candidates;
+	std::vector<beacon> best_candidates;
+};
 } // namespace Protocol::Beaconing
 
 #include "store.tpp"

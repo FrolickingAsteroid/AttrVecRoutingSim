@@ -6,59 +6,92 @@
 
 #include "core/config.hpp"
 #include "protocol/beaconing/beaconing.hpp"
-#include "simulator/simulator.hpp"
-#include "utils/stats/csv-writer.hpp"
+#include "simulator/simulator-common.hpp"
+#include "utils/helpers/helpers.hpp"
 
-using namespace Protocol::Beaconing;
-using namespace Graphs;
+namespace Simulator
+{
+template <class RA>
+class BCNSimulation : public SimulationCommon<typename RA::Base::Attr, Protocol::Beaconing::Beacon<RA>>
+{
+	using Bcn   = Protocol::Beaconing::Beacon<RA>;
+	using bAttr = RA::Base::Attr;
+	using Base  = SimulationCommon<bAttr, Bcn>;
 
-namespace Simulator {
-    template<class RA>
-    class BECINGSimulation : public ISimulation {
     public:
-        BECINGSimulation(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map)
-            : cfg(cfg_)
-              , graph(Graph < typename RA::BaseAttr > ::readGraph(cfg.network_file))
-              , recorder(cfg.network_file, "rpbob", map) {
-        }
+	using Base::Base;
 
-        void setup() override {
-            if (cfg.destination < 0) {
-                targets.resize(graph.V);
-                std::iota(targets.begin(), targets.end(), 0);
-            } else {
-                targets = {cfg.destination};
-            }
-        }
-
-        void run() override {
-            for (int t: targets) {
-                BECING<RA> proto(graph);
-                proto.DestinationAnnouncement(t, 0, *cfg.period, *cfg.max);
-
-                // periodic propagation on every node,
-                // independent of destination announcement
-                for (int u = 0; u < graph.V; ++u) {
-                    proto.SchedulePropagation(u, *cfg.dprop, *cfg.max);
-                }
-
-                proto.Run();
-                recorder.recordDest(t, proto.data);
-            }
-        }
-
-        utils::stats::SummaryStats postProcess() override {
-            return recorder.Summary(graph.V);
-        }
+	void run() override
+	{
+		for (int t : this->targets)
+		{
+			auto [time, o] = utils::helpers::DelayDijkstra<RA>(this->graph, t);
+			if (this->cfg.scenario == config::Type::Normal)
+			{
+				convergence_attr[t] = std::move(o);
+				this->recorder.recordDest(t, proto(t));
+			}
+		}
+	}
 
     private:
-        config::SimulationConfig &cfg;
-        Graph<typename RA::BaseAttr> graph;
-        utils::stats::Recorder<Beacon<typename RA::BaseAttr> > recorder;
+	double                                         convergence_time = 0;
+	std::map<int, std::vector<std::vector<bAttr>>> convergence_attr;
 
-        std::vector<int> targets;
-        double convergence_time = 0;
-    };
+	void SetupConv(Protocol::Beaconing::BEACONING<RA> &proto, int t)
+	{
+		proto.converged = [this, &proto, t]() {
+			for (int i = 0; i < this->graph.V; ++i)
+			{
+				if (i == t)
+				{
+					continue;
+				}
+				const bool ok =
+				    utils::helpers::CompareOpt<Bcn, bAttr>(proto.s[i].GetOpt(), convergence_attr[t][i]);
+
+				if (!ok)
+				{
+					return;
+				}
+			}
+			if (!this->cfg.max.has_value() || this->cfg.max.value() == 0)
+			{
+				proto.cal.clear();
+			}
+		};
+	}
+
+	utils::stats::Data<Bcn> proto(int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt)
+	{
+		Protocol::Beaconing::BEACONING<RA> proto(this->graph);
+		// SetupConv(proto, t);
+
+		proto.DestinationAnnouncement(t, 0, *this->cfg.period, this->cfg.max);
+
+		// periodic propagation on every node,
+		// independent of destination announcement
+		for (int x = 0; x < this->graph.V; ++x)
+		{
+			proto.SchedulePropagation(u, *this->cfg.dprop, *this->cfg.max);
+		}
+
+		if (u && v)
+		{
+			proto.cal.schedule(100, [&]() {
+				proto.LinkFailure(*u, *v);
+			});
+			proto.Run();
+		}
+		else
+		{
+			proto.data.log = true;
+			proto.Run();
+		}
+
+		return proto.data;
+	}
+};
 } // namespace Simulator
 
 #endif

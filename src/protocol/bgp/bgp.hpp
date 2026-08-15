@@ -25,7 +25,7 @@ struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 
 	std::vector<node_state> s;
 
-	explicit BGP(Graph<typename RA::Attr> &graph_)
+	explicit BGP(Graphs::Graph<typename RA::Attr> &graph_)
 	    : Base(graph_)
 	    , s(graph_.V, node_state())
 	{

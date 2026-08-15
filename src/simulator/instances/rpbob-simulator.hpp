@@ -57,6 +57,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 					this->graph.activate(u, v);
 				}
 			}
+			this->Progress(t);
 		}
 	}
 
@@ -91,7 +92,9 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 				{
 					continue;
 				}
-				bool ok = Protocol::Rpbob::CompareOpt(proto.s[i].GetOpt(), convergence_attr[t][i]);
+				const bool ok = utils::helpers::CompareOpt<RPBOBAttribute, bAttr>(
+				    proto.s[i].GetOpt(), convergence_attr[t][i]);
+
 				if (!ok)
 				{
 					return;

@@ -5,10 +5,34 @@
 #include <tabulate/tabulate.hpp>
 
 #include <cmath>
+#include <iostream>
 
 namespace utils::ui
 {
 
+inline void printProgressBar(std::size_t current, std::size_t total, int width = 40, const std::string &label = "")
+{
+	if (total == 0)
+	{
+		return;
+	}
+
+	double fraction = static_cast<double>(current) / static_cast<double>(total);
+	int    filled   = static_cast<int>(fraction * width);
+
+	std::printf("\r%s[", label.c_str());
+	for (int i = 0; i < width; ++i)
+	{
+		std::putchar(i < filled ? '#' : ' ');
+	}
+	std::printf("] %3d%% (destination: %zu/%zu)", static_cast<int>(fraction * 100), current - 1, total - 1);
+	std::fflush(stdout);
+
+	if (current == total)
+	{
+		std::putchar('\n'); // finish the line once complete
+	}
+}
 inline int terminalWidth()
 {
 	struct winsize w{};

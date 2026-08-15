@@ -17,7 +17,7 @@ struct Sequenced
 
 	using Attr = SeqAttr<typename Base::Attr>;
 	using Ext  = SeqExtension<typename Base::Attr, typename Base::Ext>;
-	using Ord  = ProductOrder<GEQ, typename Base::Ord>;
+	using Ord  = ProductOrder<GreaterThanOrEqual<int>, typename Base::Ord>;
 
 	template <class... Args>
 	static Attr Neutral(int n, Args &&...args)

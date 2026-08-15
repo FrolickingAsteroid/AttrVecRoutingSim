@@ -13,12 +13,12 @@ void RCN<RA>::process()
 		auto it   = data.finalValue.find(u);
 		auto best = s[u].GetElected();
 
-		if (best.attribute == Ord::Null())
+		if (best.attribute == RA::Null())
 		{
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best.attribute != it->second.attribute)
+		if (it == data.finalValue.end() || best != it->second.front())
 		{
 			data.recordChange(u, cal.now(), best);
 		}
@@ -89,8 +89,8 @@ void RCN<RA>::MsgReception(int u, int v, Msg received)
 
 	if (s[u].UpdateSeqTable(received))
 	{
-		attr lw(u, std::get<2>(graph.adjListOut[u].at(v)), s[u].t);
-		attr extended = lw + received.route;
+		RCNAttr lw(u, std::get<2>(graph.adjListOut[u].at(v)), s[u].t);
+		RCNAttr extended = lw + received.route;
 		s[u].UpdateNeighbor(v, extended);
 
 		if (s[u].ProcessBest(v))

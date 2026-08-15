@@ -69,6 +69,17 @@ struct RCNAttribute : BGP::BGPAttribute<RA>
 
 		return RCNAttribute(std::move(new_path), ext(link.attribute, a.attribute), std::move(new_ts));
 	}
+
+	friend std::ostream &operator<<(std::ostream &os, const std::vector<RCNAttribute> &v)
+	{
+		for (std::size_t i = 0; i < v.size(); ++i)
+		{
+			os << v[i];
+			if (i + 1 < v.size())
+				os << "; ";
+		}
+		return os;
+	}
 };
 } // namespace Protocol::RCN
 

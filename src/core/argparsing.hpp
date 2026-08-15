@@ -6,6 +6,8 @@
 #include <string>
 
 #include "core/config.hpp"
+#include "routing-algebras/orders/primitive/equality.hpp"
+#include "routing-algebras/orders/primitive/suffix-colex.hpp"
 #include "routing-algebras/pathed-algebra.hpp"
 #include "routing-algebras/sequenced-alegebra.hpp"
 #include "routing-algebras/shortest-path-algebra.hpp"
@@ -119,7 +121,7 @@ std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
 template <class RA>
 std::unique_ptr<Simulator::ISimulation> BeaconingSimulation(SimulationConfig &cfg)
 {
-	return std::make_unique<Simulator::BECINGSimulation<RA>>(cfg, BeaconingParams(cfg));
+	return std::make_unique<Simulator::BCNSimulation<RA>>(cfg, BeaconingParams(cfg));
 }
 
 template <class RA>
@@ -136,23 +138,25 @@ std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg)
 
 inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg)
 {
+
 	if (cfg.protocol == RPBOB)
 	{
 		switch (cfg.algebra)
 		{
 		case LENGTHS:
 		case HOPS:
-			return RPBOBSimulation<Sequenced<EqPathLex<SP>>>(cfg);
+			return RPBOBSimulation<Sequenced<PathLex<ShortestPath, SuffixOrder>>>(cfg);
 		}
 	}
-	/*
-    } else if (cfg.protocol == RCN) {
-	switch (cfg.algebra) {
-	    case LENGTHS:
-	    case HOPS:
-		return RCNSimulation<SP>(cfg);
+	else if (cfg.protocol == RCN)
+	{
+		switch (cfg.algebra)
+		{
+		case LENGTHS:
+		case HOPS:
+			return RCNSimulation<SP>(cfg);
+		}
 	}
-}*/
 	else if (cfg.protocol == BGP)
 	{
 		switch (cfg.algebra)
@@ -162,6 +166,15 @@ inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig c
 			return BGPSimulation<SP>(cfg);
 		}
 	}
+	// else if (cfg.protocol == Beaconing)
+	// {
+	// 	switch (cfg.algebra)
+	// 	{
+	// 	case LENGTHS:
+	// 	case HOPS:
+	// 		return BeaconingSimulation<EqPathLex<SP>>(cfg);
+	// 	}
+	// }
 	throw std::runtime_error("unknown protocol");
 }
 } // namespace config
