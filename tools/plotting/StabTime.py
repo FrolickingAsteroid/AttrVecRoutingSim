@@ -12,7 +12,7 @@ plt.rcParams.update({
     "font.size": 10,
 })
 
-File = "DelayLength"
+File = "DelayLength_equalDelay"
 Mode = "placeholder"
 Metric = "lengths"
 DATA_ROOT = "../../data/output/rocketfuel"
@@ -30,12 +30,12 @@ LABEL_RULES = [
 ]
 
 # Which protocol labels to plot. None = plot everything label_for() produces.
-SELECTED_PROTOCOLS = None
-#SELECTED_PROTOCOLS = ["RPBOB", "BGP"]
+#SELECTED_PROTOCOLS = None
+SELECTED_PROTOCOLS = ["RPBOB", "BGP"]
 
 # Which RPBOB periods to plot. None = plot every period found.
-SELECTED_PERIODS = None
-SELECTED_PERIODS = [15.0,1.0]
+#SELECTED_PERIODS = None
+SELECTED_PERIODS = [1.0]
 
 # Regex used to pull the period value out of an RPBOB filename.
 PERIOD_REGEX = re.compile(r"_period_([0-9]+(?:\.[0-9]+)?)_")

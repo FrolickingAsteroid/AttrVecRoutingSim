@@ -86,6 +86,10 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 	void SetupConv(Protocol::Rpbob::RPBOB<RA> &proto, int t)
 	{
 		proto.converged = [this, &proto, t]() {
+			if (!proto.data.log)
+			{
+				return;
+			}
 			for (int i = 0; i < this->graph.V; ++i)
 			{
 				if (i == t)
@@ -113,7 +117,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		Protocol::Rpbob::RPBOB<RA> proto(this->graph, wind, this->cfg.notif);
 		SetupConv(proto, t);
 
-		proto.DestinationAnnouncement(t, 0, *this->cfg.period, this->cfg.max);
+		proto.DestinationAnnouncement(t, 1, *this->cfg.period, this->cfg.max);
 
 		if (u && v)
 		{

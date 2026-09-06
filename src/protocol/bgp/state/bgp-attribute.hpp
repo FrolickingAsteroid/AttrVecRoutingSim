@@ -125,6 +125,15 @@ struct BGPAttribute
 
 		os << a.attribute;
 
+		os << " [";
+		for (size_t i = 0; i < a.as_path.size(); ++i)
+		{
+			os << a.as_path[i];
+			if (i + 1 < a.as_path.size())
+				os << " ";
+		}
+		os << "]";
+
 		os.flags(old_flags);
 		os.precision(old_precision);
 

@@ -114,15 +114,26 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 	typename RA::Attr edgeAttr(0, graph.edgeWeight(u, v), u); // (0, l_attr, u)
 	auto              extended = p + edgeAttr;                // (n, l_attr (ext) r_attr, uP)
 
-	if ((u == 31 && data.log == true))
+	if (u == 16)
 	{
-		LOG_DEBUG << p;
-		LOG_DEBUG << s[u];
-		LOG_DEBUG << "change count: " << data.changeCounts.at(u);
-		LOG_DEBUG << cal.now() << "\n";
+		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
 	}
 
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
+	if ((u == 16))
+	{
+		if (changed.has_value())
+		{
+			LOG_DEBUG << "Accepted";
+		}
+		else
+		{
+			LOG_DEBUG << "Dismissed";
+		}
+		LOG_DEBUG << s[u];
+		LOG_DEBUG << "change count: " << data.changeCounts.at(u) << "\n";
+	}
 
 	if (changed.has_value())
 	{
@@ -142,9 +153,9 @@ void RPBOB<RA>::DestinationAnnouncement(int t, int n, double period, std::option
 	this->Send(t, Msg{o});
 
 	n += 1;
-	double d = period * n;
+	double d = period * (n - 1);
 
-	const bool should_continue = max.has_value() ? (n < *max) : true;
+	const bool should_continue = max.has_value() ? (n <= *max) : true;
 
 	if (should_continue)
 	{

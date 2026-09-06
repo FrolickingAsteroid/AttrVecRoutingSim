@@ -85,13 +85,27 @@ void BGP<RA>::DestinationAnnouncement(int t)
 template <class RA>
 void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 {
-	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
+	if (!graph.edgeState(v, u))
+	{
 		return;
+	}
+
+	if ((data.log == true && u == 0))
+	{
+		LOG_DEBUG << "node:" << u;
+		LOG_DEBUG << "Time:" << cal.now();
+		LOG_DEBUG << "candidate from " << v << ": " << received;
+	}
 
 	BGPAttr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
 	BGPAttr extended = lw + received;
 	s[u].UpdateNeighbor(v, extended);
 	s[u].ProcessBest(v);
+
+	if (data.log == true && u == 0)
+	{
+		LOG_DEBUG << s[u] << "\n";
+	}
 }
 } // namespace Protocol::BGP
 #endif

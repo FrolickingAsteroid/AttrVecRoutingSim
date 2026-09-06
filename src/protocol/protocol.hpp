@@ -52,7 +52,8 @@ struct IProtocol
 				continue;
 			}
 
-			double arrival = ScheduleTime(delay, r, t);
+			double arrival = ScheduleTime(cal.now(), delay, r, t);
+			//double arrival = cal.now() + delay;
 
 			cal.schedule(arrival, [this, r, t, msg]() mutable {
 				this->MsgReception(r, t, msg);
@@ -71,11 +72,11 @@ struct IProtocol
 		       static_cast<std::uint32_t>(to);
 	}
 
-	double ScheduleTime(const double delay, const int u, const int v)
+	double ScheduleTime(const double curr_time, const double delay, const int u, const int v)
 	{
-		double arrival = cal.now() + rng_uniform(delay, 1.1 * delay);
+		double arrival = curr_time + rng_uniform(delay, 1.1 * delay);
 
-		const auto key            = link_key(v, u);
+		const auto key      = link_key(v, u);
 		auto [it, inserted] = prev_time.try_emplace(key, -std::numeric_limits<double>::infinity());
 		if (arrival <= it->second)
 		{

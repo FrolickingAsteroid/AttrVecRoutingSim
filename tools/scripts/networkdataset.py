@@ -33,7 +33,7 @@ def seed_rng(seed: int | None):
     _rng = np.random.default_rng(seed)
 
 
-def _unit_delay(u: int, v: int) -> int:
+def _unit_delay() -> int:
     return 1
 
 
@@ -62,17 +62,10 @@ def load_graph(AS: str, topdir: str) -> nx.DiGraph:
                        Length=int(float(aw[2])),
                        Delay=int(float(al[2])))
 
-    g = max((g.subgraph(c) for c in nx.biconnected_components(g)), key=len)
-    g = nx.convert_node_labels_to_integers(g)
+    components = list(nx.biconnected_components(g))
+    g = g.subgraph(max(components, key=lambda c: (len(c), sorted(c))))
+    g = nx.convert_node_labels_to_integers(g, ordering="sorted")
     return g.to_directed()
-
-
-def print_graph_info(g: nx.DiGraph, AS: str):
-    print(f"\n--- Network AS{AS} ---")
-    print(f"\tNodes:            {g.number_of_nodes()}")
-    print(f"\tEdges:            {g.number_of_edges()}")
-    print(f"\tDistinct lengths: {len(set(d for _, _, d in g.edges.data('Length')))}")
-    print(f"\tDistinct delays:  {len(set(d for _, _, d in g.edges.data('Delay')))}")
 
 
 _DATASET_SPECS = [
@@ -81,21 +74,31 @@ _DATASET_SPECS = [
 ]
 
 
-def write_datasets(graph: nx.DiGraph, AS: str, testdir: str):
+def write_datasets(graph: nx.DiGraph, AS: str, delay: str, testdir: str):
     out_dir = Path(testdir) / AS
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for prefix, desc, attrs in _DATASET_SPECS:
-        out_file = out_dir / f"{prefix}.tsv"
+        if delay == "real":
+            out_file = out_dir / f"{prefix}.tsv"
+        elif delay == "unit":
+            out_file = out_dir / f"{prefix}_unitDelay.tsv"
+        elif delay == "equal":
+            out_file = out_dir / f"{prefix}_equalDelay.tsv"
+
         print(f"\n\t+ Saving {desc} → '{out_file}'")
         with open(out_file, "w") as f:
             f.write(f"{graph.number_of_nodes()}\n")
             for u, v, data in graph.edges(data=True):
                 line = f"{u}\t{v}"
                 if "Delay" in attrs:
-                    delay = _uniform_delay(0.8 * data['Delay'], data['Delay'])
-                    #line += f"\t{delay:.6f}"
-                    line += f"\t{data['Delay']}"
+                    if delay == "real":
+                        line += f"\t{data['Delay']}"
+                    elif delay == "unit":
+                        line += "\t1"
+                    elif delay == "equal":
+                        line += f"\t{data['Length']}"
+
                 if "Hops" in attrs: line += "\t1"
                 if "Length" in attrs: line += f"\t{data['Length']}"
                 f.write(line + "\n")
@@ -121,12 +124,12 @@ def b_clique_network(
 
     def add(u, v, delay=None, length=None):
         if length is None:
-            length = 1 if is_hops else length_fn(u, v)
+            length = 1 if is_hops else length_fn()
         if delay is None:
             if mode == "equal":
                 delay = length
             else:
-                delay = delay_fn(u, v)
+                delay = delay_fn()
 
         g.add_edge(u, v, Delay=delay, Length=length)
         g.add_edge(v, u, Delay=delay, Length=length)
@@ -218,41 +221,66 @@ def triangle_network(max: int, triangledir: str):
 # CLI
 # ──────────────────────────────────────────────────────────────────────
 
+def print_graph_info(g: nx.DiGraph, AS: str):
+    V = g.number_of_nodes()
+    E = g.number_of_edges()
+    print(f"\n--- Network AS{AS} ---")
+    print(f"\tNodes:            {V}")
+    print(f"\tEdges:            {E}")
+    print(f"\tDistinct lengths: {len(set(d for _, _, d in g.edges.data('Length')))}")
+    print(f"\tDistinct delays:  {len(set(d for _, _, d in g.edges.data('Delay')))}")
+
+
 def cmd_info(g: nx.DiGraph, AS: str, **_):
     print_graph_info(g, AS)
+    V = g.number_of_nodes()
+    max_deg = 0
+    max_deg_node = 0
+    for node in range(V):
+        deg = g.degree[node]
+        if deg > max_deg:
+            max_deg = deg
+            max_deg_node = node
+
     u, v, max_d = max(g.edges(data="Delay"), key=lambda e: e[2])
     print(f"\n\tLargest edge delay: {max_d}  on ({u},{v})")
+    print(f"\tNode with maximum degree: {max_deg_node} with degree {max_deg}")
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="NetworkDataSets.py",
-        description="Topology toolkit")
+        prog="networkdataset.py",
+        description="Network builder tool")
 
-    p.add_argument("-a", "--as", dest="AS", default=DEFAULT_AS,
-                   help="AS number (default: %(default)s)")
-
-    p.add_argument("--topdir", dest="topdir", default=DEFAULT_TOPDIR)
-    p.add_argument("--cliquedir", dest="cliquedir", default=DEFAULT_CLIQUE_DIR)
-    p.add_argument("--triangledir", dest="triangledir", default=DEFAULT_TRIANGLE_DIR)
-    p.add_argument("--rocketdir", dest="rocketdir", default=DEFAULT_ROCKET_DIR)
+    p.add_argument("--topdir", dest="topdir", default=DEFAULT_TOPDIR, help="default: %(default)s")
+    p.add_argument("--rocketdir", dest="rocketdir", default=DEFAULT_ROCKET_DIR, help="default: %(default)s")
+    p.add_argument("--cliquedir", dest="cliquedir", default=DEFAULT_CLIQUE_DIR, help="default: %(default)s")
+    p.add_argument("--triangledir", dest="triangledir", default=DEFAULT_TRIANGLE_DIR, help="default: %(default)s")
 
     p.add_argument("--seed", type=int, default=None,
-                   help="RNG seed for reproducible delay/length sampling "
+                   help="RNG seed for reproducible delay/length "
                         "(default: unseeded, different every run)")
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("build", help="write TSV dataset files for a Rocketfuel AS")
-    sub.add_parser("info", help="print graph statistics for a Rocketfuel AS")
+    # Rocketfuel
+    ro = sub.add_parser("rocketfuel", help="generate a Rocketfuel Topology")
+    ro.add_argument("--AS", default=DEFAULT_AS,
+                    help=f"AS number for the Rocketfuel topology (default: {DEFAULT_AS})")
+    ro.add_argument("--mode", choices=["unit", "real", "equal"], default="real", help="")
 
-    bc = sub.add_parser("bclique", help="generate a B-Clique synthetic topology")
+    ro_sub = ro.add_subparsers(dest="rocketfuel_cmd", required=True)
+    ro_sub.add_parser("build", help="write TSV dataset files for a Rocketfuel AS")
+    ro_sub.add_parser("info", help="print graph information for a Rocketfuel AS")
+
+    # Bclique
+    bc = sub.add_parser("bclique", help="write TSV dataset files for a B-Clique synthetic topology")
     bc.add_argument("-n", type=int, default=4, help="B-Clique size")
-
     bc.add_argument("--mode", choices=["unit", "equal", "uniform"], default="equal",
                     help="delay/length distribution (default: unit)")
 
-    tri = sub.add_parser("triangle", help="print a triangle network to stdout")
+    # Sequence Triangles
+    tri = sub.add_parser("triangle", help="write TSV dataset files for a triangle synthetic topology")
     tri.add_argument("-n", type=int, default=6, help="triangle size parameter (default: 6)")
 
     return p
@@ -270,13 +298,13 @@ def main():
         triangle_network(args.n, args.triangledir)
 
     else:
-        # Rocketfuel commands need a graph loaded
+        # Rocketfuel dataset commands
         g = load_graph(args.AS, args.topdir)
         dispatch = {
-            "build": lambda: write_datasets(g, args.AS, args.rocketdir),
+            "build": lambda: write_datasets(g, args.AS, args.mode, args.rocketdir),
             "info": lambda: cmd_info(g, args.AS),
         }
-        dispatch[args.cmd]()
+        dispatch[args.rocketfuel_cmd]()
 
 
 if __name__ == "__main__":

@@ -12,8 +12,10 @@ struct SeqAttr
 	SeqAttr() = default;
 
 	// forwards extra arguments into A's constructor
+	// used whenever the base RA is composite
+	// (e.g.: length-path, width-length....)
 	template <class... Args>
-	SeqAttr(const int n_ = 0, Args &&...args)
+	SeqAttr(const int n_, Args &&...args)
 	    : a(n_)
 	    , b(std::forward<Args>(args)...)
 	{

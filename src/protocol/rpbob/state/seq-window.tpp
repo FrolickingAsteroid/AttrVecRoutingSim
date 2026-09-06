@@ -117,7 +117,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind
 	const int n = candidate.getSeqNum();
 
 	// reject anything already outside the window
-	if (n < R - W)
+	if (n <= R - W)
 	{
 		return std::nullopt;
 	}
@@ -148,7 +148,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind
 		R = n;
 		wind.erase(std::remove_if(wind.begin(), wind.end(),
 					  [&](const path &p) {
-			return p.attr.a < R - W;
+			return p.attr.a <= R - W;
 		}),
 			   wind.end());
 	}

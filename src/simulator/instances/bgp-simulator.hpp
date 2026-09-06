@@ -34,6 +34,7 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 					this->graph.activate(u, v);
 				}
 			}
+			this->Progress(t);
 		}
 	}
 

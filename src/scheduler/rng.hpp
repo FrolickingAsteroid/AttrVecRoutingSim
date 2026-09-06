@@ -17,4 +17,5 @@ inline double rng_uniform(double a, double b)
 	std::uniform_real_distribution dist(a, b);
 	return dist(rng_engine);
 }
+
 #endif
