@@ -10,8 +10,8 @@ namespace RoutingAlgebras
 template <class A>
 struct GreaterThanOrEqual
 {
-	static constexpr int null    = INT_MAX;
-	static constexpr int neutral = 0;
+	static constexpr A null = std::numeric_limits<A>::min();
+	static constexpr int neutral = std::numeric_limits<A>::max();
 
 	Comp operator()(const A l, const A r) const
 	{
@@ -19,13 +19,14 @@ struct GreaterThanOrEqual
 		{
 			return Comp::Better;
 		}
-		if (l == r)
+		if (l < r)
 		{
-			return Comp::Equal;
+			return Comp::Worse;
 		}
-		return Comp::Worse;
+		return Comp::Equal;
 	}
 };
+
 } // namespace RoutingAlgebras
 
 #endif

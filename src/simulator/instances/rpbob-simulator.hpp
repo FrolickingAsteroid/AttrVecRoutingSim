@@ -27,6 +27,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
+			conv_time      = 1.1 * ConvergenceTime(time);
 
 			if (!this->cfg.notif)
 			{
@@ -55,6 +56,30 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 
 					this->recorder.recordDest(t, proto(t, u, v), std::make_pair(u, v));
 					this->graph.activate(u, v);
+				}
+			}
+			else if (this->cfg.scenario == config::Type::Withdrawal)
+			{
+				for (int u = 0; u < this->graph.V; ++u)
+				{
+					if (u == t)
+					{
+						continue;
+					}
+
+					this->graph.deactivate(u);
+					auto [opt_time, opt] = delayDijkstra(t);
+					this->graph.activate(u);
+
+					convergence_attr[t] = std::move(opt);
+
+					if (!this->cfg.notif)
+					{
+						utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
+					}
+
+					this->recorder.recordDest(t, proto(t, u), std::make_pair(u, -1));
+					this->graph.activate(u);
 				}
 			}
 			this->Progress(t);
@@ -121,8 +146,15 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 
 		if (u && v)
 		{
-			proto.cal.schedule(100, [&]() {
+			proto.cal.schedule(conv_time, [&]() {
 				proto.LinkFailure(*u, *v);
+			});
+			proto.Run();
+		}
+		else if (u)
+		{
+			proto.cal.schedule(conv_time, [&]() {
+				proto.NodeWithdraw(*u);
 			});
 			proto.Run();
 		}

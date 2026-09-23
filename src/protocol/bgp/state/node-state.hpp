@@ -7,38 +7,34 @@
 
 namespace Protocol::BGP
 {
-// BGPNodeState holds all per-node routing state for a single destination.
-//
-// Fields:
-//   aTab  — one learned attribute per out-neighbor
-//   E     — currently elected (exported) attribute
-//   Av    — best available attribute after last recomputation
-//   O     — origin attribute; non-invalid only at the destination node
-//   succ  — id of the neighbor whose attribute is currently elected, -1 if none
-//
-//
-// BGPNodeState never calls the algebra directly; it only stores and compares
-// BGPAttribute<A> values using operator< and operator!=.
-
-template <class Attr>
+template <class RA, class AttrType = BGPAttribute<RA>>
 struct BGPNodeState
 {
-	using attr = Attr;
 
-	std::unordered_map<int, attr> aTab;
-	attr                          E;
-	attr                          Av;
-	attr                          O;
+	using path = AttrType;
+
+	using A   = RA::Attr;
+	using Ord = RA::Ord;
+
+	// Minimum Route Advertisement Interval
+	double MRAI = 0;
+
+	// using Route = std::pair<path, int>; //(attribute, succ)
+
+	std::unordered_map<int, path> aTab;
+	path                          E;
+	path                          Av;
+	path                          O;
 	int                           succ{-1};
 
 	explicit BGPNodeState()
-	    : E(attr::Invalid())
-	    , Av(attr::Invalid())
-	    , O(attr::Invalid())
+	    : E(path::Invalid())
+	    , Av(path::Invalid())
+	    , O(path::Invalid())
 	{
 	}
 
-	void UpdateNeighbor(int v, const attr &learned)
+	void UpdateNeighbor(int v, const path &learned)
 	{
 		aTab[v] = learned;
 	}
@@ -50,37 +46,19 @@ struct BGPNodeState
 
 	void SetOrigin(int asn)
 	{
-		O = attr::Neutral(asn);
+		O = path::Neutral(asn);
 	}
 
-	// Recompute Av and succ from the current aTab and O.
-	//
-	// The three cases from processUpdateMessage are encoded here:
-	//
-	//   FastPath  — the incoming neighbor v already beats E: no full scan needed.
-	//               Only valid when the caller knows v's new attribute is strictly
-	//               better; pass v and the new attribute to skip the full scan.
-	//
-	//   FullScan  — used on withdrawal, link failure, or any case where the
-	//               current succ may no longer be best. Pass v = -1.
-	//
-	// Returns true if E changed (i.e. the protocol layer must propagate).
-	//
-	// FastPath variant: caller provides the neighbor that just improved.
 	bool ProcessBest(int v);
 
-	// FullScan variant: used after RemoveNeighbor, SetOrigin, ClearOrigin,
-	// or any event where the caller cannot guarantee who is now best.
 	bool ProcessBest();
 
-	// --- queries ---
-
-	const attr &GetElected()
+	const path &GetElected()
 	{
 		return E;
 	}
 
-	const std::unordered_map<int, attr> &GetAttrTable() const
+	const std::unordered_map<int, path> &GetAttrTable() const
 	{
 		return aTab;
 	}

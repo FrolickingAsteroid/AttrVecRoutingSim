@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-import os
-import re
-import glob
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib import rc
+from pathlib import Path
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import matplotlib
+import itertools
+import glob
+import re
+import os
 
 plt.rcParams.update({
     "font.family": "Liberation Sans",
@@ -12,139 +17,189 @@ plt.rcParams.update({
     "font.size": 10,
 })
 
-File = "DelayLength_equalDelay"
-Mode = "placeholder"
-Metric = "lengths"
-DATA_ROOT = "../../data/output/rocketfuel"
-DATASET_TAG = f"{File}_A_{Metric}"
+ROOT_DIR = next(
+    p for p in Path(__file__).parents
+    if (p / '.git').exists()
+)
+
+DATASET = "rocketfuel"
 SCENARIO = "linkFailure"
-OUTPUT_DIR = "../../data/plots"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-METRIC_SUFFIX = "convergence"
+DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
+OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
-LABEL_RULES = [
-    (r"rpbob.*notif", "RPBOB-CN"),
-    (r"rpbob", "RPBOB"),
-    (r"rcn", "BGP-RCN"),
-    (r"bgp", "BGP"),
-]
+PROTOCOL = {
+    "rpbob": "RRP",
+    "bgp": "BGP",
+    "rcn": "BGP-RCN",
+}
 
-# Which protocol labels to plot. None = plot everything label_for() produces.
-#SELECTED_PROTOCOLS = None
-SELECTED_PROTOCOLS = ["RPBOB", "BGP"]
+Algebra = {
+    "lex-hops-suffix": "Hops",
+    "lex-length-hops-suffix": "SP",
+    "lex-length-width-suffix": "WSP",
+    "prod-width-length-hops-suffix": "Product ",
 
-# Which RPBOB periods to plot. None = plot every period found.
-#SELECTED_PERIODS = None
-SELECTED_PERIODS = [1.0]
+}
 
-# Regex used to pull the period value out of an RPBOB filename.
-PERIOD_REGEX = re.compile(r"_period_([0-9]+(?:\.[0-9]+)?)_")
+Algebra_label = ["SP"]
+Proto_label = ["BGP","RRP"]
 
 
-def label_for(protocol_folder, filename):
-    key = f"{protocol_folder}_{filename}".lower()
-    for pattern, label in LABEL_RULES:
-        if re.search(pattern, key):
-            return label
-    return protocol_folder
+def get_protocol_label(protocol_raw: str, filename: str) -> str:
+    key = protocol_raw.lower()
+    if key == "rpbob":
+        delta = re.findall(r"\d+\.\d+", filename)[0]
+        if "notif" in filename:
+            if SCENARIO == "linkFailure":
+                return rf"RRP-N"  # $\Delta = {delta}$ ms
+            else:
+                return rf"RRP-N"
+        else:
+            if SCENARIO == "linkFailure":
+                return rf"RRP"  # $\Delta = {delta}$ ms
+            else:
+                return rf"RRP"
+
+    return PROTOCOL.get(key, protocol_raw.upper())
 
 
-def extract_period(filename):
-    match = PERIOD_REGEX.search(filename)
-    if match:
-        return float(match.group(1))
-    return None
+def get_algebra(filename: str) -> str:
+    start = 'a_'
+    end = '_'
+
+    result = re.search('%s(.*?)%s' % (start, end), filename).group(1)
+    return Algebra[result]
 
 
-def discover_networks(root):
-    return sorted(d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)))
+def get_family(label: str) -> str:
+    if label.startswith("RRP-N"):
+        return "RRP-N"
+    if label.startswith("RRP"):
+        return "RRP"
+    return label
 
 
-def load_metric(network_dir):
-    frames = []
-    pattern = os.path.join(network_dir, "*", f"{DATASET_TAG}*_{SCENARIO}*_{METRIC_SUFFIX}.csv")
-    for path in sorted(glob.glob(pattern)):
-        print(f"\t{path}")
-        protocol_folder = os.path.basename(os.path.dirname(path))
-        filename = os.path.basename(path)
-        label = label_for(protocol_folder, filename)
+def load(network):
+    rows = []
+    for csv_path in DATA_DIR.glob(f"{network}/*/*{SCENARIO}*convergence.csv"):
+        protocol = csv_path.parent.name
+        filename = csv_path.name.lower()
 
-        df = pd.read_csv(path)
+        protocol_label = get_protocol_label(protocol, filename)
+        algebra_label = get_algebra(filename)
+
+        if protocol.lower() == "rpbob" and re.findall(r"\d+\.\d+", filename)[0] != "1.0":
+            continue
+
+        if algebra_label not in Algebra_label or protocol_label not in Proto_label:
+            continue
+
+        df = pd.read_csv(csv_path)
         df = df[df["change_count"] != 0]
-        df["Protocol"] = label
-        df["Period"] = extract_period(filename) if label.startswith("RPBOB") else None
-        frames.append(df)
+        df = df[df["stab_time"] != 0]
+        df = df[['stab_time']].copy()
+        df['Protocol'] = protocol_label
+        df['Algebra'] = algebra_label
+        rows.append(df)
 
-    if not frames:
-        raise FileNotFoundError(f"no matching files under {network_dir}")
+    return pd.concat(rows, ignore_index=True)
 
-    result = pd.concat(frames, ignore_index=True)
 
-    if SELECTED_PROTOCOLS is not None:
-        result = result[result["Protocol"].isin(SELECTED_PROTOCOLS)]
-
-    if SELECTED_PERIODS is not None:
-        is_rpbob = result["Protocol"].str.startswith("RPBOB")
-        keep = (~is_rpbob) | result["Period"].isin(SELECTED_PERIODS)
-        result = result[keep]
-
-    if result.empty:
-        raise FileNotFoundError(f"no rows left after filtering under {network_dir}")
-
-    return result
+def ecdf(data, array: bool = True):
+    n = len(data)
+    x = np.sort(data)
+    y = 1 - np.arange(1, n + 1) / n
+    if not array:
+        return pd.DataFrame({'x': x, 'y': y})
+    else:
+        return x, y
 
 
 def plot_ccdf(df, network_name):
-
-    def display_label(row):
-        if row["Protocol"].startswith("RPBOB") and pd.notna(row["Period"]):
-            return rf"{row['Protocol']} ($\Delta={row['Period']:g}$)"
-        return row["Protocol"]
-
     df = df.copy()
-    df["Protocol"] = df.apply(display_label, axis=1)
+    avg_times = df.groupby(["Protocol", "Algebra"])["stab_time"].mean()
 
-    avg_times = df.groupby("Protocol")["stab_time"].mean()
-    df["Protocol"] = df["Protocol"].map(lambda p: f"{p} (avg: {avg_times[p]:.2f} ms)")
-
-    plt.figure(figsize=(6, 4))
-    ax = sns.ecdfplot(
-        data=df,
-        x="stab_time",
-        hue="Protocol",
-        complementary=True,
-        lw=1.8,
+    dfg = (
+        df.groupby(["Protocol", "Algebra"])["stab_time"]
+        .apply(lambda s: ecdf(s, array=False))
+        .reset_index(level=[0, 1])
+        .reset_index(drop=True)
     )
-    ax.set_xlim([-0.0, df["stab_time"].max()])
-    for line in ax.lines:
-        x = line.get_xdata()
-        x[0] = 0
-        line.set_xdata(x)
-    plt.xlabel("Time [ms]")
-    plt.ylabel("CCDF")
-    plt.ylim([-0.001, 1.1])
-    plt.grid(alpha=0.3, which="both")
-    plt.tight_layout()
-    legend = ax.legend_
-    legend.set_title("Protocol")
-    legend.get_title().set_fontweight("bold")
 
-    if Mode not in DATASET_TAG:
-        name = f"ccdf_{network_name}_{SCENARIO}.png"
-    else:
-        name = f"ccdf_{network_name}_{Mode}_{SCENARIO}.png"
+    dfg["label_raw"] = dfg.apply(
+        lambda row: row["Protocol"].replace(r"\Delta", "Delta").replace("$", "") + " " + row['Algebra'],
+        axis=1
+    )
+    pad_width = dfg["label_raw"].str.len().max() + 2
+    dfg["group_label"] = dfg.apply(
+        lambda row: (row['Protocol'] + " " + row['Algebra']).ljust(pad_width) +
+                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>6.2f} ms)",
+        axis=1,
+    )
+
+    algebras = sorted(dfg["Algebra"].unique())
+    protocols = sorted(dfg["Protocol"].unique())
+
+    colors = dict(zip(protocols, sns.color_palette("colorblind",n_colors=len(protocols))))
+    linestyles = dict(zip(algebras, itertools.cycle(['-', '--'])))
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+
+    for algebra in algebras:
+        for protocol in protocols:
+            group = dfg[(dfg["Algebra"] == algebra) & (dfg["Protocol"] == protocol)]
+            if group.empty:
+                continue
+            group = group.sort_values("x")
+            ax.plot(
+                group["x"], group["y"],
+                color=colors[protocol],
+                linestyle=linestyles[algebra],
+                drawstyle="steps-post",
+                alpha=1,
+                label=group["group_label"].iloc[0],
+                linewidth=1.8,
+            )
+
+    # ax.set_yscale("log")
+    ax.set_ylim([-1e-2, 1.1])
+    ax.set_xlim([0.0, df["stab_time"].max()])
+    ax.set_xlabel("Time [ms]")
+    ax.set_ylabel("CCDF")
+    ax.grid(alpha=0.3, which="both")
+
+    # shrink plot height to make room for a legend below
+    # (https://stackoverflow.com/questions/4700614/how-to-put-the-legend-outside-the-plot)
+    # box = ax.get_position()
+    # ax.set_position([box.x0, box.y0 + box.height * 0.15,
+    #                  box.width, box.height * 0.85])
+    #
+    # handles, labels = ax.get_legend_handles_labels()
+    # legend = ax.legend(
+    #     handles, labels,
+    #     loc='upper center', bbox_to_anchor=(0.5, -0.15),
+    #     fancybox=True, shadow=False, ncol=len(algebras),
+    # )
+
+    handles, labels = ax.get_legend_handles_labels()
+    legend = ax.legend(
+        handles, labels,
+        loc='upper right',
+        fancybox=True, shadow=False
+    )
+    #legend.set_title("Protocol")
+    legend.get_title().set_fontweight("bold") if legend.get_title() else None
+    for text in legend.get_texts():
+        text.set_fontfamily("monospace")
+
+    name = f"ccdf_{network_name}_{SCENARIO}.png"
     out_path = os.path.join(OUTPUT_DIR, name)
-    plt.savefig(out_path, dpi=300)
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"\tsaved {out_path}\n")
 
 
-for network in discover_networks(DATA_ROOT):
-    network_dir = os.path.join(DATA_ROOT, network)
-    print(network_dir)
-    try:
-        df = load_metric(network_dir)
-    except FileNotFoundError as e:
-        print(f"skipping {network}: {e}")
-        continue
-    plot_ccdf(df, network)
+if __name__ == "__main__":
+    for network in ["1755"]:
+        df = load(network)
+        plot_ccdf(df, network)

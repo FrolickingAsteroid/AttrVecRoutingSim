@@ -39,7 +39,7 @@ class SimulationCommon : public ISimulation
 	SimulationCommon(config::SimulationConfig &cfg_, const std::map<std::string, std::string> &map, std::string tag)
 	    : cfg(cfg_)
 	    , graph(Graphs::Graph<Attr>::readGraph(cfg.network_file))
-	    , recorder(cfg.network_file, tag, map)
+	    , recorder(cfg.network_file, tag, map, graph.V)
 	{
 	}
 
@@ -51,7 +51,7 @@ class SimulationCommon : public ISimulation
 
 	utils::stats::SummaryStats postProcess() override
 	{
-		return recorder.Summary(graph.V);
+		return recorder.Summary();
 	}
 
 	void Progress(const int t) const

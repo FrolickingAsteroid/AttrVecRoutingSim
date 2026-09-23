@@ -9,6 +9,13 @@ namespace RoutingAlgebras
 template <class Node>
 struct PathEquality
 {
+	// TODO: find a better way to represent these
+	static Path<Node> neutral(Node t)
+	{
+		return Path<Node>(t);
+	}
+	inline static const Path<Node> null{};
+
 	Comp operator()(const Path<Node> &p, const Path<Node> &q) const
 	{
 		if (p == q)

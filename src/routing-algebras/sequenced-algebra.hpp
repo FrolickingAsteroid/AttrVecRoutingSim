@@ -25,7 +25,7 @@ struct Sequenced
 		return Attr{n, Base::Neutral(std::forward<Args>(args)...)};
 	}
 
-	static Attr Null(int n = 0)
+	static Attr Null(int n)
 	{
 		return Attr{n, Base::Null()};
 	}

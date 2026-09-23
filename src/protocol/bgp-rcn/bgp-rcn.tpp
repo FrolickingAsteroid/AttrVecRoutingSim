@@ -84,12 +84,14 @@ void RCN<RA>::DestinationAnnouncement(int t)
 template <class RA>
 void RCN<RA>::MsgReception(int u, int v, Msg received)
 {
-	if (std::get<1>(graph.adjListIn[u].at(v)) == false)
+	if (!graph.edgeState(v, u))
+	{
 		return;
+	}
 
 	if (s[u].UpdateSeqTable(received))
 	{
-		RCNAttr lw(u, std::get<2>(graph.adjListOut[u].at(v)), s[u].t);
+		RCNAttr lw(u, graph.edgeWeight(u, v).buildLinkAttr(u), s[u].t);
 		RCNAttr extended = lw + received.route;
 		s[u].UpdateNeighbor(v, extended);
 

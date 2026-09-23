@@ -8,10 +8,10 @@
 namespace Protocol::RCN
 {
 template <class RA>
-struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<RA>>
+struct RCNNodeState : BGP::BGPNodeState<RA, RCNAttribute<RA>>
 {
 	using attr = RCNAttribute<RA>;
-	using base = BGP::BGPNodeState<RCNAttribute<RA>>;
+	using base = BGP::BGPNodeState<RA, RCNAttribute<RA>>;
 
 	int                          t = 0;
 	std::unordered_map<int, int> seq_num;
@@ -20,7 +20,8 @@ struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<RA>>
 	{
 		if (!base::E.isInvalid())
 		{
-			base::E.ts.at(base::E.as_path.back()) = t;
+			// update path's ts(u) with u's current seq number
+			base::E.ts.at(base::E.getAttr().getPath().front()) = t;
 		}
 		return base::GetElected();
 	}
@@ -52,7 +53,7 @@ struct RCNNodeState : BGP::BGPNodeState<RCNAttribute<RA>>
 			{
 				seq_num[x] = ts_x;
 			}
-			if (x == BGP::BGPNodeState<RCNAttribute<RA>>::succ)
+			if (x == this->succ)
 			{
 				++t;
 			}

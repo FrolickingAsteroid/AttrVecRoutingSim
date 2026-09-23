@@ -18,14 +18,9 @@ struct Path
 	{
 	}
 
-	bool operator==(const Path &other) const
+	Path(Node n)
+	    : path{std::move(n)}
 	{
-		return path == other.path;
-	}
-
-	bool operator!=(const Path &other) const
-	{
-		return !(*this == other);
 	}
 
 	// ---------------------------------------------------------------------------- *
@@ -54,9 +49,35 @@ struct Path
 		return path.size();
 	}
 
+	const Node &back() const
+	{
+		return path.back();
+	}
+
+	const Node &front() const
+	{
+		return path.front();
+	}
+
+	// ---------------------------------------------------------------------------- *
+	//
+	// Operators
+	//
+	// ---------------------------------------------------------------------------- *
+
 	const Node &operator[](std::size_t i) const
 	{
 		return path[i];
+	}
+
+	bool operator==(const Path &other) const
+	{
+		return path == other.path;
+	}
+
+	bool operator!=(const Path &other) const
+	{
+		return !(*this == other);
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const Path &p)
@@ -69,6 +90,12 @@ struct Path
 				os << " ";
 		}
 		return os << "]";
+	}
+
+	friend std::istream &operator>>(std::istream &is, Path &p)
+	{
+		p.path.clear();
+		return is;
 	}
 };
 } // namespace RoutingAlgebras

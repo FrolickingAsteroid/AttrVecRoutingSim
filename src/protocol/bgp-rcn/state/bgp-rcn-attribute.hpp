@@ -15,59 +15,50 @@ struct RCNAttribute : BGP::BGPAttribute<RA>
 {
 	using base = BGP::BGPAttribute<RA>;
 
+	using Ext = RA::Ext;
+
 	std::unordered_map<int, int> ts; // ts(u) for u in as_path
 
 	RCNAttribute() = default;
 
-	RCNAttribute(int asn, base::A attr, const int seq)
-	    : base(asn, attr)
+	RCNAttribute(const int asn, base::A attr, const int seq)
+	    : base(attr)
 	{
 		ts[asn] = seq;
 	}
 
-	RCNAttribute(std::vector<int> path, base::A attr, std::unordered_map<int, int> ts_)
-	    : base(std::move(path), attr)
+	RCNAttribute(base::A attr, std::unordered_map<int, int> ts_)
+	    : base(attr)
 	    , ts(std::move(ts_))
 	{
 	}
 
 	static RCNAttribute Invalid()
 	{
-		return RCNAttribute(std::vector<int>{}, RA::Null(), std::unordered_map<int, int>{});
+		return RCNAttribute(RA::Null(), std::unordered_map<int, int>{});
 	}
 
 	static RCNAttribute Neutral(int asn)
 	{
-		return RCNAttribute(asn, RA::Neutral(), 0);
-	}
-
-	void addAsEntry(int asn, int seq)
-	{
-		base::addAsEntry(asn);
-		ts[asn] = seq;
+		return RCNAttribute(asn, RA::Neutral(asn), 0);
 	}
 
 	friend RCNAttribute operator+(const RCNAttribute &link, const RCNAttribute &a)
 	{
-		if (a.isInvalid())
+		base extended = static_cast<const base &>(link) + static_cast<const base &>(a);
+
+		if (extended.isInvalid())
 		{
 			return RCNAttribute::Invalid();
 		}
 
-		if (std::find(a.as_path.begin(), a.as_path.end(), link.as_path[0]) != a.as_path.end())
-		{
-			return RCNAttribute::Invalid();
-		}
+		// get new node
+		const int new_node = link.getAttr().getPath()[0];
 
-		typename base::Ext ext;
+		auto new_ts      = a.ts;
+		new_ts[new_node] = link.ts.at(new_node);
 
-		std::vector<int> new_path(a.as_path);
-		new_path.push_back(link.as_path[0]);
-
-		auto new_ts             = a.ts;
-		new_ts[link.as_path[0]] = link.ts.at(link.as_path[0]);
-
-		return RCNAttribute(std::move(new_path), ext(link.attribute, a.attribute), std::move(new_ts));
+		return RCNAttribute(extended.getAttr(), std::move(new_ts));
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const std::vector<RCNAttribute> &v)

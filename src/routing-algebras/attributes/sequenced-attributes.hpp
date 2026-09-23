@@ -1,23 +1,25 @@
 #ifndef SEQUENCED_H
 #define SEQUENCED_H
 
+#include <ostream>
+#include <tuple>
+#include <utility>
+
 namespace RoutingAlgebras
 {
 template <class A>
-struct SeqAttr
+struct SeqAttr : std::tuple<int, A>
 {
-	int a{}; // Sequence number
-	A   b;   // Base routing algebra attribute
+	// Publicly inheriting std::tuple<int, A>
+	using Base = std::tuple<int, A>;
 
 	SeqAttr() = default;
 
-	// forwards extra arguments into A's constructor
-	// used whenever the base RA is composite
-	// (e.g.: length-path, width-length....)
+	// n becomes the sequence number, everything else forwards into A's constructor.
+	// std::tuple's constructor takes one already-constructed value!!
 	template <class... Args>
 	SeqAttr(const int n_, Args &&...args)
-	    : a(n_)
-	    , b(std::forward<Args>(args)...)
+	    : Base(n_, A(std::forward<Args>(args)...))
 	{
 	}
 
@@ -29,32 +31,38 @@ struct SeqAttr
 
 	void setSeqNum(const int a_)
 	{
-		a = a_;
+		std::get<0>(*this) = a_;
 	}
 
 	void setAttr(const A &b_)
 	{
-		b = b_;
+		std::get<1>(*this) = b_;
 	}
 
 	const int &getSeqNum() const
 	{
-		return a;
+		return std::get<0>(*this);
 	}
 
 	const A &getAttr() const
 	{
-		return b;
+		return std::get<1>(*this);
 	}
 
-	bool empty() const
-	{
-		return b.empty();
-	}
+	// bool empty() const
+	// {
+	// 	return std::get<1>(*this).empty();
+	// }
+
+	// ---------------------------------------------------------------------------- *
+	//
+	// Operators
+	//
+	// ---------------------------------------------------------------------------- *
 
 	bool operator==(const SeqAttr &other) const
 	{
-		return a == other.a && b == other.b;
+		return static_cast<const Base &>(*this) == static_cast<const Base &>(other);
 	}
 
 	bool operator!=(const SeqAttr &other) const
@@ -64,12 +72,12 @@ struct SeqAttr
 
 	bool operator==(const A &other) const
 	{
-		return b == other;
+		return std::get<1>(*this) == other;
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const SeqAttr &a)
+	friend std::ostream &operator<<(std::ostream &os, const SeqAttr &attr)
 	{
-		os << "(" << a.a << " " << a.b << ")";
+		os << "{" << std::get<0>(attr) << " " << std::get<1>(attr) << "}";
 		return os;
 	}
 };

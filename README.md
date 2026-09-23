@@ -43,3 +43,8 @@ find . -name "*.csv" -type f -delete
     └── ui
 
 ```
+
+./build/Simulator -f data/datasets/rocketfuel/1221/DelayLength.tsv -R -a lex-length-hops-suffix -i 1.0 -F
+./build/Simulator -f data/datasets/rocketfuel/1221/DelayLengthWidth.tsv -R -a lex-length-width-suffix -i 1.0 -F
+./build/Simulator -f data/datasets/rocketfuel/1221/DelayLengthWidth.tsv -R -a prod-width-length-hops-suffix -i 1.0 -F
+./build/Simulator -f data/datasets/rocketfuel/1221/DelayHops.tsv -R -a lex-hops-suffix -i 1.0 -F

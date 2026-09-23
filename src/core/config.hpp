@@ -21,18 +21,13 @@ enum Options
 	N
 };
 
-enum Metric
-{
-	LENGTHS,
-	HOPS
-};
-
 struct SimulationConfig
 {
 	// required args
 	std::string network_file;
+
 	Options     protocol    = Options::N;
-	Metric      algebra     = LENGTHS;
+	std::string algebra     = "lex-length-hops-suffix";
 	int         destination = -1;
 
 	// append to existing file
@@ -42,10 +37,10 @@ struct SimulationConfig
 	bool notif = false;
 
 	// simulation seed
-	//unsigned int seed;
+	// unsigned int seed;
 
-	 unsigned int seed = 1307683871;
-	// unsigned int seed = 2425713638;
+	unsigned int seed = 2535664635;
+	//  unsigned int seed = 2425713638;
 
 	// optional args
 	std::optional<double> dprop  = std::nullopt;

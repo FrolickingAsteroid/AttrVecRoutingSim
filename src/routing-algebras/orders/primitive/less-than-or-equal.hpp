@@ -1,18 +1,17 @@
 #ifndef LEQ_ORDER_H
 #define LEQ_ORDER_H
 
-#include <climits>
-
 #include "routing-algebras/orders/comparison-vocab.hpp"
 
 namespace RoutingAlgebras
 {
+template <class A>
 struct LessThanOrEqual
 {
-	static constexpr int null    = INT_MAX;
-	static constexpr int neutral = 0;
+	static constexpr A neutral = std::numeric_limits<A>::min();
+	static constexpr A null    = std::numeric_limits<A>::max();
 
-	Comp operator()(const int &l, const int &r) const
+	Comp operator()(const A &l, const A &r) const
 	{
 		if (l < r)
 		{
@@ -25,7 +24,6 @@ struct LessThanOrEqual
 		return Comp::Equal;
 	}
 };
-using LEQ = LessThanOrEqual;
 } // namespace RoutingAlgebras
 
 #endif

@@ -35,6 +35,17 @@ void RPBOB<RA>::process()
 // ---------------------------------------------------------------------------- *
 
 template <class RA>
+void RPBOB<RA>::NodeWithdraw(int u)
+{
+	data.log = true;
+	data.setOffset(cal.now());
+
+	graph.deactivate(u);
+
+	s[u].ClearOpt();
+}
+
+template <class RA>
 void RPBOB<RA>::LinkFailure(int u, int v)
 {
 	data.log = true;
@@ -62,7 +73,7 @@ void RPBOB<RA>::LinkFailure(int u, int v)
 
 				const auto &max =
 				    *std::max_element(removed.begin(), removed.end(), [](const auto &a, const auto &b) {
-					return a.attr.a < b.attr.a;
+					return a.attr.getSeqNum() < b.attr.getSeqNum();
 				});
 
 				auto notif = std::make_tuple(max.attr.getSeqNum(), link);
@@ -111,34 +122,30 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 		return;
 	}
 
-	typename RA::Attr edgeAttr(0, graph.edgeWeight(u, v), u); // (0, l_attr, u)
-	auto              extended = p + edgeAttr;                // (n, l_attr (ext) r_attr, uP)
+	typename RA::Attr edgeAttr(0, graph.edgeWeight(u, v).buildLinkAttr(u)); // (0, l_attr, u)
+	auto              extended = p + edgeAttr;                              // (n, l_attr (ext) r_attr, uP)
 
-	if (u == 16)
+	if (u == 7 || u == 8 || u == 2)
 	{
-		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "\nTime: " << cal.now();
 		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
+		LOG_DEBUG << s[u];
 	}
 
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
-	if ((u == 16))
-	{
-		if (changed.has_value())
-		{
-			LOG_DEBUG << "Accepted";
-		}
-		else
-		{
-			LOG_DEBUG << "Dismissed";
-		}
-		LOG_DEBUG << s[u];
-		LOG_DEBUG << "change count: " << data.changeCounts.at(u) << "\n";
-	}
 
 	if (changed.has_value())
 	{
+		if (u == 7 || u == 8 || u == 2)
+		{
+			LOG_DEBUG << s[u];
+			LOG_DEBUG << "change count: " << data.changeCounts.at(u) << "\n\n";
+		}
 		this->Send(u, Msg{extended});
-		converged();
+		if (data.log == true)
+		{
+			converged();
+		}
 	}
 }
 

@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# run_simulations.sh
-# Runs the Simulator for RPBOB, BGP, and RCN across bclique or rocketfuel datasets.
 
 set -o errexit -o pipefail -o noclobber -o nounset
 
@@ -13,8 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}"
 
 SIMULATOR="./build/Simulator"
-BCLIQUE_NODE_COUNTS=(4 8 16 32 64)
-ROCKETFUEL_AS_LIST=(1221 1755)
+BCLIQUE_NODE_COUNTS=(4 8 16 32)
 
 function ProgressBar {
     local _progress=$(( ($1 * 100 / $2 * 100) / 100 ))
@@ -22,7 +19,7 @@ function ProgressBar {
     local _left=$(( 40 - _done ))
     local _fill=$(printf "%${_done}s")
     local _empty=$(printf "%${_left}s")
-    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%% net ${3} : run ${4}/${5}"
+    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%%"
 }
 
 # ────────────────────────────────────────────────────────────────
@@ -37,33 +34,38 @@ function check_getopt {
     fi
 }
 
+function usage {
+    cat >&2 <<EOF
+Usage: $0 -T <unit|equal> [-N runs] [-n "4 8 16"]
+       $0 -D rocketfuel
+
+  -D, --dataset          clique|rocketfuel  which dataset to run (default: clique)
+  -T, --type            unit|equal   (required for --dataset clique) bclique dataset variant to evaluate
+  -N, --runs            N            number of runs per node-count (default: 1)
+  -n, --node-counts     "..."        space-separated node counts (default: ${BCLIQUE_NODE_COUNTS[*]})
+EOF
+    exit 1
+}
+
 function parse_args {
-    local LONGOPTS=unit,equal,uniform,metric:,filetype:,append,regen,runs:,dataset:,as:
-    local OPTIONS=uerm:f:aN:d:
-    PARSED=$(getopt --options="$OPTIONS" --longoptions="$LONGOPTS" --name "$0" -- "$@") || exit 2
+    local LONGOPTS=type:,runs:,node-counts:,clean:,dataset:
+    local OPTIONS=T:N:n:C:D:
+    PARSED=$(getopt --options="$OPTIONS" --longoptions="$LONGOPTS" --name "$0" -- "$@") || usage
     eval set -- "$PARSED"
 
     type=""
-    metric="hops"
-    filetype="DelayHops"
-    dataset="bclique"
-    append=0
-    regen=0
+    output=""
     runs=1
-    as_list=""
+    node_counts=("${BCLIQUE_NODE_COUNTS[@]}")
+    dataset="clique"
 
     while true; do
         case "$1" in
-            -u|--unit) type=unit; shift ;;
-            -e|--equal) type=equal; shift ;;
-            -r|--uniform) type=uniform; shift ;;
-            -m|--metric) metric="$2"; shift 2 ;;
-            -f|--filetype) filetype="$2"; shift 2 ;;
-            -a|--append) append=1; shift ;;
-            --regen) regen=1; shift ;;
+            -C|--clean) output="$2"; break ;;
+            -D|--dataset) dataset="$2"; shift 2 ;;
+            -T|--type) type="$2"; shift 2 ;;
             -N|--runs) runs="$2"; shift 2 ;;
-            -d|--dataset) dataset="$2"; shift 2 ;;
-            --as) as_list="$2"; shift 2 ;;
+            -n|--node-counts) node_counts=($2); shift 2 ;;
             --) shift; break ;;
             *) echo "Programming error"; exit 3 ;;
         esac
@@ -71,97 +73,198 @@ function parse_args {
 }
 
 function validate_args {
-    if [[ "$dataset" != "bclique" && "$dataset" != "rocketfuel" ]]; then
-        echo "$0: --dataset must be bclique or rocketfuel (got: $dataset)." >&2
-        exit 4
-    fi
-
-    if [[ "$dataset" == "bclique" && -z "$type" ]]; then
-        echo "$0: bclique requires a type (-u/--unit, -e/--equal, -r/--uniform)." >&2
-        exit 4
-    fi
-
-    if [[ "$filetype" != "DelayHops" && "$filetype" != "DelayLength" ]]; then
-        echo "$0: --filetype must be DelayHops or DelayLength (got: $filetype)." >&2
-        exit 4
-    fi
-
-    if ! [[ "$runs" =~ ^[0-9]+$ ]] || [[ "$runs" -lt 1 ]]; then
-        echo "$0: --runs must be a positive integer (got: $runs)." >&2
-        exit 4
-    fi
-
-    if [[ "$dataset" == "bclique" && "$runs" -gt 1 && "$regen" -eq 0 ]]; then
-        echo "$0: --runs > 1 without --regen will repeat the same dataset every time. Did you mean to add --regen?" >&2
+    if [[ "$output" == "clique" || "$output" == "rocketfuel" || "$output" == "triangle" ]]; then
+      return 0;
     fi
 
     if [[ ! -x "${SIMULATOR}" ]]; then
         echo "Error: ${SIMULATOR} not found or not executable (run from repo root, or build first)." >&2
         exit 1
     fi
-}
 
-# ────────────────────────────────────────────────────────────────
-# Dataset resolution (family-specific)
-# ────────────────────────────────────────────────────────────────
+    if [[ "$dataset" != "clique" && "$dataset" != "rocketfuel" && "$dataset" != "triangle" && "$dataset" != "rocket_centrality" ]]; then
+        echo "$0: --dataset must be clique, rocketfuel or triangle (got: $dataset)." >&2
+        usage
+    fi
 
-function bclique_ids {
-    echo "${BCLIQUE_NODE_COUNTS[@]}"
-}
+    if [ "$dataset" == "clique" ] && [[ "$type" != "unit" && "$type" != "equal" ]]; then
+        echo "$0: --type must be unit or equal (got: ${type:-<empty>})." >&2
+        usage
+    fi
 
-function rocketfuel_ids {
-    if [[ -n "$as_list" ]]; then
-        echo "$as_list"
-    else
-        echo "${ROCKETFUEL_AS_LIST[@]}"
+
+    if ! [[ "$runs" =~ ^[0-9]+$ ]] || [[ "$runs" -lt 1 ]]; then
+        echo "$0: --runs must be a positive integer (got: $runs)." >&2
+        exit 4
     fi
 }
 
-function rocketfuel_regen {
-    local as="$1"
-    cd "${SCRIPT_DIR}"
-    ./networkdataset.py -a "${as}" build > /dev/null
-    cd "${REPO_ROOT}"
-}
-
-function bclique_regen {
-    local id="$1"
-    cd "${SCRIPT_DIR}"
-    ./networkdataset.py bclique -n "${id}" --mode "${type}" > /dev/null
-    cd "${REPO_ROOT}"
-}
+# ────────────────────────────────────────────────────────────────
+# Datasets
+# ────────────────────────────────────────────────────────────────
 
 function bclique_dataset_path {
     local id="$1"
-    echo "data/datasets/clique/bclique_n${id}/${filetype}_${type}.tsv"
+    echo "data/datasets/clique/bclique_n${id}/DelayHops_${type}.tsv"
 }
 
-function rocketfuel_dataset_path {
+function triangle_dataset_path {
     local id="$1"
-    echo "data/datasets/rocketfuel/${id}/${filetype}.tsv"
+    echo "data/datasets/triangle/triangle_n${id}/triangle_n${id}.tsv"
+}
+
+function clean {
+  local cdata="$1"
+  # shellcheck disable=SC2283
+  CLEAN="data/output/${cdata}"
+
+  cd "$CLEAN"
+  echo "Cleaning simulation output from ${CLEAN}"
+  find . -name "*.csv" -type f -delete
 }
 
 # ────────────────────────────────────────────────────────────────
-# Simulator
+# Simulators
 # ────────────────────────────────────────────────────────────────
+function run_rocket {
+    local combos=(
+        "data/datasets/rocketfuel/1755/DelayLength.tsv:lex-length-hops-suffix"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
+        "data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
+    )
 
-# <dataset_path> <link_failure_target_or_empty>
-function run {
+    local pids=()
+    local combo file algebra
+    for combo in "${combos[@]}"; do
+        file="${combo%%:*}"
+        algebra="${combo##*:}"
+
+        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
+    done
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+function run_clique {
     local ds="$1"
-    local fail_target="${2:-}"
-    local fail_args=()
-    if [[ -n "$fail_target" ]]; then
-        fail_args=(-F "${fail_target}")
+    local id="$2"
+
+    local pids=()
+    "${SIMULATOR}" -f "${ds}" -R -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -R notif -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -G -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -C -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+function run_triangle {
+    local ds="$1"
+    local id="$2"
+
+    local pids=()
+    "${SIMULATOR}" -f "${ds}" -A -R -i 1.0 -F "$((id - 1))" "${id}" -t "${id}" -m 2 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -R notif -i 1.0 -F "$((id - 1))" "${id}" -t "${id}" -m 2 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -G -F "$((id - 1))" "${id}" -t "${id}" > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -C -F "$((id - 1))" "${id}" -t "${id}" > /dev/null & pids+=($!)
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+# Top-10 edges by centrality, as (id1 id2) pairs
+TOP_EDGES=(
+    "2 34"
+    "34 45"
+    "8 47"
+    "45 6"
+    "16 47"
+    "8 9"
+    "5 6"
+)
+
+TOP_EDGES_1755=(
+    "18 45"
+    "24 25"
+    "0 18"
+    "25 50"
+    "24 19"
+    "45 13"
+    "0 24"
+    "50 68"
+    "3 19"
+    "0 38"
+)
+
+function run_rocket_edge {
+    local id1="$1"
+    local id2="$2"
+
+    local combos=(
+        "data/datasets/rocketfuel/1755/DelayLength.tsv:lex-length-hops-suffix"
+        #"data/datasets/rocketfuel/1221/DelayHops.tsv:lex-hops-suffix"
+    )
+
+    local pids=()
+    local combo file algebra
+    for combo in "${combos[@]}"; do
+        file="${combo%%:*}"
+        algebra="${combo##*:}"
+
+        "${SIMULATOR}" -f "${file}" -A -R -a "${algebra}" -i 1.0 -F "${id1}" "${id2}" > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -A -R notif -a "${algebra}" -i 1.0 -F "${id1}" "${id2}" > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F "${id1}" "${id2}" > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F "${id1}" "${id2}" > /dev/null & pids+=($!)
+    done
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+function run_rocket_edges {
+    local failures=0
+    local edge="$1"
+    local id1 id2
+
+    read -r id1 id2 <<< "${edge}"
+    if ! run_rocket_edge "${id1}" "${id2}"; then
+        failures=$(( failures + 1 ))
+        echo "  -> failed" >&2
     fi
 
-    "${SIMULATOR}" -f "${ds}" -R "${fail_args[@]}" -i 1.0 -m 0 -a "${metric}" "${extra_args[@]}" > /dev/null
-    #"${SIMULATOR}" -f "${ds}" -R notif "${fail_args[@]}" -i 1.0 -a "${metric}" "${extra_args[@]}" > /dev/null
-    "${SIMULATOR}" -f "${ds}" -G "${fail_args[@]}"  -a "${metric}" "${extra_args[@]}" > /dev/null
-    #"${SIMULATOR}" -f "${ds}" -C "${fail_args[@]}" -a "${metric}" "${extra_args[@]}" > /dev/null
+
+    return $(( failures > 0 ? 1 : 0 ))
 }
 
+
 # ────────────────────────────────────────────────────────────────
-# Main driver
+# Main
 # ────────────────────────────────────────────────────────────────
 
 function main {
@@ -169,52 +272,79 @@ function main {
     parse_args "$@"
     validate_args
 
-    extra_args=()
-    if [[ "$append" -eq 1 ]]; then
-        extra_args+=(-A)
-    fi
-
-    local ids
-    ids=($(${dataset}_ids))
-
-    local total_steps=$(( ${#ids[@]} * runs * 4 ))
+    local failures=0
     local step=0
 
-    echo "dataset: $dataset, type: ${type:-n/a}, metric: $metric, filetype: $filetype, append: $append, regen: $regen, runs: $runs"
+    ## clean output folders
+    if [ "$output" != "" ]; then
+      clean "$output"
+      exit 0;
+    fi
 
-    for id in "${ids[@]}"; do
+    ## Run Rocketfuel Topologies
+    if [ "$dataset" == "rocketfuel" ]; then
+      if ! run_rocket; then
+          echo "Completed with failed job(s)." >&2
+          exit 1
+      fi
+      echo "All simulations completed."
+      exit 0
+    fi
+
+    ## Run Rocketfuel Topologies failing edges with large edge centrality
+    if [ "$dataset" == "rocket_centrality" ]; then
+      local total_steps=$(( ${#TOP_EDGES_1755[@]} * runs ))
+      for edge in "${TOP_EDGES_1755[@]}"; do
         for ((run = 1; run <= runs; run++)); do
-            if [[ "$dataset" == "bclique" && "$regen" -eq 1 ]]; then
-                bclique_regen "${id}"
+          if ! run_rocket_edges "${edge}"; then
+              echo "Completed with failed job(s)." >&2
+              exit 1
+          fi
+
+          step=$(( step + 1 ))
+          ProgressBar "$step" "$total_steps"
+        done
+      done
+
+      printf "\nAll simulations completed."
+      exit 0
+    fi
+
+    ## Run Clique/Triangle Topologies
+    local dataset_path_fn run_fn
+    case "$dataset" in
+        clique)   dataset_path_fn=bclique_dataset_path;  run_fn=run_clique ;;
+        triangle) dataset_path_fn=triangle_dataset_path; run_fn=run_triangle ;;
+    esac
+
+    local total_steps=$(( ${#node_counts[@]} * runs ))
+    echo "${dataset}: runs ${runs}, node-counts ${node_counts[*]}"
+
+    for id in "${node_counts[@]}"; do
+        local ds_path
+        ds_path=$("${dataset_path_fn}" "${id}")
+
+        if [[ ! -f "${ds_path}" ]]; then
+            printf "\nWarning: dataset not found, skipping n=%s: %s\n" "${id}" "${ds_path}" >&2
+            step=$(( step + runs ))
+            ProgressBar "$step" "$total_steps" "${id}" "${runs}"
+            continue
+        fi
+
+        for ((run = 1; run <= runs; run++)); do
+            if ! "${run_fn}" "${ds_path}" "${id}"; then
+                failures=$(( failures + 1 ))
             fi
-
-#            if [[ "$dataset" == "rocketfuel" && "$regen" -eq 1 ]]; then
-#                rocketfuel_regen "${id}"
-#            fi
-
-            local ds_path
-            ds_path=$(${dataset}_dataset_path "${id}")
-
-            if [[ ! -f "${ds_path}" ]]; then
-                printf "\nWarning: dataset not found, skipping %s: %s\n" "${id}" "${ds_path}" >&2
-                step=$(( step + 4 ))
-                ProgressBar "$step" "$total_steps" "${id}" "${run}" "${runs}"
-                continue
-            fi
-
-            local fail_target=""
-            if [[ "$dataset" == "bclique" ]]; then
-                fail_target="0 ${id}"
-            fi
-
-            run "${ds_path}" "${fail_target}"
-            step=$(( step + 4 ))
-            ProgressBar "$step" "$total_steps" "${id}" "${run}" "${runs}"
+            step=$(( step + 1 ))
+            ProgressBar "$step" "$total_steps" "${id}" "${run}"
         done
     done
 
     echo ""
+    if [[ "${failures}" -gt 0 ]]; then
+        echo "Completed with ${failures} failed job(s)." >&2
+        exit 1
+    fi
     echo "All simulations completed."
 }
-
 main "$@"

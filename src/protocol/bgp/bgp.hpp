@@ -13,7 +13,7 @@ template <class RA>
 struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 {
 
-	using BGPAttr= BGPAttribute<RA>;
+	using BGPAttr = BGPAttribute<RA>;
 
 	using Base = IProtocol<typename RA::Attr, BGPAttr>;
 
@@ -21,7 +21,7 @@ struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 	using Base::data;
 	using Base::graph;
 
-	using node_state = BGPNodeState<BGPAttr>;
+	using node_state = BGPNodeState<RA>;
 
 	std::vector<node_state> s;
 
@@ -34,6 +34,8 @@ struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 	void DestinationAnnouncement(int t);
 
 	void LinkFailure(int u, int v) override;
+
+	void NodeWithdraw(int u);
 
 	void NodeDown(int t);
 

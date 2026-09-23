@@ -11,11 +11,9 @@ struct SeqExtension
 	SeqAttr<A> operator()(const SeqAttr<A> &l, const SeqAttr<A> &r) const
 	{
 		ExtBase ext;
-
-		SeqAttr<A> result;
-		result.a = l.getSeqNum(); // Keep the sequence number from the new attr
-
-		result.b = ext(l.getAttr(), r.getAttr()); // Extend base attribute
+		// Keep the sequence number from the new attr
+		// and extend base attribute
+		SeqAttr<A> result(l.getSeqNum(), ext(l.getAttr(), r.getAttr()));
 		return result;
 	}
 };

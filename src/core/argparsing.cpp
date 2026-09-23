@@ -94,15 +94,6 @@ int ParseDest(const std::string &s)
 	return std::stoi(s);
 }
 
-Metric ParseAlgebra(const std::string &s)
-{
-	if (s == "length")
-		return LENGTHS;
-	if (s == "hops")
-		return HOPS;
-	throw std::runtime_error("unknown algebra: " + s);
-}
-
 SimulationConfig ParseArgs(int argc, char *const *argv)
 {
 
@@ -124,7 +115,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	    {"window",   required_argument, nullptr,              'w'      },
 	    {"period",   required_argument, nullptr,              'i'      },
 	    {"failure",  optional_argument, nullptr,              'F'      },
-	    {"withdraw", required_argument, nullptr,              'W'      },
+	    {"withdraw", optional_argument, nullptr,              'W'      },
 	    {"rpbob",    optional_argument, nullptr,              'R'      },
 	    {"bgp",      no_argument,       nullptr,              'G'      },
 	    {"rcn",      no_argument,       nullptr,              'C'      },
@@ -133,7 +124,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	    {"verbose",  no_argument,       nullptr,              'V'      },
 	    {"silent",   no_argument,       nullptr,              'S'      },
 	    {"info",     no_argument,       nullptr,              'I'      },
-	    {"append",   no_argument,       (int *)&cfg.append,   1        },
+	    {"append",   no_argument,       (int *)&cfg.append,   false    },
 	    {"help",     no_argument,       nullptr,              'h'      },
 	    {nullptr,    0,                 nullptr,              0        },
 	};
@@ -169,7 +160,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			cfg.protocol = RCN;
 			break;
 		case 'a':
-			cfg.algebra = ParseAlgebra(optarg);
+			cfg.algebra = optarg;
 			break;
 		case 't':
 			cfg.destination = ParseDest(optarg);
@@ -204,9 +195,12 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			}
 			break;
 		}
+		case 'A':
+			cfg.append = true;
+			break;
 		case 'W': {
 			cfg.scenario   = Withdrawal;
-			cfg.withdrawal = std::stoi(optarg);
+			//cfg.withdrawal = std::stoi(optarg);
 			break;
 		}
 		case 'V':

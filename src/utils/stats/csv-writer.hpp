@@ -64,13 +64,17 @@ struct Record
 template <class R>
 class Recorder
 {
+	int          V = 0;
+	SummaryStats stats{};
+
     public:
 	Recorder(const std::filesystem::path &input, const std::string &proto,
-		 const std::map<std::string, std::string> &map)
-	    : records()
+		 const std::map<std::string, std::string> &map, int V_)
+	    : V(V_)
+	    , records()
 	{
 		bool append       = (map.at("append") == "1");
-		bool link_failure = (map.at("S_") == "linkFailure");
+		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "withdrawal");
 
 		convergence_out =
 		    openFile(makeOutputPath(input, proto, map, "convergence"), append, convergenceHeader(link_failure));
@@ -99,9 +103,9 @@ class Recorder
 				   double time, int msg);
 
 	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data,
-					std::optional<std::pair<int, int>> failure);
+					const std::optional<std::pair<int, int>> &failure);
 
-	SummaryStats Summary(int V);
+	SummaryStats Summary();
 
     private:
 	std::vector<Record<R>> records;

@@ -33,8 +33,10 @@ struct Graph
 	void removeEdge(int, int);
 
 	void activate(int, int);
+	void activate(int);
 
 	void deactivate(int, int);
+	void deactivate(int);
 
 	void clear();
 };

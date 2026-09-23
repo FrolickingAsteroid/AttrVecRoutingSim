@@ -24,12 +24,6 @@ struct RPBOBAttribute
 		return attr;
 	}
 
-	bool isInvalid() const
-	{
-		auto p = attr.getAttr().getPath();
-		return p.empty();
-	}
-
 	bool operator==(const RPBOBAttribute &other) const
 	{
 		return attr == other.attr;
@@ -53,7 +47,7 @@ struct RPBOBAttribute
 		return os << p.attr;
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const std::vector<RPBOBAttribute<RA>> &v)
+	friend std::ostream &operator<<(std::ostream &os, const std::vector<RPBOBAttribute> &v)
 	{
 
 		for (std::size_t i = 0; i < v.size(); ++i)

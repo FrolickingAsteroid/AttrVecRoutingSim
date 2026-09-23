@@ -2,50 +2,50 @@
 #define BGP_NODE_STATE_TPP
 
 #include "protocol/bgp/state/node-state.hpp"
+#include "routing-algebras/orders/comparison-vocab.hpp"
 
 namespace Protocol::BGP
 {
 
-template <class Attr>
-bool BGPNodeState<Attr>::ProcessBest(int v)
+template <class RA, class AttrType>
+bool BGPNodeState<RA, AttrType>::ProcessBest(int v)
 {
-	// Ord ord;
-	if (aTab.at(v) < E)
+	Ord ord;
+	if (ord(aTab.at(v).getAttr(), E.getAttr()) == RoutingAlgebras::Comp::Better)
 	{
 		// aTab[v] is strictly better than current E
 		succ = v;
 		Av   = aTab.at(v);
 	}
-	else if (succ == v && E < aTab.at(v))
+	else if (succ == v && ord(aTab.at(v).getAttr(), E.getAttr()) == RoutingAlgebras::Comp::Worse)
 	{
 		// current successor got worse
 		fullScan();
 	}
 	else if (succ == v)
 	{
-		// Successor's attribute changed but stayed preferred: update in place.
+		// Successor's RAibute changed but stayed preferred: update in place.
 		Av = aTab.at(v);
 	}
-	// else: unrelated neighbor, not better than E
-
 	return commitAv();
 }
 
-template <class Attr>
-bool BGPNodeState<Attr>::ProcessBest()
+template <class RA, class AttrType>
+bool BGPNodeState<RA, AttrType>::ProcessBest()
 {
 	fullScan();
 	return commitAv();
 }
 
-template <class Attr>
-void BGPNodeState<Attr>::fullScan()
+template <class RA, class AttrType>
+void BGPNodeState<RA, AttrType>::fullScan()
 {
-	Av   = attr::Invalid();
+	Ord ord;
+	Av   = path::Invalid();
 	succ = -1;
 	for (const auto &[neighbor, learned] : aTab)
 	{
-		if (learned < Av || (learned == Av && neighbor < succ))
+		if (ord(learned.getAttr(), Av.getAttr()) == RoutingAlgebras::Comp::Better)
 		{
 			Av   = learned;
 			succ = neighbor;
@@ -53,8 +53,8 @@ void BGPNodeState<Attr>::fullScan()
 	}
 }
 
-template <class Attr>
-bool BGPNodeState<Attr>::commitAv()
+template <class RA, class AttrType>
+bool BGPNodeState<RA, AttrType>::commitAv()
 {
 	if (Av != E)
 	{

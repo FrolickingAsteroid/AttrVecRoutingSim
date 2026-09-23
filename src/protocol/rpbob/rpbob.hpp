@@ -59,6 +59,8 @@ struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
 
 	void LinkFailure(int u, int v) override;
 
+	void NodeWithdraw(int u);
+
 	void process() override;
 
 	// Callbacks

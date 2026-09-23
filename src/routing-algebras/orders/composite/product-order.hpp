@@ -1,35 +1,40 @@
 #ifndef PRODUCT_ORDER_HPP
 #define PRODUCT_ORDER_HPP
 
+#include <tuple>
+#include <utility>
+
 #include "routing-algebras/orders/comparison-vocab.hpp"
 
 namespace RoutingAlgebras
 {
-template <class OrdA, class OrdB>
+template <class... Ords>
 struct ProductOrder
 {
-	template <class Attr>
-	Comp operator()(const Attr &l, const Attr &r) const
+	template <class Alg>
+	Comp operator()(const Alg &l, const Alg &r) const
 	{
-		OrdA ord_a;
-		OrdB ord_b;
-
-		bool lR = BetterOrEqual(ord_a(l.a, r.a)) && BetterOrEqual(ord_b(l.b, r.b));
-		bool rL = BetterOrEqual(ord_a(r.a, l.a)) && BetterOrEqual(ord_b(r.b, l.b));
+		bool lR = cmp(l, r, std::index_sequence_for<Ords...>{}); // l < r
+		bool rL = cmp(r, l, std::index_sequence_for<Ords...>{}); // r < l
 
 		if (lR && rL)
 		{
 			return Comp::Equal;
 		}
 		if (lR)
-		{
 			return Comp::Better;
-		}
 		if (rL)
-		{
 			return Comp::Worse;
-		}
 		return Comp::Incomparable;
+	}
+
+    private:
+	template <class Alg, std::size_t... I>
+	static bool cmp(const Alg &l, const Alg &r, std::index_sequence<I...>)
+	{
+		// comparison per algebra in a variable sized tuple
+		return (... &&
+			BetterOrEqual(std::tuple_element_t<I, std::tuple<Ords...>>{}(std::get<I>(l), std::get<I>(r))));
 	}
 };
 } // namespace RoutingAlgebras

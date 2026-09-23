@@ -27,6 +27,8 @@ class SequenceWindow
 
 	bool UpdateOpt();
 
+	void ClearOpt();
+
 	std::vector<path> GetOpt() const;
 
 	const std::vector<path> &GetWind() const;

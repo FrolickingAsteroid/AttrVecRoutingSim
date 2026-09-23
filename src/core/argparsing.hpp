@@ -6,11 +6,7 @@
 #include <string>
 
 #include "core/config.hpp"
-#include "routing-algebras/orders/primitive/equality.hpp"
-#include "routing-algebras/orders/primitive/suffix-colex.hpp"
-#include "routing-algebras/pathed-algebra.hpp"
-#include "routing-algebras/sequenced-alegebra.hpp"
-#include "routing-algebras/shortest-path-algebra.hpp"
+#include "routing-algebras/algebras.hpp"
 #include "simulator/instances/becing-simulator.hpp"
 #include "simulator/instances/bgp-simulator.hpp"
 #include "simulator/instances/rcn-simulator.hpp"
@@ -36,8 +32,6 @@ void PrintSummary(std::chrono::milliseconds elapsed, const utils::stats::Summary
 
 SimulationConfig ParseArgs(int argc, char *const *argv);
 
-Metric ParseAlgebra(const std::string &s);
-
 int ParseDest(const std::string &s);
 
 // ---------------------------------------------------------------------------- *
@@ -61,25 +55,12 @@ inline std::string ScenarioName(Type m)
 	}
 }
 
-inline std::string AlgebraName(Metric m)
-{
-	switch (m)
-	{
-	case LENGTHS:
-		return "lengths";
-	case HOPS:
-		return "hops";
-	default:
-		throw std::runtime_error("unknown algebra");
-	}
-}
-
 inline std::map<std::string, std::string> RPBOBParams(const SimulationConfig &cfg)
 {
 	return {
 	    {"notif",   std::to_string(cfg.notif)                                       },
 	    {"append",  std::to_string(cfg.append)                                      },
-	    {"A_",      AlgebraName(cfg.algebra)                                        },
+	    {"A_",      cfg.algebra						     },
 	    {"N_",      cfg.N.has_value() ? std::to_string(cfg.N.value()) : "adaptative"},
 	    {"period_", formatParam(cfg.period.value())                                 },
 	    {"S_",      ScenarioName(cfg.scenario)                                      },
@@ -90,7 +71,7 @@ inline std::map<std::string, std::string> BeaconingParams(const SimulationConfig
 {
 	return {
 	    {"append",  std::to_string(cfg.append)     },
-            {"A_",      AlgebraName(cfg.algebra)       },
+            {"A_",      cfg.algebra                    },
 	    {"dprop_",  formatParam(cfg.dprop.value()) },
             {"period_", formatParam(cfg.period.value())},
 	    {"S_",      ScenarioName(cfg.scenario)     },
@@ -101,7 +82,7 @@ inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
 {
 	return {
 	    {"append", std::to_string(cfg.append)},
-	    {"A_",     AlgebraName(cfg.algebra)  },
+	    {"A_",     cfg.algebra               },
 	    {"S_",     ScenarioName(cfg.scenario)},
 	};
 }
@@ -111,6 +92,8 @@ inline std::map<std::string, std::string> BGPParams(const SimulationConfig &cfg)
 // Simulator Factory
 //
 // ---------------------------------------------------------------------------- *
+
+using SimFactory = std::function<std::unique_ptr<Simulator::ISimulation>(SimulationConfig &)>;
 
 template <class RA>
 std::unique_ptr<Simulator::ISimulation> RPBOBSimulation(SimulationConfig &cfg)
@@ -136,46 +119,61 @@ std::unique_ptr<Simulator::ISimulation> RCNSimulation(SimulationConfig &cfg)
 	return std::make_unique<Simulator::RCNSimulation<RA>>(cfg, BGPParams(cfg), "rcn");
 }
 
+struct AlgebraFactories
+{
+	SimFactory rcn;
+	SimFactory bgp;
+	// SimFactory beaconing;
+	SimFactory rpbob;
+};
+
+template <class RA>
+AlgebraFactories MakeFactories()
+{
+	return AlgebraFactories{
+	    &RCNSimulation<RA>,
+	    &BGPSimulation<RA>,
+	    //&BeaconingSimulation<RA>,
+	    &RPBOBSimulation<RoutingAlgebras::Sequenced<RA>>,
+	};
+}
+
+inline const std::unordered_map<std::string, AlgebraFactories> &Algebras()
+{
+	using namespace RoutingAlgebras;
+	static const std::unordered_map<std::string, AlgebraFactories> table = {
+	    {"lex-hops-suffix",               MakeFactories<LEX_LENGTH_HOPS_SUFFIX>()       }, // used with delayHops
+	    {"lex-length-hops-suffix",        MakeFactories<LEX_LENGTH_HOPS_SUFFIX>()       },
+	    {"lex-length-width-suffix",       MakeFactories<LEX_LENGTH_WIDTH_SUFFIX>()      },
+	    {"prod-width-length-hops-suffix", MakeFactories<PROD_WIDTH_LENGTH_HOPS_SUFFIX>()},
+	    {"lex-length-explicit",           MakeFactories<LEX_LENGTH_EXPLICIT>()          },
+	};
+	return table;
+}
+
 inline std::unique_ptr<Simulator::ISimulation> MakeSimulation(SimulationConfig cfg)
 {
+	auto it = Algebras().find(cfg.algebra);
+	if (it == Algebras().end())
+	{
+		throw std::runtime_error("unknown algebra: " + cfg.algebra);
+	}
 
-	if (cfg.protocol == RPBOB)
+	const auto &[rcn, bgp, rpbob] = it->second;
+
+	switch (cfg.protocol)
 	{
-		switch (cfg.algebra)
-		{
-		case LENGTHS:
-		case HOPS:
-			return RPBOBSimulation<Sequenced<PathLex<ShortestPath, SuffixOrder>>>(cfg);
-		}
+	case RPBOB:
+		return rpbob(cfg);
+	case RCN:
+		return rcn(cfg);
+	case BGP:
+		return bgp(cfg);
+	// case Beaconing:
+	// 	return beaconing(cfg);
+	default:
+		throw std::runtime_error("unknown protocol");
 	}
-	else if (cfg.protocol == RCN)
-	{
-		switch (cfg.algebra)
-		{
-		case LENGTHS:
-		case HOPS:
-			return RCNSimulation<SP>(cfg);
-		}
-	}
-	else if (cfg.protocol == BGP)
-	{
-		switch (cfg.algebra)
-		{
-		case LENGTHS:
-		case HOPS:
-			return BGPSimulation<SP>(cfg);
-		}
-	}
-	// else if (cfg.protocol == Beaconing)
-	// {
-	// 	switch (cfg.algebra)
-	// 	{
-	// 	case LENGTHS:
-	// 	case HOPS:
-	// 		return BeaconingSimulation<EqPathLex<SP>>(cfg);
-	// 	}
-	// }
-	throw std::runtime_error("unknown protocol");
 }
 } // namespace config
 

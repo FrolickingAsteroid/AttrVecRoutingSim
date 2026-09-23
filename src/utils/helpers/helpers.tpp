@@ -27,7 +27,7 @@ bool CompareOpt(const std::vector<Msg> &l, const std::vector<Msg> &r)
 	for (const auto &l_ : l)
 	{
 		bool found = std::any_of(r.begin(), r.end(), [&](const Msg &r_) {
-			return l_.attr.b == r_.attr.b;
+			return l_.attr.getAttr() == r_.attr.getAttr();
 		});
 		if (!found)
 		{
@@ -47,7 +47,7 @@ bool CompareOpt(const std::vector<Msg> &l, const std::vector<A> &r)
 	for (const auto &l_ : l)
 	{
 		bool found = std::any_of(r.begin(), r.end(), [&](const A &r_) {
-			return l_.attr.b == r_;
+			return l_.attr.getAttr() == r_; //
 		});
 		if (!found)
 		{
@@ -64,11 +64,11 @@ std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<
 	Ns.reserve(opt_time.size());
 	for (const auto &node_paths : opt_time)
 	{
-		if (Delta == 0 || node_paths.size() < 2)
+		if (Delta == 0)
 		{
 			// N = 1; W = N + 1
 			Ns.push_back(2);
-			//Ns.push_back(1);
+			// Ns.push_back(1);
 			continue;
 		}
 		const double diff = 1.1 * node_paths.back().first - node_paths.front().first;
@@ -109,7 +109,7 @@ std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
 	  std::vector<std::vector<typename RA::Base::Attr>>>
 DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 {
-	using A = RA::Base::Attr; // this access needs to be different...
+	using A = RA::Base::Attr;
 
 	typename RA::Base::Ord ord;
 	typename RA::Base::Ext ext;
@@ -134,7 +134,7 @@ DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 		for (const auto &p : set)
 		{
 
-			if (a.empty() || RoutingAlgebras::BetterOrEqual(ord(p, a)))
+			if (RoutingAlgebras::BetterOrEqual(ord(p, a)))
 			{
 				return false;
 			}
@@ -169,12 +169,12 @@ DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 					{
 						continue;
 					}
-					auto &[delay, active, link_attr] = edge;
+					auto &[delay, active, link_weight] = edge;
 					if (!active)
 					{
 						continue;
 					}
-					auto l = A(link_attr.a, x);
+					auto l = link_weight.buildLinkAttr(x);
 
 					A candidate = ext(a, l);
 

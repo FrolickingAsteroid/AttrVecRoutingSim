@@ -23,6 +23,12 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::GetOpt() cons
 }
 
 template <class RA>
+void SequenceWindow<RA>::ClearOpt()
+{
+	opt.clear();
+}
+
+template <class RA>
 const std::vector<typename SequenceWindow<RA>::path> &SequenceWindow<RA>::GetWind() const
 {
 	return wind;
@@ -106,12 +112,6 @@ std::vector<typename SequenceWindow<RA>::path> SequenceWindow<RA>::FailureNotif(
 template <class RA>
 std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind(const path &c)
 {
-	// reject empty paths (paths that are not simple paths)
-	if (c.isInvalid())
-	{
-		return std::nullopt;
-	}
-
 	A candidate = c.getAttr();
 
 	const int n = candidate.getSeqNum();
@@ -148,7 +148,7 @@ std::optional<typename SequenceWindow<RA>::path> SequenceWindow<RA>::CompareWind
 		R = n;
 		wind.erase(std::remove_if(wind.begin(), wind.end(),
 					  [&](const path &p) {
-			return p.attr.a <= R - W;
+			return p.attr.getSeqNum() <= R - W;
 		}),
 			   wind.end());
 	}
@@ -176,7 +176,7 @@ bool SequenceWindow<RA>::UpdateOpt()
 			bool dom = false;
 			for (const auto &b : wind)
 			{
-				if (ord(a.attr.b, b.attr.b) == RoutingAlgebras::Comp::Worse)
+				if (ord(a.attr.getAttr(), b.attr.getAttr()) == RoutingAlgebras::Comp::Worse)
 				{
 					dom = true;
 					break;

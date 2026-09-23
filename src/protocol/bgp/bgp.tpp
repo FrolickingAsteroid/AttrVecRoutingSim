@@ -14,17 +14,18 @@ void BGP<RA>::process()
 		auto it   = data.finalValue.find(u);
 		auto best = s[u].GetElected();
 
-		// skip nodes that have yet to receive an estimate toward t
+		// skip nodes that have yet to register an estimate toward t
 		if (best.attribute == RA::Null() && it == data.finalValue.end())
 		{
 			continue;
 		}
 
-		if (it == data.finalValue.end() || best != it->second.front())
+		if (cal.now() >= s[u].MRAI && (it == data.finalValue.end() || best != it->second.front()))
 		{
 			// A msg is sent each time the estimate to the destination changes
+			s[u].MRAI = cal.now() + 1;
 			this->Send(u, s[u].GetElected());
-			data.recordChange(u, cal.now(), best); // to be revised
+			data.recordChange(u, cal.now(), best);
 		}
 	}
 }
@@ -46,6 +47,29 @@ void BGP<RA>::LinkFailure(int u, int v)
 		if (s[node].succ == neighbor)
 		{
 			s[node].RemoveNeighbor(neighbor);
+			if (s[node].ProcessBest())
+			{
+				this->Send(node, s[node].GetElected());
+				data.recordChange(node, cal.now(), s[node].GetElected());
+			}
+		}
+	}
+}
+
+template <class RA>
+void BGP<RA>::NodeWithdraw(int u)
+{
+	graph.deactivate(u);
+	data.log = true;
+	data.setOffset(cal.now());
+
+	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
+
+	for (auto &[node, edge] : graph.adjListIn[u])
+	{
+		if (s[node].succ == u)
+		{
+			s[node].RemoveNeighbor(u);
 			if (s[node].ProcessBest())
 			{
 				this->Send(node, s[node].GetElected());
@@ -90,19 +114,18 @@ void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 		return;
 	}
 
-	if ((data.log == true && u == 0))
+	if ((data.log == true && u == 2))
 	{
 		LOG_DEBUG << "node:" << u;
 		LOG_DEBUG << "Time:" << cal.now();
 		LOG_DEBUG << "candidate from " << v << ": " << received;
 	}
-
-	BGPAttr lw(u, std::get<2>(graph.adjListOut[u].at(v)));
+	BGPAttr lw(graph.edgeWeight(u, v).buildLinkAttr(u));
 	BGPAttr extended = lw + received;
 	s[u].UpdateNeighbor(v, extended);
 	s[u].ProcessBest(v);
 
-	if (data.log == true && u == 0)
+	if (data.log == true && u == 2)
 	{
 		LOG_DEBUG << s[u] << "\n";
 	}

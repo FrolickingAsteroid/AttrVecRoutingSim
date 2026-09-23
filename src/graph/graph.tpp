@@ -20,7 +20,7 @@ Graph<S>::Graph(int V_)
 template <class S>
 auto Graph<S>::edgeWeight(int u, int v) const
 {
-	return std::get<2>(adjListOut[u].at(v)).getAttr();
+	return std::get<2>(adjListOut[u].at(v));
 }
 
 template <class S>
@@ -77,6 +77,21 @@ void Graph<S>::activate(int u, int v)
 }
 
 template <class S>
+void Graph<S>::activate(int u)
+{
+	if (0 > u or u >= V)
+	{
+		throw std::out_of_range("Node does not exist.");
+	}
+
+	for (const auto &[v, edge] : adjListIn[u])
+	{
+		std::get<1>(adjListIn[u].at(v)) = true;
+		std::get<1>(adjListIn[v].at(u)) = true;
+	}
+}
+
+template <class S>
 void Graph<S>::deactivate(int u, int v)
 {
 	if (0 > u or u > V)
@@ -90,6 +105,22 @@ void Graph<S>::deactivate(int u, int v)
 	std::get<1>(adjListIn[u].at(v)) = false;
 	std::get<1>(adjListIn[v].at(u)) = false;
 }
+
+template <class S>
+void Graph<S>::deactivate(int u)
+{
+	if (0 > u or u >= V)
+	{
+		throw std::out_of_range("Node does not exist.");
+	}
+
+	for (const auto &[v, edge] : adjListIn[u])
+	{
+		std::get<1>(adjListIn[u].at(v)) = false;
+		std::get<1>(adjListIn[v].at(u)) = false;
+	}
+}
+
 
 template <class S>
 void Graph<S>::clear()

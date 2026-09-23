@@ -4,6 +4,6 @@
 #include <istream>
 namespace RoutingAlgebras
 {
-using L = int;
+using L = unsigned long int;
 } // namespace RoutingAlgebras
 #endif

@@ -34,6 +34,19 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 					this->graph.activate(u, v);
 				}
 			}
+			else if (this->cfg.scenario == config::Type::Withdrawal)
+			{
+				for (int u = 0; u < this->graph.V; ++u)
+				{
+					if (u == t)
+					{
+						continue;
+					}
+
+					this->recorder.recordDest(t, proto(t, u), std::make_pair(u, -1));
+					this->graph.activate(u);
+				}
+			}
 			this->Progress(t);
 		}
 	}
@@ -49,8 +62,16 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 		if (u && v)
 		{
 			proto.Run();
-			proto.cal.schedule(100, [&]() {
+			proto.cal.schedule(200, [&]() {
 				proto.LinkFailure(*u, *v);
+			});
+			proto.Run();
+		}
+		else if (u)
+		{
+			proto.Run();
+			proto.cal.schedule(100, [&]() {
+				proto.NodeWithdraw(*u);
 			});
 			proto.Run();
 		}
