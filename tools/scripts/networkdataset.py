@@ -5,6 +5,7 @@
 import argparse
 import numpy as np
 from pathlib import Path
+from itertools import combinations
 
 import networkx as nx
 
@@ -206,6 +207,8 @@ def write_b_clique(n: int, dir: str, mode: str = "unit"):
         length_fn = _unit_delay if "Hops" in attrs else _proportional_length
         g = b_clique_network(n, mode=mode, length_fn=length_fn)
 
+        print(nx.diameter(g, weight="Length"))
+
         with open(out_file, "w") as f:
             f.write(f"{g.number_of_nodes()}\n")
             for u, v, data in g.edges(data=True):
@@ -267,27 +270,39 @@ def edge_centrality(G: nx.DiGraph):
 
     top_k = 10
     candidates = ranked_edges[:top_k]
-    print(f"Large Edge centrality:")
+    print(f"\tLarge Edge centrality:")
     for (u, v), score in candidates:
-        print(f"\t{u} - {v}: centrality={score:.4f}")
+        print(f"\t\t{u} - {v}: centrality={score:.4f}")
 
-    print(f"\nLarge Node centrality:")
+    print(f"\n\tLarge Node centrality:")
     for u, score in top_nodes:
-        print(f"\t{u}: centrality={score:.4f}")
+        print(f"\t\t{u}: centrality={score:.4f}")
 
     ranked_edges = sorted(merged.items(), key=lambda kv: kv[1], reverse=False)
     ranked_nodes = sorted(node_centrality.items(), key=lambda kv: kv[1], reverse=False)
 
     top_nodes = ranked_nodes[:10]
     candidates = ranked_edges[:top_k]
-    print(f"\n\nSmall Edge centrality:")
+    print(f"\n\n\tSmall Edge centrality:")
     for (u, v), score in candidates:
-        print(f"\t{u} - {v}: centrality={score:.4f}")
+        print(f"\t\t{u} - {v}: centrality={score:.4f}")
 
-    print(f"\nSmall Node centrality:")
+    print(f"\n\tSmall Node centrality:")
     for u, score in top_nodes:
-        print(f"\t{u}: centrality={score:.4f}")
+        print(f"\t\t{u}: centrality={score:.4f}")
 
+
+def all_minimum_edge_cutsets(G):
+    k = nx.edge_connectivity(G)
+    edges = list(G.edges())
+    cutsets = []
+    for combo in combinations(edges, k):
+        H = G.copy()
+        H.remove_edges_from(combo)
+        if not nx.is_connected(H):
+            cutsets.append(combo)
+
+    return cutsets
 
 def cmd_info(g: nx.DiGraph, AS: str, **_):
     print_graph_info(g, AS)
@@ -303,7 +318,20 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
     u, v, max_d = max(g.edges(data="Delay"), key=lambda e: e[2])
     print(f"\n\tLargest edge delay: {max_d}  on ({u},{v})")
     print(f"\tNode with maximum degree: {max_deg_node} with degree {max_deg}\n")
-    edge_centrality(g)
+
+
+
+    G = g.to_undirected()
+    cutsets = list(nx.all_node_cuts(G))
+
+    k = nx.edge_connectivity(G)
+    print(f"\tEdge connectivity: {k}")
+    cutsets = all_minimum_edge_cutsets(G)
+    print(f"\t{len(cutsets)} minimum cutset(s) of size {k}:")
+    for cutset in cutsets:
+        print(f"\t\t  {cutset}")
+
+    #edge_centrality(g)
 
 
 def build_parser() -> argparse.ArgumentParser:

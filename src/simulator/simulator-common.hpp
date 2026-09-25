@@ -32,6 +32,45 @@ std::vector<std::pair<int, int>> buildBidLinks(const config::SimulationConfig &c
 	}
 	return graph.findBidLinks();
 }
+
+inline std::vector<std::vector<std::pair<int, int>>> readCutsets(const std::string &network_file)
+{
+	auto        slash_pos = network_file.rfind('/');
+	std::string dir       = (slash_pos == std::string::npos) ? "." : network_file.substr(0, slash_pos);
+
+	std::string   cutset_path = dir + "/cutset.tsv";
+	std::ifstream cutset_file(cutset_path);
+
+	if (!cutset_file.is_open())
+	{
+		throw std::runtime_error("Could not open network file: " + cutset_path);
+	}
+	std::vector<std::vector<std::pair<int, int>>> cutsets;
+
+	std::string line;
+	while (std::getline(cutset_file, line))
+	{
+		if (line.empty())
+		{
+			continue;
+		}
+
+		std::vector<std::pair<int, int>> cutset;
+		std::istringstream               iss(line);
+		std::string                      edge_str;
+		while (iss >> edge_str)
+		{
+			auto comma = edge_str.find(',');
+			int  u     = std::stoi(edge_str.substr(0, comma));
+			int  v     = std::stoi(edge_str.substr(comma + 1));
+			cutset.emplace_back(u, v);
+		}
+		cutsets.push_back(std::move(cutset));
+	}
+
+	return cutsets;
+}
+
 template <class Attr, class RecordedT>
 class SimulationCommon : public ISimulation
 {
@@ -45,8 +84,16 @@ class SimulationCommon : public ISimulation
 
 	void setup() override
 	{
-		targets   = buildTargets(cfg, graph.V);
-		bid_links = buildBidLinks(cfg, graph);
+		targets = buildTargets(cfg, graph.V);
+
+		if (this->cfg.scenario == config::Type::LinkFailure)
+		{
+			bid_links = buildBidLinks(cfg, graph);
+		}
+		if (this->cfg.scenario == config::Type::Cutset)
+		{
+			cutsets = readCutsets(cfg.network_file);
+		}
 	}
 
 	utils::stats::SummaryStats postProcess() override
@@ -68,12 +115,13 @@ class SimulationCommon : public ISimulation
 	}
 
     protected:
-	config::SimulationConfig &cfg;
+	config::SimulationConfig cfg;
 
-	Graphs::Graph<Attr>               graph;
-	std::vector<int>                  targets;
-	utils::stats::Recorder<RecordedT> recorder;
-	std::vector<std::pair<int, int>>  bid_links;
+	Graphs::Graph<Attr>                           graph;
+	std::vector<int>                              targets;
+	utils::stats::Recorder<RecordedT>             recorder;
+	std::vector<std::pair<int, int>>              bid_links;
+	std::vector<std::vector<std::pair<int, int>>> cutsets;
 };
 } // namespace Simulator
 

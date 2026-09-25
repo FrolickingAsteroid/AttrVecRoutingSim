@@ -64,15 +64,13 @@ std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<
 	Ns.reserve(opt_time.size());
 	for (const auto &node_paths : opt_time)
 	{
-		if (Delta == 0)
+		if (Delta == 0 || node_paths.empty())
 		{
 			// N = 1; W = N + 1
-			Ns.push_back(2);
-			// Ns.push_back(1);
+			Ns.push_back(1);
 			continue;
 		}
 		const double diff = 1.1 * node_paths.back().first - node_paths.front().first;
-		// const double diff = node_paths.back().first - node_paths.front().first;
 		Ns.push_back(static_cast<int>(std::ceil(diff / Delta)) + 1);
 	}
 	return Ns;
@@ -105,16 +103,18 @@ double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &op
 }
 
 template <class RA>
-std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
-	  std::vector<std::vector<typename RA::Base::Attr>>>
-DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
+std::pair<std::vector<std::vector<std::pair<double, typename Base<RA>::Attr>>>,
+	  std::vector<std::vector<typename Base<RA>::Attr>>>
+DelayDijkstra(const Graphs::Graph<typename Base<RA>::Attr> &graph, int dest)
 {
-	using A = RA::Base::Attr;
+	using Base = Base<RA>;
+	using A    = Base::Attr;
 
-	typename RA::Base::Ord ord;
-	typename RA::Base::Ext ext;
+	typename Base::Ord ord;
+	typename Base::Ext ext;
 
-	const int                                      V = graph.V;
+	const int V = graph.V;
+
 	std::vector<std::vector<A>>                    opt(V);
 	std::vector<std::vector<std::pair<double, A>>> opt_time(V);
 
@@ -150,7 +150,7 @@ DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 
 	std::priority_queue<Quad, std::vector<Quad>, decltype(comp)> pq(comp);
 
-	A neutral = RA::Base::Neutral(dest);
+	A neutral = Base::Neutral(dest);
 	pq.push(std::make_tuple(0.0, dest, neutral, -1));
 
 	std::set<int> visited;
@@ -186,11 +186,11 @@ DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest)
 	return {opt_time, opt};
 }
 
-template <class A, class Ord, class Ext>
-void Compute_N(const std::string &filename, double Delta)
+template <class RA>
+void Compute_N(const std::string &filename, double Delta, const Graphs::Graph<typename Base<RA>::Attr> &graph,
+	       const std::vector<std::vector<std::pair<double, typename Base<RA>::Attr>>> &opt_time)
 {
-	auto   graph = Graphs::Graph<A>::readGraph(filename);
-	double D     = 0.0;
+	double D = 0.0;
 
 	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + " (" + std::to_string(graph.V) +
 			     " destinations)" + "\n");
@@ -198,8 +198,7 @@ void Compute_N(const std::string &filename, double Delta)
 	std::vector<double> results;
 	for (int u = 0; u < graph.V; ++u)
 	{
-		auto [opt_time, opt] = DelayDijkstra<A, Ord, Ext>(graph, u);
-		auto delay           = FindMaxDelayDiff<A>(opt_time);
+		auto delay = FindMaxDelayDiff<typename Base<RA>::Attr>(opt_time);
 
 		D = std::max(D, delay);
 		results.push_back(delay);
@@ -210,7 +209,7 @@ void Compute_N(const std::string &filename, double Delta)
 	LOG_INFO << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta) << "\n";
 }
 
-inline void printDelays(std::vector<double> &results, double D)
+inline void printDelays(const std::vector<double> &results, const double D)
 {
 	constexpr int COL_WIDTH = 22;
 	const int     total     = static_cast<int>(results.size());

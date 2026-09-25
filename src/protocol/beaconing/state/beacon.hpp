@@ -16,7 +16,7 @@ struct Beacon
 	A      attr; // (attr, path)
 	double timeout;
 
-	static constexpr double expiration = 1000000000; //(no idea)
+	static constexpr double expiration = 100; //
 
 	Beacon() = default;
 
@@ -28,7 +28,7 @@ struct Beacon
 	Beacon(A attr_, const double time)
 	    : attr(std::move(attr_))
 	{
-		this->setTimeout(time);
+		this->updateTimeout(time);
 	}
 
 	bool expired(const double now) const
@@ -38,42 +38,66 @@ struct Beacon
 
 	void setTimeout(const double time)
 	{
+		timeout = time;
+	}
+
+	void updateTimeout(const double time)
+	{
 		timeout = time + expiration;
+	}
+
+	double getTimeout() const
+	{
+		return timeout;
 	}
 
 	bool isInvalid() const
 	{
-		auto p = attr.getAttr().getPath();
-		return p.empty();
+		return attr == RA::Null();
 	}
 
-	A getAttr()
+	static Beacon Invalid()
+	{
+		return Beacon(RA::Null());
+	}
+	A getAttr() const
 	{
 		return attr;
 	}
 
-	bool operator==(const Beacon<A> &other) const
+	bool operator==(const Beacon &other) const
 	{
 		return attr == other.attr;
 	}
 
-	bool operator!=(const Beacon<A> &other) const
+	bool operator!=(const Beacon &other) const
 	{
 		return !(*this == other);
 	}
 
 	friend Beacon operator+(const Beacon &p, const A &link)
 	{
+		const auto &as_path = p.getAttr().getPath();
+		const auto &newHop  = link.getAttr().getPath();
+
+		// Paths containing loops are invalidated
+		if (std::find(as_path.path.begin(), as_path.path.end(), newHop[0]) != as_path.path.end())
+		{
+			return Beacon::Invalid();
+		}
+
 		Ext ext;
 
-		auto extended = ext(p.getAttr(), link);
+		auto   extended = ext(p.getAttr(), link);
+		Beacon p_(extended);
+		p_.setTimeout(p.getTimeout());
 
-		return Beacon(extended);
+		return p_;
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const Beacon &p)
 	{
-		return os << p.attr;
+		return os << p.getTimeout() << ": " << p.attr;
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const std::vector<Beacon> &v)

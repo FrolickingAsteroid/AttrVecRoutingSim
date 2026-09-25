@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
+
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
+
+import matplotlib.pyplot as plt
+from matplotlib import rc
+import matplotlib.ticker
 import matplotlib
+
 import itertools
 import glob
 import re
-from matplotlib import rc
 import os
 
 plt.rcParams.update({
@@ -17,14 +21,21 @@ plt.rcParams.update({
     "font.size": 10,
 })
 
+matplotlib.rcParams['ytick.minor.size'] = 0
+matplotlib.rcParams['ytick.minor.width'] = 0
+
+# ──────────────────────────────────────────────────────────────────────
+# Path
+# ──────────────────────────────────────────────────────────────────────
+
 ROOT_DIR = next(
     p for p in Path(__file__).parents
     if (p / '.git').exists()
 )
 
 DATASET = {
-    "clique": ("bclique", [4, 8, 16, 32]),
-    "triangle": ("triangle", [3, 7, 15, 31])
+    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 10, 16, 32]),
+    "triangle": ("triangle", [4, 8, 16, 32])
 }
 
 DATASET_ = "clique"
@@ -70,13 +81,16 @@ for csv_path in DATA_DIR.glob(f"{DATASET[DATASET_][0]}_*/*/*convergence.csv"):
     if n not in DATASET[f"{DATASET_}"][1]:
         continue
 
+    if "altered" in filename:
+        continue
+
     if protocol.lower() == "rpbob" and re.findall(r"\d+\.\d+", filename)[0] != "1.0":
         continue
 
     protocol_label = get_protocol_label(protocol, filename)
 
     df = pd.read_csv(csv_path)
-    # df = df[df["change_count"] != 0]
+    df = df[df["change_count"] != 0]
 
     df = df[['stab_time']].copy()
     df[f"{DATASET_}"] = n
@@ -109,6 +123,7 @@ fig, ax = plt.subplots(figsize=(6, 5))
 
 avg_times = clique_data.groupby(["protocol", f"{DATASET_}"])["stab_time"].mean()
 print(avg_times)
+
 sns.pointplot(
     data=clique_data,
     x=f"{DATASET_}",
@@ -126,32 +141,23 @@ sns.pointplot(
     capsize=0.1,
 )
 
-
 ax.set_yscale('log')
-#plt.yscale('symlog', linthresh=0.0)
-plt.ylim([0, clique_data["stab_time"].max()])
 
 ax.set_xlabel("Number of Nodes in Clique Topology")
 ax.set_ylabel("Stabilization time [ms]")
 
-#ax.set_yticks([1, 10, 100])
-#ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+ax.set_yticks(DATASET[f"{DATASET_}"][2])
+ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-ax.set_xticklabels(["4", "8", "16", "32"])
-
-means = clique_data.groupby("protocol")["stab_time"].mean()
 handles, labels = ax.get_legend_handles_labels()
+ax.legend(handles=handles[1:], labels=labels[1:])
 new_labels = [rf"{label}" for label in labels]
 
-legend = ax.legend_
-legend.set_title("Protocol")
-legend.get_title().set_fontweight("bold")
 plt.tight_layout()
 
-name = f"{DATASET_}PointPlot_unit.png"
+name = f"{DATASET_}PointPlot_unit.pdf"
 out_path = os.path.join(OUTPUT_DIR, name)
-#plt.show()
-#plt.close()
 
-plt.savefig(out_path, dpi=300)
+plt.savefig(out_path, format="pdf")
 print(f"\tsaved {out_path}\n")
+plt.show()

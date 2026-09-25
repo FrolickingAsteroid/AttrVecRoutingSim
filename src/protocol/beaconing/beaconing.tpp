@@ -15,7 +15,7 @@ void BEACONING<RA>::process()
 	for (int u = 0; u < graph.V; ++u)
 	{
 		auto it  = data.finalValue.find(u);
-		auto opt = s[u].GetOpt();
+		auto opt = s[u].GetBest();
 
 		if (opt.empty())
 		{
@@ -35,8 +35,8 @@ void BEACONING<RA>::DestinationAnnouncement(int t, int n, double period, std::op
 
 	s[t].SetOrigin(t, cal.now());
 
-	// destination has a single opt attr: (e, t)
-	auto o = s[t].GetOpt().front();
+	// destination has a single best attr: (e, t)
+	auto o = s[t].GetBest().front();
 	this->Send(t, o);
 
 	// schedule next routing computation
@@ -50,6 +50,10 @@ void BEACONING<RA>::DestinationAnnouncement(int t, int n, double period, std::op
 		cal.schedule(d, [t, n, period, max, this]() mutable {
 			this->DestinationAnnouncement(t, n, period, max);
 		});
+	}
+	else
+	{
+		cal.clear();
 	}
 }
 
@@ -67,12 +71,28 @@ void BEACONING<RA>::MsgReception(int u, int v, Bcn beacon)
 	{
 		return;
 	}
+	typename RA::Attr edgeAttr(graph.edgeWeight(u, v).buildLinkAttr(u)); // (l_attr, u)
+	auto              extended = beacon + edgeAttr;                      // (l_attr (ext) r_attr, uP)
 
-	typename RA::Attr edgeAttr(graph.edgeWeight(u, v), u); // (l_attr, u)
-	auto              extended = beacon + edgeAttr;        // (l_attr (ext) r_attr, uP)
+	if (u == 7)
+	{
+		LOG_DEBUG << "Reception:";
+		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "node: " << u;
+		LOG_DEBUG << "Extended: " << extended;
+		LOG_DEBUG << s[u];
+	}
+	s[u].Insert(extended);
+	if (u == 7)
+	{
+		LOG_DEBUG << "After:";
+		LOG_DEBUG << s[u] << "\n";
+	}
 
-	s[u].Insert(beacon);
-	converged();
+	if (record)
+	{
+		record(u, cal.now(), s[u].GetBest(), s[u].GetCandidates(), "reception");
+	}
 }
 
 template <class RA>
@@ -82,7 +102,8 @@ void BEACONING<RA>::SchedulePropagation(int u, double d_prop, int max)
 		this->Propagate(u);
 	});
 
-	// will run while not converged, must find something more suitable
+	// will continue to run,
+	// must find something more suitable
 	cal.schedule(cal.now() + d_prop, [this, u, d_prop, max]() {
 		this->SchedulePropagation(u, d_prop, max);
 	});
@@ -91,13 +112,27 @@ void BEACONING<RA>::SchedulePropagation(int u, double d_prop, int max)
 template <class RA>
 void BEACONING<RA>::Propagate(int u)
 {
+	// Assume that the registration event occurs at the same time
+	// as the prop event
 	auto selected = s[u].BeaconsToPropagate(cal.now());
+	if (u == 7)
+	{
+		LOG_DEBUG << "Propagation:";
+		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "node: " << u;
+		LOG_DEBUG << s[u] << "\n";
+	}
 
 	if (selected.empty())
 		return;
 
 	for (auto beacon : selected)
 		this->Send(u, beacon);
+
+	if (record)
+	{
+		record(u, cal.now(), s[u].GetBest(), s[u].GetCandidates(), "propagation");
+	}
 }
 } // namespace Protocol::Beaconing
 #endif

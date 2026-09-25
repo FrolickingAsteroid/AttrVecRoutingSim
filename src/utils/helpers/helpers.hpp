@@ -6,6 +6,22 @@
 namespace utils::helpers
 {
 
+template <class RA>
+auto BaseHelper()
+{
+	if constexpr (requires { typename RA::Base; })
+	{
+		return std::type_identity<typename RA::Base>{};
+	}
+	else
+	{
+		return std::type_identity<RA>{};
+	}
+}
+
+template <class RA>
+using Base = decltype(BaseHelper<RA>())::type;
+
 template <class A>
 std::vector<int> ComputeWindu(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
@@ -16,11 +32,11 @@ template <class A>
 double FindMaxDelayDiff(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class RA>
-std::pair<std::vector<std::vector<std::pair<double, typename RA::Base::Attr>>>,
-	  std::vector<std::vector<typename RA::Base::Attr>>>
-DelayDijkstra(const Graphs::Graph<typename RA::Base::Attr> &graph, int dest);
+std::pair<std::vector<std::vector<std::pair<double, typename Base<RA>::Attr>>>,
+	  std::vector<std::vector<typename Base<RA>::Attr>>>
+DelayDijkstra(const Graphs::Graph<typename Base<RA>::Attr> &graph, int dest);
 
-void printDelays(std::vector<double> &results, double D);
+void printDelays(const std::vector<double> &results, double D);
 
 /*
 template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta);

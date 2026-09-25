@@ -8,9 +8,9 @@
 namespace Protocol::Beaconing
 {
 template <class RA>
-struct BEACONING : IProtocol<typename RA::Base::Attr, Beacon<RA>>
+struct BEACONING : IProtocol<typename RA::Attr, Beacon<RA>>
 {
-	using Base = IProtocol<typename RA::Base::Attr, Beacon<RA>>;
+	using Base = IProtocol<typename RA::Attr, Beacon<RA>>;
 
 	using Base::cal;
 	using Base::data;
@@ -20,7 +20,7 @@ struct BEACONING : IProtocol<typename RA::Base::Attr, Beacon<RA>>
 
 	std::vector<BeaconStore<RA>> s;
 
-	explicit BEACONING(Graphs::Graph<typename RA::Base::Attr> &graph_)
+	explicit BEACONING(Graphs::Graph<typename RA::Attr> &graph_)
 	    : Base(graph_)
 	    , s(graph_.V, BeaconStore<RA>())
 	{
@@ -36,7 +36,9 @@ struct BEACONING : IProtocol<typename RA::Base::Attr, Beacon<RA>>
 	void process() override;
 
 	// Callbacks
-	std::function<void()> converged = nullptr;
+	std::function<void(int u, double time, const std::vector<Beacon<RA>> &best,
+			   const std::vector<Beacon<RA>> &candidates, std::string tag)>
+	    record = nullptr;
 };
 } // namespace Protocol::Beaconing
 

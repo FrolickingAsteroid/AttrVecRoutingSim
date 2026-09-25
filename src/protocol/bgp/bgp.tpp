@@ -114,7 +114,7 @@ void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 		return;
 	}
 
-	if ((data.log == true && u == 2))
+	if ((data.log == true && u == 0))
 	{
 		LOG_DEBUG << "node:" << u;
 		LOG_DEBUG << "Time:" << cal.now();
@@ -125,7 +125,7 @@ void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 	s[u].UpdateNeighbor(v, extended);
 	s[u].ProcessBest(v);
 
-	if (data.log == true && u == 2)
+	if (data.log == true && u == 0)
 	{
 		LOG_DEBUG << s[u] << "\n";
 	}

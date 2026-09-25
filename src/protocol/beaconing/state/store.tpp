@@ -16,6 +16,12 @@ std::vector<typename BeaconStore<RA>::beacon> BeaconStore<RA>::GetBest() const
 }
 
 template <class RA>
+std::vector<typename BeaconStore<RA>::beacon> BeaconStore<RA>::GetCandidates() const
+{
+	return candidates;
+}
+
+template <class RA>
 void BeaconStore<RA>::SetOrigin(int t, double time)
 {
 	A e = RA::Neutral(t);
@@ -24,7 +30,7 @@ void BeaconStore<RA>::SetOrigin(int t, double time)
 	candidates      = best_candidates;
 }
 template <class RA>
-void BeaconStore<RA>::Insert(Beacon<RA> b)
+void BeaconStore<RA>::Insert(beacon b)
 {
 	if (b.isInvalid())
 	{
@@ -34,7 +40,7 @@ void BeaconStore<RA>::Insert(Beacon<RA> b)
 	Ord ord;
 
 	// check whether the beacon as already been registered in the store
-	auto exists = std::find_if(candidates.begin(), candidates.end(), [&b, &ord](const Beacon<A> &current) {
+	auto exists = std::find_if(candidates.begin(), candidates.end(), [&b, &ord](const beacon &current) {
 		return (ord(current.getAttr(), b.getAttr()) == RoutingAlgebras::Comp::Equal);
 	});
 
@@ -48,21 +54,23 @@ void BeaconStore<RA>::Insert(Beacon<RA> b)
 	}
 	else
 	{
-		// If the beacon is new, insert it into the store (while preserving order)
-		auto pos = candidates.begin();
-		while (pos != candidates.end() && !RoutingAlgebras::BetterOrEqual(b.getAttr(), pos->getAttr()))
+		candidates.emplace(candidates.begin(), b);
+	}
+
+	std::sort(candidates.begin(), candidates.end(), [ord, b](const beacon &l, const beacon &r) {
+		RoutingAlgebras::Comp c = ord(l.getAttr(), r.getAttr());
+		if (c != RoutingAlgebras::Comp::Equal && c != RoutingAlgebras::Comp::Incomparable)
 		{
-			++pos;
+			return c == RoutingAlgebras::Comp::Better; // strictly better attributes sorts first
 		}
+		if (l.getTimeout() != r.getTimeout())
+		{
+			return l.getTimeout() > r.getTimeout(); // larger timeout sorts first
+		}
+		return &l == &b; //  beacons that have just been recied sort first
+	});
 
-		candidates.insert(pos, b);
-	}
-
-	auto new_best = SelectBeacons();
-	if (utils::helpers::CompareOpt<beacon>(new_best, best_candidates))
-	{
-		best_candidates = new_best;
-	}
+	best_candidates = SelectBeacons();
 }
 
 template <class RA>
@@ -91,8 +99,16 @@ std::vector<Beacon<RA>> BeaconStore<RA>::BeaconsToPropagate(double now)
 {
 	// remove beacons that have expired
 	Remove(now);
+
 	if (IsEmpty())
-		return {};
+	{
+		best_candidates = {};
+	}
+	else
+	{
+		best_candidates = SelectBeacons();
+	}
+
 	return best_candidates;
 }
 
@@ -103,8 +119,9 @@ std::vector<Beacon<RA>> BeaconStore<RA>::SelectBeacons()
 	{
 		return candidates;
 	}
+
 	// take the "BestSetSize" shortest (sorted by length, in principle)
-	std::vector<Beacon<A>> result(candidates.begin(), candidates.begin() + BestSetSize);
+	std::vector<beacon> result(candidates.begin(), candidates.begin() + BestSetSize);
 
 	return result;
 }

@@ -22,8 +22,8 @@ ROOT_DIR = next(
     if (p / '.git').exists()
 )
 
-DATASET = "rocketfuel"
-SCENARIO = "linkFailure"
+DATASET = "scion"
+SCENARIO = "normal"
 DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
@@ -35,14 +35,16 @@ PROTOCOL = {
 
 Algebra = {
     "lex-hops-suffix": "Hops",
+    "lex-length-explicit": "All SP",
+    "lex-hops-explicit": "All Hops",
     "lex-length-hops-suffix": "SP",
     "lex-length-width-suffix": "WSP",
     "prod-width-length-hops-suffix": "Product ",
 
 }
 
-Algebra_label = ["SP"]
-Proto_label = ["BGP","RRP"]
+Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
+Proto_label = ["RRP"]
 
 
 def get_protocol_label(protocol_raw: str, filename: str) -> str:
@@ -51,12 +53,12 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
         delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
             if SCENARIO == "linkFailure":
-                return rf"RRP-N"  # $\Delta = {delta}$ ms
+                return rf"RRP-N $\Delta = {delta}$ ms"
             else:
                 return rf"RRP-N"
         else:
             if SCENARIO == "linkFailure":
-                return rf"RRP"  # $\Delta = {delta}$ ms
+                return rf"RRP $\Delta = {delta}$ ms"
             else:
                 return rf"RRP"
 
@@ -88,11 +90,16 @@ def load(network):
         protocol_label = get_protocol_label(protocol, filename)
         algebra_label = get_algebra(filename)
 
+        if not any(p in protocol_label for p in Proto_label):
+            continue
+
+        if algebra_label not in Algebra_label:
+            continue
+
         if protocol.lower() == "rpbob" and re.findall(r"\d+\.\d+", filename)[0] != "1.0":
             continue
 
-        if algebra_label not in Algebra_label or protocol_label not in Proto_label:
-            continue
+        print(csv_path)
 
         df = pd.read_csv(csv_path)
         df = df[df["change_count"] != 0]
@@ -140,8 +147,8 @@ def plot_ccdf(df, network_name):
     algebras = sorted(dfg["Algebra"].unique())
     protocols = sorted(dfg["Protocol"].unique())
 
-    colors = dict(zip(protocols, sns.color_palette("colorblind",n_colors=len(protocols))))
-    linestyles = dict(zip(algebras, itertools.cycle(['-', '--'])))
+    colors = dict(zip(algebras, sns.color_palette("colorblind", n_colors=len(algebras))))
+    linestyles = dict(zip(protocols, itertools.cycle(['-', '--'])))
 
     fig, ax = plt.subplots(figsize=(6, 4))
 
@@ -153,15 +160,14 @@ def plot_ccdf(df, network_name):
             group = group.sort_values("x")
             ax.plot(
                 group["x"], group["y"],
-                color=colors[protocol],
-                linestyle=linestyles[algebra],
+                color=colors[algebra],
+                linestyle=linestyles[protocol],
                 drawstyle="steps-post",
                 alpha=1,
                 label=group["group_label"].iloc[0],
                 linewidth=1.8,
             )
 
-    # ax.set_yscale("log")
     ax.set_ylim([-1e-2, 1.1])
     ax.set_xlim([0.0, df["stab_time"].max()])
     ax.set_xlabel("Time [ms]")
@@ -187,7 +193,7 @@ def plot_ccdf(df, network_name):
         loc='upper right',
         fancybox=True, shadow=False
     )
-    #legend.set_title("Protocol")
+    # legend.set_title("Protocol")
     legend.get_title().set_fontweight("bold") if legend.get_title() else None
     for text in legend.get_texts():
         text.set_fontfamily("monospace")
@@ -195,11 +201,11 @@ def plot_ccdf(df, network_name):
     name = f"ccdf_{network_name}_{SCENARIO}.png"
     out_path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
-    plt.close()
+    plt.show()
     print(f"\tsaved {out_path}\n")
 
 
 if __name__ == "__main__":
-    for network in ["1755"]:
+    for network in ["sciera"]:
         df = load(network)
         plot_ccdf(df, network)

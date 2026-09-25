@@ -107,26 +107,26 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	int              c;
 
 	struct option long_options[] = {
-	    {"file",     required_argument, nullptr,              'f'      },
-	    {"dest",     required_argument, nullptr,              't'      },
-	    {"max",      required_argument, nullptr,              'm'      },
-	    {"dprop",    required_argument, nullptr,              'd'      },
-	    {"algebra",  required_argument, nullptr,              'a'      },
-	    {"window",   required_argument, nullptr,              'w'      },
-	    {"period",   required_argument, nullptr,              'i'      },
-	    {"failure",  optional_argument, nullptr,              'F'      },
-	    {"withdraw", optional_argument, nullptr,              'W'      },
-	    {"rpbob",    optional_argument, nullptr,              'R'      },
-	    {"bgp",      no_argument,       nullptr,              'G'      },
-	    {"rcn",      no_argument,       nullptr,              'C'      },
-	    {"beacon",   no_argument,       (int *)&cfg.protocol, Beaconing},
-	    {"W",        no_argument,       (int *)&cfg.protocol, N        },
-	    {"verbose",  no_argument,       nullptr,              'V'      },
-	    {"silent",   no_argument,       nullptr,              'S'      },
-	    {"info",     no_argument,       nullptr,              'I'      },
-	    {"append",   no_argument,       (int *)&cfg.append,   false    },
-	    {"help",     no_argument,       nullptr,              'h'      },
-	    {nullptr,    0,                 nullptr,              0        },
+	    {"file",      required_argument, nullptr,              'f'      },
+	    {"dest",      required_argument, nullptr,              't'      },
+	    {"max",       required_argument, nullptr,              'm'      },
+	    {"dprop",     required_argument, nullptr,              'd'      },
+	    {"algebra",   required_argument, nullptr,              'a'      },
+	    {"window",    required_argument, nullptr,              'w'      },
+	    {"period",    required_argument, nullptr,              'i'      },
+	    {"failure",   optional_argument, nullptr,              'F'      },
+	    {"cutset",    optional_argument, (int *)&cfg.scenario, Cutset   },
+	    {"rpbob",     optional_argument, nullptr,              'R'      },
+	    {"bgp",       no_argument,       nullptr,              'G'      },
+	    {"rcn",       no_argument,       nullptr,              'C'      },
+	    {"beaconing", no_argument,       (int *)&cfg.protocol, Beaconing},
+	    {"N",         no_argument,       (int *)&cfg.protocol, N        },
+	    {"verbose",   no_argument,       nullptr,              'V'      },
+	    {"silent",    no_argument,       nullptr,              'S'      },
+	    {"info",      no_argument,       nullptr,              'I'      },
+	    {"append",    no_argument,       (int *)&cfg.append,   false    },
+	    {"help",      no_argument,       nullptr,              'h'      },
+	    {nullptr,     0,                 nullptr,              0        },
 	};
 
 	while ((c = getopt_long(argc, argv, "f:t:m:d:a:w:i:F::W:NR::GCBVSIA", long_options, nullptr)) != -1)
@@ -158,6 +158,12 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 			break;
 		case 'C':
 			cfg.protocol = RCN;
+			break;
+		case 'B':
+			cfg.protocol = Beaconing;
+			break;
+		case 'N':
+			cfg.protocol = N;
 			break;
 		case 'a':
 			cfg.algebra = optarg;
@@ -198,11 +204,6 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 		case 'A':
 			cfg.append = true;
 			break;
-		case 'W': {
-			cfg.scenario   = Withdrawal;
-			//cfg.withdrawal = std::stoi(optarg);
-			break;
-		}
 		case 'V':
 			setVerbose();
 			break;
@@ -237,9 +238,13 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	if (cfg.protocol == Beaconing)
 	{
 		if (!cfg.period)
+		{
 			throw std::runtime_error("must specify period");
+		}
 		if (!cfg.dprop)
+		{
 			throw std::runtime_error("must specify propagation delay");
+		}
 	}
 	return cfg;
 }

@@ -58,18 +58,19 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 					this->graph.activate(u, v);
 				}
 			}
-			else if (this->cfg.scenario == config::Type::Withdrawal)
+			if (this->cfg.scenario == config::Type::Cutset)
 			{
-				for (int u = 0; u < this->graph.V; ++u)
+				for (const auto &cutset : this->cutsets)
 				{
-					if (u == t)
+					for (const auto &[u, v] : cutset)
 					{
-						continue;
+						this->graph.deactivate(u, v);
 					}
-
-					this->graph.deactivate(u);
 					auto [opt_time, opt] = delayDijkstra(t);
-					this->graph.activate(u);
+					for (const auto &[u, v] : cutset)
+					{
+						this->graph.activate(u, v);
+					}
 
 					convergence_attr[t] = std::move(opt);
 
@@ -78,8 +79,12 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 						utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
 					}
 
-					this->recorder.recordDest(t, proto(t, u), std::make_pair(u, -1));
-					this->graph.activate(u);
+					auto p = proto(t, std::nullopt, std::nullopt, cutset);
+					this->recorder.recordDest(t, p, cutset);
+					for (const auto &[u, v] : cutset)
+					{
+						this->graph.activate(u, v);
+					}
 				}
 			}
 			this->Progress(t);
@@ -105,19 +110,15 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			if (!node_paths.empty())
 				max_delay = std::max(max_delay, node_paths.back().first);
 		}
-		return max_delay + 1;
+		return max_delay;
 	}
 
 	void SetupConv(Protocol::Rpbob::RPBOB<RA> &proto, int t)
 	{
 		proto.converged = [this, &proto, t]() {
-			if (!proto.data.log)
-			{
-				return;
-			}
 			for (int i = 0; i < this->graph.V; ++i)
 			{
-				if (i == t)
+				if (i == t || convergence_attr[t][i].empty())
 				{
 					continue;
 				}
@@ -136,8 +137,9 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		};
 	}
 
-	utils::stats::Data<RPBOBAttribute> proto(int t, std::optional<int> u = std::nullopt,
-						 std::optional<int> v = std::nullopt)
+	utils::stats::Data<RPBOBAttribute> proto(
+	    int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt,
+	    const std::optional<std::vector<std::pair<int, int>>> &cutset = std::nullopt)
 	{
 		Protocol::Rpbob::RPBOB<RA> proto(this->graph, wind, this->cfg.notif);
 		SetupConv(proto, t);
@@ -151,11 +153,14 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			});
 			proto.Run();
 		}
-		else if (u)
+		else if (cutset)
 		{
-			proto.cal.schedule(conv_time, [&]() {
-				proto.NodeWithdraw(*u);
-			});
+			for (const auto &[u, v] : *cutset)
+			{
+				proto.cal.schedule(conv_time, [&]() {
+					proto.LinkFailure(u, v);
+				});
+			}
 			proto.Run();
 		}
 		else

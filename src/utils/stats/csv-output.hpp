@@ -9,17 +9,7 @@
 
 namespace utils
 {
-// Constructs an output path of the form:
-//
-//   data/output/<proto>/<dataset_fam>/<dataset_id>/<stem>_<proto>_<k1><v1>_..._<suffix>.csv
-//
-// Topology is encoded entirely by the folder structure inherited from input.
-// Run parameters are passed as a map so each protocol can include exactly
-// what it needs (algebra type, N, dprop, delta, etc.) without this function
-// knowing about any of them.
-//
-// params entries are appended in iteration order (std::map is sorted by key),
-// so use keys that sort in the order you want them to appear in the filename.
+
 inline std::filesystem::path makeOutputPath(const std::filesystem::path &input, const std::string &proto,
 					    const std::map<std::string, std::string> &params, const std::string &suffix)
 {

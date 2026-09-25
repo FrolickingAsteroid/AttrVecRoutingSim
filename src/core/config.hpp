@@ -9,7 +9,7 @@ enum Type
 {
 	Normal,
 	LinkFailure,
-	Withdrawal
+	Cutset,
 };
 
 enum Options
@@ -37,10 +37,10 @@ struct SimulationConfig
 	bool notif = false;
 
 	// simulation seed
-	// unsigned int seed;
+	unsigned int seed;
 
-	unsigned int seed = 2535664635;
-	//  unsigned int seed = 2425713638;
+	//unsigned int seed = 2535664635;
+	//   unsigned int seed = 2425713638;
 
 	// optional args
 	std::optional<double> dprop  = std::nullopt;

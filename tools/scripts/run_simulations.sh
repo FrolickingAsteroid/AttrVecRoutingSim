@@ -126,12 +126,19 @@ function clean {
 # ────────────────────────────────────────────────────────────────
 # Simulators
 # ────────────────────────────────────────────────────────────────
+
+
+# ────────────────────────────────────────────────────────────────
+# Rocketfuel
 function run_rocket {
     local combos=(
-        "data/datasets/rocketfuel/1755/DelayLength.tsv:lex-length-hops-suffix"
+        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
+        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
+        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
+        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
         # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
         # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
-        "data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
+        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
     )
 
     local pids=()
@@ -141,9 +148,72 @@ function run_rocket {
         algebra="${combo##*:}"
 
         "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
+    done
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+# ────────────────────────────────────────────────────────────────
+# SCION
+function run_scion {
+    local combos=(
+        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
+        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
+        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
+        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
+        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
+    )
+
+    local pids=()
+    local combo file algebra
+    for combo in "${combos[@]}"; do
+        file="${combo%%:*}"
+        algebra="${combo##*:}"
+
+        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 -m 0 -A> /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
+        #"${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
+    done
+
+    local pid status=0
+    for pid in "${pids[@]}"; do
+        if ! wait "${pid}"; then
+            status=1
+        fi
+    done
+    return "${status}"
+}
+
+function run_rocket_cutset {
+    local combos=(
+        "data/datasets/rocketfuel/3257/DelayLength.tsv:lex-length-hops-suffix"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
+        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
+        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
+    )
+
+    local pids=()
+    local combo file algebra
+    for combo in "${combos[@]}"; do
+        file="${combo%%:*}"
+        algebra="${combo##*:}"
+
+        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 --cutset > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 --cutset > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" --cutset > /dev/null & pids+=($!)
+        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" --cutset > /dev/null & pids+=($!)
     done
 
     local pid status=0
@@ -160,10 +230,10 @@ function run_clique {
     local id="$2"
 
     local pids=()
-    "${SIMULATOR}" -f "${ds}" -R -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -R notif -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -G -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -C -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -R -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -R notif -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -G -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
+    "${SIMULATOR}" -f "${ds}" -A -C -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
 
     local pid status=0
     for pid in "${pids[@]}"; do
@@ -222,7 +292,7 @@ function run_rocket_edge {
     local id2="$2"
 
     local combos=(
-        "data/datasets/rocketfuel/1755/DelayLength.tsv:lex-length-hops-suffix"
+        "data/datasets/rocketfuel/3257/DelayLength.tsv:lex-length-hops-suffix"
         #"data/datasets/rocketfuel/1221/DelayHops.tsv:lex-hops-suffix"
     )
 
@@ -283,11 +353,17 @@ function main {
 
     ## Run Rocketfuel Topologies
     if [ "$dataset" == "rocketfuel" ]; then
-      if ! run_rocket; then
-          echo "Completed with failed job(s)." >&2
-          exit 1
-      fi
-      echo "All simulations completed."
+      local total_steps=$((runs))
+      for ((run = 1; run <= runs; run++)); do
+        if ! run_scion; then
+            echo "Completed with failed job(s)." >&2
+            exit 1
+        fi
+        step=$(( step + 1 ))
+        ProgressBar "$step" "$total_steps"
+      done
+
+      printf "\nAll simulations completed."
       exit 0
     fi
 

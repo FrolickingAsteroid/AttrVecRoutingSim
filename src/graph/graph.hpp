@@ -14,9 +14,7 @@ struct Graph
 	std::vector<std::unordered_map<int, std::tuple<double, bool, S>>> adjListIn;
 	std::vector<std::unordered_map<int, std::tuple<double, bool, S>>> adjListOut;
 
-	Graph()
-	{
-	}
+	Graph() = default;
 
 	explicit Graph(int V_);
 

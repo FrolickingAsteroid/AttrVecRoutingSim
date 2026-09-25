@@ -34,17 +34,17 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 					this->graph.activate(u, v);
 				}
 			}
-			else if (this->cfg.scenario == config::Type::Withdrawal)
+			else if (this->cfg.scenario == config::Type::Cutset)
 			{
-				for (int u = 0; u < this->graph.V; ++u)
+				for (const auto &cutset : this->cutsets)
 				{
-					if (u == t)
-					{
-						continue;
-					}
+					auto p = proto(t, std::nullopt, std::nullopt, cutset);
+					this->recorder.recordDest(t, p, cutset);
 
-					this->recorder.recordDest(t, proto(t, u), std::make_pair(u, -1));
-					this->graph.activate(u);
+					for (const auto &[u, v] : cutset)
+					{
+						this->graph.activate(u, v);
+					}
 				}
 			}
 			this->Progress(t);
@@ -52,8 +52,9 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 	}
 
     private:
-	utils::stats::Data<BGPAttribute> proto(int t, std::optional<int> u = std::nullopt,
-					       std::optional<int> v = std::nullopt)
+	utils::stats::Data<BGPAttribute> proto(
+	    int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt,
+	    const std::optional<std::vector<std::pair<int, int>>> &cutset = std::nullopt)
 	{
 		Protocol::BGP::BGP<RA> proto(this->graph);
 
@@ -62,17 +63,20 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 		if (u && v)
 		{
 			proto.Run();
-			proto.cal.schedule(200, [&]() {
+			proto.cal.schedule(100, [&]() {
 				proto.LinkFailure(*u, *v);
 			});
 			proto.Run();
 		}
-		else if (u)
+		else if (cutset)
 		{
 			proto.Run();
-			proto.cal.schedule(100, [&]() {
-				proto.NodeWithdraw(*u);
-			});
+			for (const auto &[u, v] : *cutset)
+			{
+				proto.cal.schedule(proto.cal.now(), [&]() {
+					proto.LinkFailure(u, v);
+				});
+			}
 			proto.Run();
 		}
 		else

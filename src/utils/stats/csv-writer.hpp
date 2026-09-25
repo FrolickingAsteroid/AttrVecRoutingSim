@@ -44,14 +44,6 @@ struct SummaryStats
 	int total_msgs  = 0;
 };
 
-template <class R>
-struct Record
-{
-	int                                dest{};
-	std::optional<std::pair<int, int>> failure;
-	Data<R>                            data;
-};
-
 /**
  * Implementation of a simple csv management class
  *
@@ -59,7 +51,7 @@ struct Record
  * Files are opened once in the constructor and closed automatically
  * when the recorder is destroyed.
  *
- * @tparam R Routing metric to be recorded
+ * @tparam R message to be recorded
  */
 template <class R>
 class Recorder
@@ -69,22 +61,40 @@ class Recorder
 
     public:
 	Recorder(const std::filesystem::path &input, const std::string &proto,
-		 const std::map<std::string, std::string> &map, int V_)
+		 const std::map<std::string, std::string> &map, const int V_)
 	    : V(V_)
-	    , records()
 	{
 		bool append       = (map.at("append") == "1");
-		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "withdrawal");
+		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "cutset");
 
-		convergence_out =
-		    openFile(makeOutputPath(input, proto, map, "convergence"), append, convergenceHeader(link_failure));
+		if (proto == "beaconing")
+		{
+			progress_out =
+			    openFile(makeOutputPath(input, proto, map, "progress"), append, progressHeader());
+		}
 
-		msglog_out = openFile(makeOutputPath(input, proto, map, "msglog"), append, msgLogHeader(link_failure));
+		if (proto == "window")
+		{
+			wind_out = openFile(makeOutputPath(input, proto, map, ""), append, windHeader(link_failure));
+		}
+		else
+		{
+			convergence_out = openFile(makeOutputPath(input, proto, map, "convergence"), append,
+						   convergenceHeader(link_failure));
+
+			msglog_out =
+			    openFile(makeOutputPath(input, proto, map, "msglog"), append, msgLogHeader(link_failure));
+		}
 	}
 
-	std::vector<Record<R>> getRecords()
+	static std::string progressHeader()
 	{
-		return records;
+		return "dest,node,time,opt,wind,tag\n";
+	}
+
+	static std::string windHeader(bool with_failure = false)
+	{
+		return (with_failure ? "failure," : "") + std::string("dest,node,opt_time,wind_size\n");
 	}
 
 	static std::string convergenceHeader(bool with_failure = false)
@@ -98,19 +108,38 @@ class Recorder
 	}
 
 	void recordDest(int dest, const Data<R> &data, std::optional<std::pair<int, int>> failure = std::nullopt);
+	void recordDest(int dest, const Data<R> &data, const std::vector<std::pair<int, int>> &cutset);
+
+	template <class A>
+	void recordWind(int dest, const std::vector<std::vector<std::pair<double, A>>> &opt_time,
+			std::vector<int> &wind_size, std::optional<std::pair<int, int>> failure = std::nullopt);
+
+	template <class A>
+	void recordProgress(int dest, int node, double time, A &best, A &wind, std::string tag);
+
+	template <class A>
+	static void writeWind(std::ostream &out, int dest, int u, const std::vector<std::pair<double, A>> &opt_time_u,
+			      int wind_size, const std::optional<std::pair<int, int>> &failure);
 
 	static void writeMsgLogRow(std::ostream &out, std::optional<std::pair<int, int>> failure, int dest, int node,
 				   double time, int msg);
 
+	static void writeMsgLogRow(std::ostream &out, const std::vector<std::pair<int, int>> &cutset, int dest,
+				   int node, double time, int msg);
+
 	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data,
 					const std::optional<std::pair<int, int>> &failure);
+
+	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data,
+					const std::vector<std::pair<int, int>> &cutset);
 
 	SummaryStats Summary();
 
     private:
-	std::vector<Record<R>> records;
-	std::ofstream          convergence_out;
-	std::ofstream          msglog_out;
+	std::ofstream convergence_out;
+	std::ofstream progress_out;
+	std::ofstream msglog_out;
+	std::ofstream wind_out;
 };
 } // namespace utils::stats
 

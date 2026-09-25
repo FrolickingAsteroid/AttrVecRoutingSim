@@ -22,21 +22,33 @@ template <class N>
 struct FindPath<Path<N>>
 {
 	using Node = N;
-	static const Path<N> &get(const Path<N> &p) { return p; }
-	static void set(Path<N> &p, N x) { p = Path<N>{std::vector<N>{x}}; }
+	static const Path<N> &get(const Path<N> &p)
+	{
+		return p;
+	}
+	static void set(Path<N> &p, N x)
+	{
+		p = Path<N>{std::vector<N>{x}};
+	}
 };
 
 template <class... A>
 struct FindPath<CartProdAttr<A...>>
 {
 	static constexpr std::size_t last = sizeof...(A) - 1;
-	using Tail = std::tuple_element_t<last, std::tuple<A...>>;
-	using Node = typename FindPath<Tail>::Node;
+	using Tail                        = std::tuple_element_t<last, std::tuple<A...>>;
+	using Node                        = typename FindPath<Tail>::Node;
 
-	static const auto &get(const CartProdAttr<A...> &c) { return FindPath<Tail>::get(std::get<last>(c)); }
-	static void set(CartProdAttr<A...> &c, Node x) { FindPath<Tail>::set(std::get<last>(c), x); }
+	static const auto &get(const CartProdAttr<A...> &c)
+	{
+		return FindPath<Tail>::get(std::get<last>(c));
+	}
+	static void set(CartProdAttr<A...> &c, Node x)
+	{
+		FindPath<Tail>::set(std::get<last>(c), x);
+	}
 };
-}
+} // namespace PathFinder
 
 template <class... Attr>
 struct CartProdAttr : std::tuple<Attr...>
@@ -49,6 +61,11 @@ struct CartProdAttr : std::tuple<Attr...>
 	auto getPath() const
 	{
 		return PathFinder::FindPath<CartProdAttr>::get(*this);
+	}
+
+	const CartProdAttr &getAttr() const
+	{
+		return *this;
 	}
 
 	template <class Node>

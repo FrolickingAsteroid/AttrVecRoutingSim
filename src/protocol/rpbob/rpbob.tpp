@@ -125,22 +125,10 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 	typename RA::Attr edgeAttr(0, graph.edgeWeight(u, v).buildLinkAttr(u)); // (0, l_attr, u)
 	auto              extended = p + edgeAttr;                              // (n, l_attr (ext) r_attr, uP)
 
-	if (u == 7 || u == 8 || u == 2)
-	{
-		LOG_DEBUG << "\nTime: " << cal.now();
-		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
-		LOG_DEBUG << s[u];
-	}
-
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
 
 	if (changed.has_value())
 	{
-		if (u == 7 || u == 8 || u == 2)
-		{
-			LOG_DEBUG << s[u];
-			LOG_DEBUG << "change count: " << data.changeCounts.at(u) << "\n\n";
-		}
 		this->Send(u, Msg{extended});
 		if (data.log == true)
 		{
