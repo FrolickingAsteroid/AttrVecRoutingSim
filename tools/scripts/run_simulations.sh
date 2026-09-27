@@ -1,426 +1,506 @@
 #!/usr/bin/env bash
+#
+# Launch Simulator runs for the clique, triangle, rocketfuel and scion topologies.
+# Run with --help for usage and examples.
 
 set -o errexit -o pipefail -o noclobber -o nounset
 
-# ────────────────────────────────────────────────────────────────
-# Setup
-# ────────────────────────────────────────────────────────────────
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+    echo "This script needs bash >= 4.4 (found ${BASH_VERSION})." >&2
+    exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}"
 
-SIMULATOR="./build/Simulator"
-BCLIQUE_NODE_COUNTS=(4 8 16 32)
+# ════════════════════════════════════════════════════════════════
+# Configuration — edit here, the rest of the script adapts
+# ════════════════════════════════════════════════════════════════
 
-function ProgressBar {
-    local _progress=$(( ($1 * 100 / $2 * 100) / 100 ))
-    local _done=$(( (_progress * 4) / 10 ))
-    local _left=$(( 40 - _done ))
-    local _fill=$(printf "%${_done}s")
-    local _empty=$(printf "%${_left}s")
-    printf "\rProgress : [${_fill// /#}${_empty// /-}] ${_progress}%%"
+SIMULATOR="./build/Simulator"
+
+ALL_TOPOS=(clique triangle rocketfuel scion)
+ALL_PROTOCOLS=(R R-notif G C)          # R = -R, R-notif = -R notif, G = -G, C = -C
+DEFAULT_NODE_COUNTS=(4 8 16 32)
+DEFAULT_AS=3257
+DEFAULT_PERIODS=(1.0)                 # R / R-notif update period (-i)
+
+# Rocketfuel: "file:algebra" pairs per AS (files live in data/datasets/rocketfuel/<AS>/)
+declare -A ROCKET_COMBOS=(
+    [3257]="DelayLength.tsv:lex-length-hops-suffix DelayHops.tsv:lex-hops-suffix"
+    [1755]="DelayHops.tsv:lex-hops-suffix DelayLength.tsv:lex-length-hops-suffix"
+    [1221]="DelayLengthWidth.tsv:lex-length-width-suffix DelayLengthWidth.tsv:prod-width-length-hops-suffix"
+)
+
+# Rocketfuel: top edges by centrality per AS, as comma-separated "id1 id2" pairs
+declare -A ROCKET_TOP_EDGES=(
+    [3257]="2 34, 34 45, 8 47, 45 6, 16 47, 8 9, 5 6"
+    [1755]="18 45, 24 25, 0 18, 25 50, 24 19, 45 13, 0 24, 50 68, 3 19, 0 38"
+)
+
+# Rocketfuel failure modes and the Simulator flags each one adds.
+# ("edges" is built per edge as: -F <id1> <id2>)
+ROCKET_MODES=(normal all-edges cutset edges)
+declare -A ROCKET_MODE_FLAGS=(
+    [normal]=""
+    [all-edges]="-F"
+    [cutset]="--cutset"
+)
+
+# SCION: "file:algebra" pairs
+SCION_COMBOS=(
+    "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
+    "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
+    "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
+    "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
+)
+
+# ════════════════════════════════════════════════════════════════
+# Helpers
+# ════════════════════════════════════════════════════════════════
+
+function die  { echo "$(basename "$0"): $*" >&2; echo "Try --help." >&2; exit 1; }
+function warn { printf '\nWarning: %s\n' "$*" >&2; }
+
+function in_list {            # in_list <value> <item>...
+    local x="$1" y; shift
+    for y in "$@"; do
+        if [[ "$x" == "$y" ]]; then return 0; fi
+    done
+    return 1
 }
 
-# ────────────────────────────────────────────────────────────────
+function is_uint { [[ "$1" =~ ^[0-9]+$ ]]; }
+function is_rip  { [[ "$1" == R || "$1" == R-notif ]]; }
+
+function progress_bar {       # progress_bar <done> <total>
+    local pct=$(( $1 * 100 / $2 ))
+    local filled=$(( pct * 40 / 100 ))
+    local bar
+    bar="$(printf '%*s' "$filled" '' | tr ' ' '#')$(printf '%*s' $(( 40 - filled )) '' | tr ' ' '-')"
+    printf '\rProgress : [%s] %d%%' "$bar" "$pct"
+}
+
+# ════════════════════════════════════════════════════════════════
 # Arg parsing
-# ────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+
+function usage {
+    local me topos modes
+    me="$(basename "$0")"
+    topos="$(IFS='|'; echo "${ALL_TOPOS[*]}")"
+    modes="$(IFS='|'; echo "${ROCKET_MODES[*]}")"
+    cat >&2 <<EOF
+Usage: $me -t <topo> [options]
+       $me -C <topo>                 delete the *.csv output of a topology
+
+Topology:
+  -t, --topo          ${topos}   (default: clique)
+
+Clique / triangle:
+  -T, --type          unit|equal           clique dataset variant (required for clique)
+  -n, --node-counts   "4 8 16"             node counts (default: ${DEFAULT_NODE_COUNTS[*]})
+
+Rocketfuel:
+  -a, --as            "3257 1755"          AS number(s) (default: ${DEFAULT_AS}; known: ${!ROCKET_COMBOS[*]})
+  -m, --mode          ${modes}
+                                           failure mode (default: normal)
+                        normal    : no failure
+                        all-edges : fail every edge in turn, over all destinations (-F)
+                        cutset    : cutset failure (${ROCKET_MODE_FLAGS[cutset]})
+                        edges     : fail only the top-centrality edges, one at a time (-F id1 id2)
+  -e, --edges         "18 45,24 25"        edge list for --mode edges (default: per-AS list)
+
+General:
+  -p, --protocols     "${ALL_PROTOCOLS[*]}"      protocols to launch
+                                           (default: R for rocketfuel normal/all-edges and scion, else all)
+  -P, --periods       "0.5 1 2" | 0.5:0.5:3
+                                           update period(s) for R / R-notif (-i), as a list
+                                           or a start:step:end range (default: ${DEFAULT_PERIODS[*]});
+                                           G and C are not periodic and run once per step
+  -N, --runs          N                    runs per step (default: 1)
+      --dry-run                            print the Simulator commands instead of running them
+  -C, --clean         <topo>               delete data/output/<topo>/**/*.csv
+  -h, --help
+
+Examples:
+  $me -t clique -T unit -n "4 8" -N 3
+  $me -t triangle -n "4 8 16"
+  $me -t rocketfuel -a 3257                     # normal run
+  $me -t rocketfuel -a 3257 -m all-edges
+  $me -t rocketfuel -a 3257 -m cutset
+  $me -t rocketfuel -a "3257 1755" -m edges -N 5
+  $me -t rocketfuel -a 1755 -m edges -e "18 45,24 25"
+  $me -t rocketfuel -a 3257 -m all-edges -p R -P 0.5:0.5:3
+  $me -t clique -T unit -P "0.5 1 2"          # R/R-notif per period, G/C once
+  $me -t scion --dry-run
+EOF
+    exit "${1:-1}"
+}
 
 function check_getopt {
-    getopt --test > /dev/null && true
-    if [[ $? -ne 4 ]]; then
-        echo 'I’m sorry, `getopt --test` failed in this environment.'
+    local rc=0
+    getopt --test > /dev/null || rc=$?
+    if (( rc != 4 )); then
+        echo 'Enhanced (GNU) getopt is required; `getopt --test` failed.' >&2
         exit 1
     fi
 }
 
-function usage {
-    cat >&2 <<EOF
-Usage: $0 -T <unit|equal> [-N runs] [-n "4 8 16"]
-       $0 -D rocketfuel
+function is_num { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$|^[.][0-9]+$ ]]; }
 
-  -D, --dataset          clique|rocketfuel  which dataset to run (default: clique)
-  -T, --type            unit|equal   (required for --dataset clique) bclique dataset variant to evaluate
-  -N, --runs            N            number of runs per node-count (default: 1)
-  -n, --node-counts     "..."        space-separated node counts (default: ${BCLIQUE_NODE_COUNTS[*]})
-EOF
-    exit 1
+function expand_periods {     # fills periods from "a b c" or "start:step:end"
+    local spec="$1" start step end
+    if [[ -z "$spec" ]]; then
+        periods=("${DEFAULT_PERIODS[@]}")
+    elif [[ "$spec" == *:* ]]; then
+        IFS=':' read -r start step end <<< "$spec"
+        is_num "${start:-x}" && is_num "${step:-x}" && is_num "${end:-x}" \
+            || die "--periods range must be start:step:end with positive numbers (got: $spec)"
+        awk -v s="$step" 'BEGIN { exit !(s > 0) }' || die "--periods step must be > 0 (got: $step)"
+        mapfile -t periods < <(awk -v a="$start" -v s="$step" -v b="$end" \
+            'BEGIN { for (i = 0; a + i*s <= b + s*1e-9; i++) printf "%g\n", a + i*s }')
+        (( ${#periods[@]} > 0 )) || die "--periods range is empty (got: $spec)"
+    else
+        read -ra periods <<< "$spec"
+    fi
 }
 
 function parse_args {
-    local LONGOPTS=type:,runs:,node-counts:,clean:,dataset:
-    local OPTIONS=T:N:n:C:D:
-    PARSED=$(getopt --options="$OPTIONS" --longoptions="$LONGOPTS" --name "$0" -- "$@") || usage
-    eval set -- "$PARSED"
+    local longopts=topo:,dataset:,type:,as:,mode:,edges:,protocols:,runs:,node-counts:,clean:,periods:,dry-run,help
+    local shortopts=t:D:T:a:m:e:p:N:n:C:P:h
+    local parsed
+    parsed=$(getopt --options="$shortopts" --longoptions="$longopts" --name "$(basename "$0")" -- "$@") || usage
+    eval set -- "$parsed"
 
-    type=""
-    output=""
+    topo="clique"
+    variant=""
+    ases=("$DEFAULT_AS")
+    mode="normal"
+    edges_override=""
+    protocols=()
     runs=1
-    node_counts=("${BCLIQUE_NODE_COUNTS[@]}")
-    dataset="clique"
+    node_counts=("${DEFAULT_NODE_COUNTS[@]}")
+    clean_target=""
+    dry_run=0
+    periods_spec=""
 
     while true; do
         case "$1" in
-            -C|--clean) output="$2"; break ;;
-            -D|--dataset) dataset="$2"; shift 2 ;;
-            -T|--type) type="$2"; shift 2 ;;
-            -N|--runs) runs="$2"; shift 2 ;;
-            -n|--node-counts) node_counts=($2); shift 2 ;;
-            --) shift; break ;;
-            *) echo "Programming error"; exit 3 ;;
+            -t|-D|--topo|--dataset) topo="$2";                   shift 2 ;;
+            -T|--type)              variant="$2";                shift 2 ;;
+            -a|--as)                read -ra ases <<< "$2";      shift 2 ;;
+            -m|--mode)              mode="$2";                   shift 2 ;;
+            -e|--edges)             edges_override="$2";         shift 2 ;;
+            -p|--protocols)         read -ra protocols <<< "$2"; shift 2 ;;
+            -N|--runs)              runs="$2";                   shift 2 ;;
+            -n|--node-counts)       read -ra node_counts <<< "$2"; shift 2 ;;
+            -C|--clean)             clean_target="$2";           shift 2 ;;
+            -P|--periods)           periods_spec="$2";           shift 2 ;;
+            --dry-run)              dry_run=1;                   shift ;;
+            -h|--help)              usage 0 ;;
+            --)                     shift; break ;;
+            *)                      echo "Programming error" >&2; exit 3 ;;
         esac
     done
+
+    expand_periods "$periods_spec"
+
+    if (( ${#protocols[@]} == 0 )); then
+        if [[ "$topo" == scion || ( "$topo" == rocketfuel && ( "$mode" == normal || "$mode" == all-edges ) ) ]]; then
+            protocols=(R)
+        else
+            protocols=("${ALL_PROTOCOLS[@]}")
+        fi
+    fi
 }
 
 function validate_args {
-    if [[ "$output" == "clique" || "$output" == "rocketfuel" || "$output" == "triangle" ]]; then
-      return 0;
+    if [[ -n "$clean_target" ]]; then
+        in_list "$clean_target" "${ALL_TOPOS[@]}" || die "--clean must be one of: ${ALL_TOPOS[*]} (got: $clean_target)"
+        return 0
     fi
 
-    if [[ ! -x "${SIMULATOR}" ]]; then
-        echo "Error: ${SIMULATOR} not found or not executable (run from repo root, or build first)." >&2
+    in_list "$topo" "${ALL_TOPOS[@]}" || die "--topo must be one of: ${ALL_TOPOS[*]} (got: $topo)"
+
+    if (( ! dry_run )) && [[ ! -x "$SIMULATOR" ]]; then
+        echo "Error: ${SIMULATOR} not found or not executable (build first)." >&2
         exit 1
     fi
 
-    if [[ "$dataset" != "clique" && "$dataset" != "rocketfuel" && "$dataset" != "triangle" && "$dataset" != "rocket_centrality" ]]; then
-        echo "$0: --dataset must be clique, rocketfuel or triangle (got: $dataset)." >&2
-        usage
+    local per
+    for per in "${periods[@]}"; do
+        { is_num "$per" && awk -v p="$per" 'BEGIN { exit !(p > 0) }'; } \
+            || die "--periods values must be positive numbers (got: $per)"
+    done
+    if [[ -n "$periods_spec" ]] && ! in_list R "${protocols[@]}" && ! in_list R-notif "${protocols[@]}"; then
+        warn "--periods only affects R / R-notif, which are not in --protocols (${protocols[*]})"
     fi
 
-    if [ "$dataset" == "clique" ] && [[ "$type" != "unit" && "$type" != "equal" ]]; then
-        echo "$0: --type must be unit or equal (got: ${type:-<empty>})." >&2
-        usage
+    { is_uint "$runs" && (( runs >= 1 )); } || die "--runs must be a positive integer (got: $runs)"
+
+    local p
+    for p in "${protocols[@]}"; do
+        in_list "$p" "${ALL_PROTOCOLS[@]}" || die "unknown protocol '$p' (choose from: ${ALL_PROTOCOLS[*]})"
+    done
+
+    case "$topo" in
+        clique|triangle)
+            if [[ "$topo" == clique ]] && ! in_list "$variant" unit equal; then
+                die "--type must be unit or equal for clique (got: ${variant:-<empty>})"
+            fi
+            local n
+            for n in "${node_counts[@]}"; do
+                is_uint "$n" || die "--node-counts must be integers (got: $n)"
+            done
+            ;;
+        rocketfuel)
+            in_list "$mode" "${ROCKET_MODES[@]}" || die "--mode must be one of: ${ROCKET_MODES[*]} (got: $mode)"
+            local as
+            for as in "${ases[@]}"; do
+                [[ -n "${ROCKET_COMBOS[$as]+x}" ]] || die "unknown AS '$as' (configured: ${!ROCKET_COMBOS[*]})"
+                if [[ "$mode" == edges && -z "$edges_override" && -z "${ROCKET_TOP_EDGES[$as]+x}" ]]; then
+                    die "no top-edge list configured for AS $as; pass one with --edges"
+                fi
+            done
+            ;;
+    esac
+}
+
+# ════════════════════════════════════════════════════════════════
+# Launching
+# ════════════════════════════════════════════════════════════════
+
+PIDS=()
+period="${DEFAULT_PERIODS[0]}"   # current R period (set per step in main)
+period_idx=0
+
+function launch {             # launch <Simulator args...>  (runs in background)
+    if (( dry_run )); then
+        printf '  %q' "$SIMULATOR" "$@"; echo
+        return 0
+    fi
+    "$SIMULATOR" "$@" > /dev/null &
+    PIDS+=($!)
+}
+
+function launch_protocol {    # launch_protocol <R|R-notif|G|C> <Simulator args...>
+    local proto="$1"; shift
+    # G and C have no period: launch them only on the first period of each step
+    if ! is_rip "$proto" && (( period_idx > 0 )); then return 0; fi
+    case "$proto" in
+        R)       launch -R "$@" -m 100;;
+        R-notif) launch -R notif "$@" -m 100;;
+        G)       launch -G "$@" ;;
+        C)       launch -C "$@" ;;
+    esac
+}
+
+function wait_all {
+    local pid status=0
+    for pid in "${PIDS[@]}"; do
+        wait "$pid" || status=1
+    done
+    PIDS=()
+    return "$status"
+}
+
+# ════════════════════════════════════════════════════════════════
+# Topologies
+#   plan_<topo>  fills STEPS (one entry = one parallel batch)
+#   step_<topo>  runs one batch; its args are the words of a STEPS entry
+# ════════════════════════════════════════════════════════════════
+
+STEPS=()
+
+# ── Clique ──────────────────────────────────────────────────────
+function plan_clique {
+    local id ds
+    for id in "${node_counts[@]}"; do
+        ds="data/datasets/clique/bclique_n${id}/DelayHops_${variant}.tsv"
+        if [[ -f "$ds" ]]; then STEPS+=("$ds $id"); else warn "dataset not found, skipping n=$id: $ds"; fi
+    done
+}
+
+function step_clique {
+    local ds="$1" id="$2" proto
+    for proto in "${protocols[@]}"; do
+        if is_rip "$proto"; then
+            launch_protocol "$proto" -f "$ds" -A -i "$period" -F 0 "$id" -t 0
+        else
+            launch_protocol "$proto" -f "$ds" -A -F 0 "$id" -t 0
+        fi
+    done
+    wait_all
+}
+
+# ── Triangle ────────────────────────────────────────────────────
+function plan_triangle {
+    local id ds
+    for id in "${node_counts[@]}"; do
+        ds="data/datasets/triangle/triangle_n${id}/triangle_n${id}.tsv"
+        if [[ -f "$ds" ]]; then STEPS+=("$ds $id"); else warn "dataset not found, skipping n=$id: $ds"; fi
+    done
+}
+
+function step_triangle {
+    local ds="$1" id="$2" proto
+    for proto in "${protocols[@]}"; do
+        if is_rip "$proto"; then
+            launch_protocol "$proto" -f "$ds" -A -i "$period" -F "$(( id - 1 ))" "$id" -t "$id" -m 2
+        else
+            launch_protocol "$proto" -f "$ds" -A -F "$(( id - 1 ))" "$id" -t "$id"
+        fi
+    done
+    wait_all
+}
+
+# ── Rocketfuel ──────────────────────────────────────────────────
+function plan_rocketfuel {
+    local as combo file pair id1 id2 extra
+    local -a pairs
+    for as in "${ases[@]}"; do
+        for combo in ${ROCKET_COMBOS[$as]}; do
+            file="data/datasets/rocketfuel/${as}/${combo%%:*}"
+            [[ -f "$file" ]] || warn "dataset not found for AS $as: $file"
+        done
+
+        if [[ "$mode" != edges ]]; then
+            STEPS+=("$as")
+            continue
+        fi
+
+        IFS=',' read -ra pairs <<< "${edges_override:-${ROCKET_TOP_EDGES[$as]}}"
+        for pair in "${pairs[@]}"; do
+            extra=""
+            read -r id1 id2 extra <<< "$pair"
+            if ! is_uint "${id1:-x}" || ! is_uint "${id2:-x}" || [[ -n "$extra" ]]; then
+                die "bad edge '$pair' (expected two node ids, e.g. \"18 45\")"
+            fi
+            STEPS+=("$as $id1 $id2")
+        done
+    done
+}
+
+function step_rocketfuel {    # step_rocketfuel <AS> [id1 id2]
+    local as="$1" combo file algebra proto
+    local -a fail r_extra=()
+    if [[ "$mode" == edges ]]; then
+        fail=(-F "$2" "$3")
+        r_extra=(-A)
+    else
+        read -ra fail <<< "${ROCKET_MODE_FLAGS[$mode]}"
     fi
 
+    for combo in ${ROCKET_COMBOS[$as]}; do
+        file="data/datasets/rocketfuel/${as}/${combo%%:*}"
+        algebra="${combo##*:}"
+        for proto in "${protocols[@]}"; do
+            if is_rip "$proto"; then
+                launch_protocol "$proto" -f "$file" "${r_extra[@]}" -a "$algebra" -i "$period" "${fail[@]}"
+            else
+                launch_protocol "$proto" -f "$file" -A -a "$algebra" "${fail[@]}"
+            fi
+        done
+    done
+    wait_all
+}
 
-    if ! [[ "$runs" =~ ^[0-9]+$ ]] || [[ "$runs" -lt 1 ]]; then
-        echo "$0: --runs must be a positive integer (got: $runs)." >&2
-        exit 4
+# ── SCION ───────────────────────────────────────────────────────
+function plan_scion {
+    local combo
+    for combo in "${SCION_COMBOS[@]}"; do
+        [[ -f "${combo%%:*}" ]] || warn "dataset not found: ${combo%%:*}"
+    done
+    STEPS+=("sciera")
+}
+
+function step_scion {
+    local combo file algebra proto
+    for combo in "${SCION_COMBOS[@]}"; do
+        file="${combo%%:*}"
+        algebra="${combo##*:}"
+        for proto in "${protocols[@]}"; do
+            if is_rip "$proto"; then
+                launch_protocol "$proto" -f "$file" -a "$algebra" -i "$period" -m 0 -A
+            else
+                launch_protocol "$proto" -f "$file" -A -a "$algebra" -m 0
+            fi
+        done
+    done
+    wait_all
+}
+
+# ════════════════════════════════════════════════════════════════
+# Clean
+# ════════════════════════════════════════════════════════════════
+
+function clean_output {
+    local dir="data/output/$1"
+    [[ -d "$dir" ]] || die "output directory not found: $dir"
+    echo "Cleaning simulation output from ${dir}"
+    if (( dry_run )); then
+        find "$dir" -name '*.csv' -type f -print
+    else
+        find "$dir" -name '*.csv' -type f -delete
     fi
 }
 
-# ────────────────────────────────────────────────────────────────
-# Datasets
-# ────────────────────────────────────────────────────────────────
-
-function bclique_dataset_path {
-    local id="$1"
-    echo "data/datasets/clique/bclique_n${id}/DelayHops_${type}.tsv"
-}
-
-function triangle_dataset_path {
-    local id="$1"
-    echo "data/datasets/triangle/triangle_n${id}/triangle_n${id}.tsv"
-}
-
-function clean {
-  local cdata="$1"
-  # shellcheck disable=SC2283
-  CLEAN="data/output/${cdata}"
-
-  cd "$CLEAN"
-  echo "Cleaning simulation output from ${CLEAN}"
-  find . -name "*.csv" -type f -delete
-}
-
-# ────────────────────────────────────────────────────────────────
-# Simulators
-# ────────────────────────────────────────────────────────────────
-
-
-# ────────────────────────────────────────────────────────────────
-# Rocketfuel
-function run_rocket {
-    local combos=(
-        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
-        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
-        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
-        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
-        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
-    )
-
-    local pids=()
-    local combo file algebra
-    for combo in "${combos[@]}"; do
-        file="${combo%%:*}"
-        algebra="${combo##*:}"
-
-        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
-    done
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-# ────────────────────────────────────────────────────────────────
-# SCION
-function run_scion {
-    local combos=(
-        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
-        "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
-        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
-        "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
-        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
-    )
-
-    local pids=()
-    local combo file algebra
-    for combo in "${combos[@]}"; do
-        file="${combo%%:*}"
-        algebra="${combo##*:}"
-
-        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 -m 0 -A> /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 -F > /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F > /dev/null & pids+=($!)
-        #"${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F > /dev/null & pids+=($!)
-    done
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-function run_rocket_cutset {
-    local combos=(
-        "data/datasets/rocketfuel/3257/DelayLength.tsv:lex-length-hops-suffix"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:lex-length-width-suffix"
-        # "data/datasets/rocketfuel/1221/DelayLengthWidth.tsv:prod-width-length-hops-suffix"
-        #"data/datasets/rocketfuel/1755/DelayHops.tsv:lex-hops-suffix"
-    )
-
-    local pids=()
-    local combo file algebra
-    for combo in "${combos[@]}"; do
-        file="${combo%%:*}"
-        algebra="${combo##*:}"
-
-        "${SIMULATOR}" -f "${file}" -R -a "${algebra}" -i 1.0 --cutset > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -R notif -a "${algebra}" -i 1.0 --cutset > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" --cutset > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" --cutset > /dev/null & pids+=($!)
-    done
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-function run_clique {
-    local ds="$1"
-    local id="$2"
-
-    local pids=()
-    "${SIMULATOR}" -f "${ds}" -A -R -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -R notif -i 1.0 -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -G -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -C -F 0 "${id}" -t 0 > /dev/null & pids+=($!)
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-function run_triangle {
-    local ds="$1"
-    local id="$2"
-
-    local pids=()
-    "${SIMULATOR}" -f "${ds}" -A -R -i 1.0 -F "$((id - 1))" "${id}" -t "${id}" -m 2 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -R notif -i 1.0 -F "$((id - 1))" "${id}" -t "${id}" -m 2 > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -G -F "$((id - 1))" "${id}" -t "${id}" > /dev/null & pids+=($!)
-    "${SIMULATOR}" -f "${ds}" -A -C -F "$((id - 1))" "${id}" -t "${id}" > /dev/null & pids+=($!)
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-# Top-10 edges by centrality, as (id1 id2) pairs
-TOP_EDGES=(
-    "2 34"
-    "34 45"
-    "8 47"
-    "45 6"
-    "16 47"
-    "8 9"
-    "5 6"
-)
-
-TOP_EDGES_1755=(
-    "18 45"
-    "24 25"
-    "0 18"
-    "25 50"
-    "24 19"
-    "45 13"
-    "0 24"
-    "50 68"
-    "3 19"
-    "0 38"
-)
-
-function run_rocket_edge {
-    local id1="$1"
-    local id2="$2"
-
-    local combos=(
-        "data/datasets/rocketfuel/3257/DelayLength.tsv:lex-length-hops-suffix"
-        #"data/datasets/rocketfuel/1221/DelayHops.tsv:lex-hops-suffix"
-    )
-
-    local pids=()
-    local combo file algebra
-    for combo in "${combos[@]}"; do
-        file="${combo%%:*}"
-        algebra="${combo##*:}"
-
-        "${SIMULATOR}" -f "${file}" -A -R -a "${algebra}" -i 1.0 -F "${id1}" "${id2}" > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -A -R notif -a "${algebra}" -i 1.0 -F "${id1}" "${id2}" > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -G -A -a "${algebra}" -F "${id1}" "${id2}" > /dev/null & pids+=($!)
-        "${SIMULATOR}" -f "${file}" -C -A -a "${algebra}" -F "${id1}" "${id2}" > /dev/null & pids+=($!)
-    done
-
-    local pid status=0
-    for pid in "${pids[@]}"; do
-        if ! wait "${pid}"; then
-            status=1
-        fi
-    done
-    return "${status}"
-}
-
-function run_rocket_edges {
-    local failures=0
-    local edge="$1"
-    local id1 id2
-
-    read -r id1 id2 <<< "${edge}"
-    if ! run_rocket_edge "${id1}" "${id2}"; then
-        failures=$(( failures + 1 ))
-        echo "  -> failed" >&2
-    fi
-
-
-    return $(( failures > 0 ? 1 : 0 ))
-}
-
-
-# ────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
 # Main
-# ────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════
+
+function describe_run {
+    case "$topo" in
+        clique)     echo "clique ($variant): node-counts ${node_counts[*]}" ;;
+        triangle)   echo "triangle: node-counts ${node_counts[*]}" ;;
+        rocketfuel) echo "rocketfuel: AS ${ases[*]}, mode $mode" ;;
+        scion)      echo "scion" ;;
+    esac
+    echo "  protocols ${protocols[*]}, periods ${periods[*]}, runs ${runs}, ${#STEPS[@]} step(s)"
+}
 
 function main {
     check_getopt
     parse_args "$@"
     validate_args
 
-    local failures=0
-    local step=0
-
-    ## clean output folders
-    if [ "$output" != "" ]; then
-      clean "$output"
-      exit 0;
+    if [[ -n "$clean_target" ]]; then
+        clean_output "$clean_target"
+        exit 0
     fi
 
-    ## Run Rocketfuel Topologies
-    if [ "$dataset" == "rocketfuel" ]; then
-      local total_steps=$((runs))
-      for ((run = 1; run <= runs; run++)); do
-        if ! run_scion; then
-            echo "Completed with failed job(s)." >&2
-            exit 1
-        fi
-        step=$(( step + 1 ))
-        ProgressBar "$step" "$total_steps"
-      done
+    "plan_${topo}"
+    (( ${#STEPS[@]} > 0 )) || die "nothing to run for $topo"
+    describe_run
 
-      printf "\nAll simulations completed."
-      exit 0
-    fi
+    local total=$(( ${#STEPS[@]} * ${#periods[@]} * runs ))
+    local done_steps=0 failures=0 entry run
+    local -a args
 
-    ## Run Rocketfuel Topologies failing edges with large edge centrality
-    if [ "$dataset" == "rocket_centrality" ]; then
-      local total_steps=$(( ${#TOP_EDGES_1755[@]} * runs ))
-      for edge in "${TOP_EDGES_1755[@]}"; do
-        for ((run = 1; run <= runs; run++)); do
-          if ! run_rocket_edges "${edge}"; then
-              echo "Completed with failed job(s)." >&2
-              exit 1
-          fi
-
-          step=$(( step + 1 ))
-          ProgressBar "$step" "$total_steps"
-        done
-      done
-
-      printf "\nAll simulations completed."
-      exit 0
-    fi
-
-    ## Run Clique/Triangle Topologies
-    local dataset_path_fn run_fn
-    case "$dataset" in
-        clique)   dataset_path_fn=bclique_dataset_path;  run_fn=run_clique ;;
-        triangle) dataset_path_fn=triangle_dataset_path; run_fn=run_triangle ;;
-    esac
-
-    local total_steps=$(( ${#node_counts[@]} * runs ))
-    echo "${dataset}: runs ${runs}, node-counts ${node_counts[*]}"
-
-    for id in "${node_counts[@]}"; do
-        local ds_path
-        ds_path=$("${dataset_path_fn}" "${id}")
-
-        if [[ ! -f "${ds_path}" ]]; then
-            printf "\nWarning: dataset not found, skipping n=%s: %s\n" "${id}" "${ds_path}" >&2
-            step=$(( step + runs ))
-            ProgressBar "$step" "$total_steps" "${id}" "${runs}"
-            continue
-        fi
-
-        for ((run = 1; run <= runs; run++)); do
-            if ! "${run_fn}" "${ds_path}" "${id}"; then
-                failures=$(( failures + 1 ))
-            fi
-            step=$(( step + 1 ))
-            ProgressBar "$step" "$total_steps" "${id}" "${run}"
+    for entry in "${STEPS[@]}"; do
+        read -ra args <<< "$entry"
+        for (( run = 1; run <= runs; run++ )); do
+            for (( period_idx = 0; period_idx < ${#periods[@]}; period_idx++ )); do
+                period="${periods[period_idx]}"
+                if (( dry_run )); then echo "# step: ${entry} (period ${period}, run ${run}/${runs})"; fi
+                if ! "step_${topo}" "${args[@]}"; then
+                    failures=$(( failures + 1 ))
+                    warn "step failed: ${entry} (period ${period}, run ${run})"
+                fi
+                done_steps=$(( done_steps + 1 ))
+                if (( ! dry_run )); then progress_bar "$done_steps" "$total"; fi
+            done
         done
     done
 
     echo ""
-    if [[ "${failures}" -gt 0 ]]; then
-        echo "Completed with ${failures} failed job(s)." >&2
+    if (( failures > 0 )); then
+        echo "Completed with ${failures} failed step(s)." >&2
         exit 1
     fi
     echo "All simulations completed."
 }
+
 main "$@"

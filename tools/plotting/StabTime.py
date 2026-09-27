@@ -7,14 +7,23 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import itertools
+import argparse
 import glob
 import re
 import os
 
+TEXTWIDTH = 6.30
+FIG_W = 10  # 0.49 * TEXTWIDTH
+FIG_H = 8  # 0.75 * FIG_W
+
 plt.rcParams.update({
-    "font.family": "Liberation Sans",
+    "font.family": "Arial",
     "mathtext.fontset": "cm",
     "font.size": 10,
+    "axes.labelsize": 10,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 9,
 })
 
 ROOT_DIR = next(
@@ -22,9 +31,13 @@ ROOT_DIR = next(
     if (p / '.git').exists()
 )
 
-DATASET = "scion"
+DATASET = "rocketfuel"
+NETWORKS = ["1755"]
 SCENARIO = "normal"
-DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
+Proto_label = ["RRP"]
+Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
+PERIODS = ["1.0"]
+
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 PROTOCOL = {
@@ -83,6 +96,7 @@ def get_family(label: str) -> str:
 
 def load(network):
     rows = []
+    DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
     for csv_path in DATA_DIR.glob(f"{network}/*/*{SCENARIO}*convergence.csv"):
         protocol = csv_path.parent.name
         filename = csv_path.name.lower()
@@ -116,6 +130,9 @@ def ecdf(data, array: bool = True):
     n = len(data)
     x = np.sort(data)
     y = 1 - np.arange(1, n + 1) / n
+
+    x = np.concatenate([[0.0], x])
+    y = np.concatenate([[1.0], y])
     if not array:
         return pd.DataFrame({'x': x, 'y': y})
     else:
@@ -147,10 +164,10 @@ def plot_ccdf(df, network_name):
     algebras = sorted(dfg["Algebra"].unique())
     protocols = sorted(dfg["Protocol"].unique())
 
-    colors = dict(zip(algebras, sns.color_palette("colorblind", n_colors=len(algebras))))
-    linestyles = dict(zip(protocols, itertools.cycle(['-', '--'])))
+    colors = dict(zip(protocols, sns.color_palette(palette="colorblind", n_colors=len(protocols))))
+    linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
 
     for algebra in algebras:
         for protocol in protocols:
@@ -160,12 +177,12 @@ def plot_ccdf(df, network_name):
             group = group.sort_values("x")
             ax.plot(
                 group["x"], group["y"],
-                color=colors[algebra],
-                linestyle=linestyles[protocol],
+                color=colors[protocol],
+                linestyle=linestyles[algebra],
                 drawstyle="steps-post",
-                alpha=1,
+                alpha=0.8,
                 label=group["group_label"].iloc[0],
-                linewidth=1.8,
+                linewidth=2,
             )
 
     ax.set_ylim([-1e-2, 1.1])
@@ -194,18 +211,31 @@ def plot_ccdf(df, network_name):
         fancybox=True, shadow=False
     )
     # legend.set_title("Protocol")
-    legend.get_title().set_fontweight("bold") if legend.get_title() else None
+    # legend.get_title().set_fontweight("bold") if legend.get_title() else None
     for text in legend.get_texts():
         text.set_fontfamily("monospace")
 
-    name = f"ccdf_{network_name}_{SCENARIO}.png"
+    name = f"ccdf_{network_name}_{SCENARIO}.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
-    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
     plt.show()
     print(f"\tsaved {out_path}\n")
 
 
 if __name__ == "__main__":
-    for network in ["sciera"]:
+    parser = argparse.ArgumentParser(description="Plot convergence-time CCDFs.")
+    parser.add_argument("-t", "--topo", default=DATASET, help=f"default: {DATASET}")
+    parser.add_argument("-n", "--networks", nargs="+", default=NETWORKS, help=f"default: {' '.join(NETWORKS)}")
+    parser.add_argument("-s", "--scenario", default=SCENARIO, help=f"default: {SCENARIO}")
+    parser.add_argument("-p", "--protocols", nargs="+", default=Proto_label, help=f"default: {' '.join(Proto_label)}")
+    parser.add_argument("-a", "--algebras", nargs="+", default=Algebra_label,
+                        help=f"default: {' '.join(Algebra_label)}")
+    parser.add_argument("--periods", nargs="+", default=PERIODS, help=f"default: {' '.join(PERIODS)}")
+    args = parser.parse_args()
+
+    DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
+    Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
+
+    for network in NETWORKS:
         df = load(network)
         plot_ccdf(df, network)
