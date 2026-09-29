@@ -56,6 +56,25 @@ Algebra = {
     "prod-width-length-hops-suffix": "Product",
 }
 
+# Source - https://stackoverflow.com/a/31527287
+# Posted by rth, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-09-27, License - CC BY-SA 4.0
+
+def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
+    """Parameters:
+      - wf [float]:  width fraction in columnwidth units
+      - hf [float]:  height fraction in columnwidth units.
+                     Set by default to golden ratio.
+      - columnwidth [float]: width of the column in latex. Get this from LaTeX
+                             using \\showthe\\columnwidth
+    Returns:  [fig_width,fig_height]: that should be given to matplotlib
+    """
+    fig_width_pt = columnwidth * wf
+    inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+    fig_width = fig_width_pt * inches_per_pt  # width in inches
+    fig_height = fig_width * hf  # height in inches
+    return [fig_width, fig_height]
+
 MARKERS = ['s', "o", "v", "D", "^", "P", "X", "*"]
 
 parser = argparse.ArgumentParser(description="Plot the rate of messages exchanged over time.")
@@ -123,7 +142,7 @@ for n in NETWORKS:
             if delta not in PERIODS:
                 continue
             if len(PERIODS) > 1:
-                protocol_label += rf" $\Delta = {delta}$ ms"
+                protocol_label += rf" Δ = {delta} ms"
 
         # if algebra:
         #     protocol_label += f" {algebra}"
@@ -179,7 +198,8 @@ for n in NETWORKS:
 
     sns.set_palette("colorblind")
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    columnwidth = 345.0
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
 
     sns.lineplot(
         data=df_n,

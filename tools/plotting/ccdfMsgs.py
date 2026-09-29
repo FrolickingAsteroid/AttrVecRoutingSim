@@ -32,6 +32,27 @@ plt.rcParams.update({
     "legend.fontsize": 9,
 })
 
+# Source - https://stackoverflow.com/a/31527287
+# Posted by rth, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-09-27, License - CC BY-SA 4.0
+
+def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
+    """Parameters:
+      - wf [float]:  width fraction in columnwidth units
+      - hf [float]:  height fraction in columnwidth units.
+                     Set by default to golden ratio.
+      - columnwidth [float]: width of the column in latex. Get this from LaTeX
+                             using \\showthe\\columnwidth
+    Returns:  [fig_width,fig_height]: that should be given to matplotlib
+    """
+    fig_width_pt = columnwidth * wf
+    inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+    fig_width = fig_width_pt * inches_per_pt  # width in inches
+    fig_height = fig_width * hf  # height in inches
+    return [fig_width, fig_height]
+
+
+
 ROOT_DIR = next(
     p for p in Path(__file__).parents
     if (p / '.git').exists()
@@ -105,7 +126,6 @@ def load(network):
     for csv_path in DATA_DIR.glob(f"{network}/*/*_S_{SCENARIO}_*{kind}*.csv"):
         protocol = csv_path.parent.name
         filename = csv_path.name.lower()
-
         wanted = f"_{kind}_seq_0.csv" if METRIC == "msgs" and protocol.lower() == "rpbob" else f"_{kind}.csv"
         if not filename.endswith(wanted):
             continue
@@ -174,7 +194,7 @@ def plot_ccdf(df, network_name):
     pad_width = dfg["label_raw"].str.len().max() + 2
     dfg["group_label"] = dfg.apply(
         lambda row: (row['Protocol'] + " " + row['Algebra']).ljust(pad_width) +
-                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>8.2f} {unit})",
+                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>4.0f} {unit})",
         axis=1,
     )
 
@@ -184,7 +204,8 @@ def plot_ccdf(df, network_name):
     colors = dict(zip(protocols, sns.color_palette(palette="colorblind", n_colors=len(protocols))))
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
-    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
+    columnwidth = 345.0
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
 
     for algebra in algebras:
         for protocol in protocols:

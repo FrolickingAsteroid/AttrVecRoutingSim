@@ -62,14 +62,20 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			{
 				for (const auto &cutset : this->cutsets)
 				{
+					std::cout << "Cutset:\n";
 					for (const auto &[u, v] : cutset)
 					{
+						std::cout << u << ", " << v << "\n";
 						this->graph.deactivate(u, v);
 					}
 					auto [opt_time, opt] = delayDijkstra(t);
 					for (const auto &[u, v] : cutset)
 					{
 						this->graph.activate(u, v);
+					}
+					if (checkEmpty(opt))
+					{
+						continue;
 					}
 
 					convergence_attr[t] = std::move(opt);
@@ -96,6 +102,18 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 
 	std::vector<int>                               wind{};
 	std::map<int, std::vector<std::vector<bAttr>>> convergence_attr;
+
+	bool checkEmpty(const std::vector<std::vector<bAttr>> &opt)
+	{
+		const auto empty = std::count_if(opt.begin(), opt.end(), [](const auto &i) {
+			return !i.empty();
+		});
+		if (empty == 1)
+		{
+			return true;
+		}
+		return false;
+	}
 
 	auto delayDijkstra(const int t)
 	{

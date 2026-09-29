@@ -63,7 +63,7 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 		if (u && v)
 		{
 			proto.Run();
-			proto.cal.schedule(100, [&]() {
+			proto.cal.schedule(proto.cal.now(), [&]() {
 				proto.LinkFailure(*u, *v);
 			});
 			proto.Run();

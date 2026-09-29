@@ -290,8 +290,8 @@ function launch_protocol {    # launch_protocol <R|R-notif|G|C> <Simulator args.
     # G and C have no period: launch them only on the first period of each step
     if ! is_rip "$proto" && (( period_idx > 0 )); then return 0; fi
     case "$proto" in
-        R)       launch -R "$@" -m 100;;
-        R-notif) launch -R notif "$@" -m 100;;
+        R)       launch -R "$@";;
+        R-notif) launch -R notif "$@";;
         G)       launch -G "$@" ;;
         C)       launch -C "$@" ;;
     esac

@@ -14,6 +14,7 @@ DEFAULT_TOPDIR = "../../data/topologies/rocketfuel"
 DEFAULT_ROCKET_DIR = "../../data/datasets/rocketfuel"
 DEFAULT_CLIQUE_DIR = "../../data/datasets/clique"
 DEFAULT_TRIANGLE_DIR = "../../data/datasets/triangle"
+DEFAULT_FOCUS_DIR = "../../data/datasets/focus"
 DEFAULT_SCIERA_AS = "sciera"
 DEFAULT_SCIERA_TOPDIR = "../../data/topologies/SCION"
 DEFAULT_SCIERA_DIR = "../../data/datasets/scion"
@@ -61,7 +62,6 @@ _DATASET_SPECS = [
 
 def load_graph(AS: str, topdir: str, source: str = "rocketfuel",
                require_biconnected: bool | None = None) -> tuple[nx.DiGraph, dict]:
-
     if require_biconnected is None:
         require_biconnected = (source == "rocketfuel")
 
@@ -242,6 +242,54 @@ def triangle_network(max: int, triangledir: str):
 
 
 # ──────────────────────────────────────────────────────────────────────
+# FOCUS network
+# ──────────────────────────────────────────────────────────────────────
+def focus_network(max: int, focusdir: str):
+    out_dir = Path(focusdir) / f"focus_n{max}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    out_file = out_dir / f"focus_n{max}.tsv"
+    print(f"\n\t+ Saving focus n={max} -> '{out_file}'")
+    with open(out_file, "w") as f:
+        f.write(f"{max + 2}\n")
+
+        for x in range(max):
+            if x == 0:
+                f.write(f"{0}\t{x+1}\t{0}\t{2 ** max}\n")
+                f.write(f"{x+1}\t{0}\t{0}\t{2 ** max}\n")
+                f.write(f"{max + 1}\t{x+1}\t{0}\t{(2 ** max)}\n")
+                f.write(f"{x+1}\t{max + 1}\t{0}\t{(2 ** max)}\n")
+                continue
+
+            f.write(f"{0}\t{x+1}\t{2 ** x}\t{2 ** (max - x)}\n")
+            f.write(f"{x+1}\t{0}\t{2 ** x}\t{2 ** (max - x)}\n")
+            f.write(f"{max + 1}\t{x+1}\t{2 ** x}\t{2 ** (max - x)}\n")
+            f.write(f"{x+1}\t{max + 1}\t{2 ** x}\t{2 ** (max - x)}\n")
+
+def focus_network_inv(max: int, focusdir: str):
+    out_dir = Path(focusdir) / f"focus_n{max}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    out_file = out_dir / f"focus_n{max}_inv.tsv"
+    print(f"\n\t+ Saving focus n={max} -> '{out_file}'")
+    with open(out_file, "w") as f:
+        f.write(f"{max + 2}\n")
+
+        for x in range(max):
+            if x == 0:
+                f.write(f"{0}\t{x+1}\t{2 ** max}\t{2 ** max}\n")
+                f.write(f"{x+1}\t{0}\t{2 ** max}\t{2 ** max}\n")
+                f.write(f"{max + 1}\t{x+1}\t{(2 ** max)}\t{(2 ** max)}\n")
+                f.write(f"{x+1}\t{max + 1}\t{(2 ** max)}\t{(2 ** max)}\n")
+                continue
+
+            f.write(f"{0}\t{x+1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+            f.write(f"{x+1}\t{0}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+            f.write(f"{max + 1}\t{x+1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+            f.write(f"{x+1}\t{max + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+
+
+# ──────────────────────────────────────────────────────────────────────
 # CLI
 # ──────────────────────────────────────────────────────────────────────
 
@@ -304,6 +352,7 @@ def all_minimum_edge_cutsets(G):
 
     return cutsets
 
+
 def cmd_info(g: nx.DiGraph, AS: str, **_):
     print_graph_info(g, AS)
     V = g.number_of_nodes()
@@ -319,8 +368,6 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
     print(f"\n\tLargest edge delay: {max_d}  on ({u},{v})")
     print(f"\tNode with maximum degree: {max_deg_node} with degree {max_deg}\n")
 
-
-
     G = g.to_undirected()
     cutsets = list(nx.all_node_cuts(G))
 
@@ -331,7 +378,7 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
     for cutset in cutsets:
         print(f"\t\t  {cutset}")
 
-    #edge_centrality(g)
+    # edge_centrality(g)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -343,6 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--rocketdir", dest="rocketdir", default=DEFAULT_ROCKET_DIR, help="default: %(default)s")
     p.add_argument("--cliquedir", dest="cliquedir", default=DEFAULT_CLIQUE_DIR, help="default: %(default)s")
     p.add_argument("--triangledir", dest="triangledir", default=DEFAULT_TRIANGLE_DIR, help="default: %(default)s")
+    p.add_argument("--focusdir", dest="focusdir", default=DEFAULT_FOCUS_DIR, help="default: %(default)s")
     p.add_argument("--scieradir", dest="scieradir", default=DEFAULT_SCIERA_DIR, help="default: %(default)s")
 
     p.add_argument("--seed", type=int, default=None,
@@ -388,6 +436,9 @@ def build_parser() -> argparse.ArgumentParser:
     tri = sub.add_parser("triangle", help="write TSV dataset files for a triangle synthetic topology")
     tri.add_argument("-n", type=int, default=6, help="triangle size parameter (default: 6)")
 
+    foc = sub.add_parser("focus", help="write TSV dataset files for a focus synthetic topology")
+    foc.add_argument("-n", type=int, default=3, help="focus size parameter (default: 3)")
+
     return p
 
 
@@ -401,6 +452,9 @@ def main():
 
     elif args.cmd == "triangle":
         triangle_network(args.n, args.triangledir)
+
+    elif args.cmd == "focus":
+        focus_network_inv(args.n, args.focusdir)
 
     elif args.cmd == "sciera":
         print("Loading SCIERA topology")

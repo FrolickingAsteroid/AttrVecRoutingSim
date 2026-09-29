@@ -32,12 +32,27 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 					this->graph.activate(u, v);
 				}
 			}
+			else if (this->cfg.scenario == config::Type::Cutset)
+			{
+				for (const auto &cutset : this->cutsets)
+				{
+					auto p = proto(t, std::nullopt, std::nullopt, cutset);
+					this->recorder.recordDest(t, p, cutset);
+
+					for (const auto &[u, v] : cutset)
+					{
+						this->graph.activate(u, v);
+					}
+				}
+			}
+			this->Progress(t);
 		}
 	}
 
     private:
-	utils::stats::Data<RCNAttribute> proto(int t, std::optional<int> u = std::nullopt,
-					       std::optional<int> v = std::nullopt)
+	utils::stats::Data<RCNAttribute> proto(
+	    int t, std::optional<int> u = std::nullopt, std::optional<int> v = std::nullopt,
+	    const std::optional<std::vector<std::pair<int, int>>> &cutset = std::nullopt)
 	{
 		Protocol::RCN::RCN<RA> proto(this->graph);
 		proto.DestinationAnnouncement(t);
@@ -48,6 +63,17 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 			proto.cal.schedule(100, [&]() {
 				proto.LinkFailure(*u, *v);
 			});
+			proto.Run();
+		}
+		else if (cutset)
+		{
+			proto.Run();
+			for (const auto &[u, v] : *cutset)
+			{
+				proto.cal.schedule(proto.cal.now(), [&]() {
+					proto.LinkFailure(u, v);
+				});
+			}
 			proto.Run();
 		}
 		else

@@ -8,13 +8,10 @@ import numpy as np
 import matplotlib
 import itertools
 import argparse
+import pickle
 import glob
 import re
 import os
-
-TEXTWIDTH = 6.30
-FIG_W = 10  # 0.49 * TEXTWIDTH
-FIG_H = 8  # 0.75 * FIG_W
 
 plt.rcParams.update({
     "font.family": "Arial",
@@ -60,18 +57,38 @@ Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
 Proto_label = ["RRP"]
 
 
+# Source - https://stackoverflow.com/a/31527287
+# Posted by rth, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-09-27, License - CC BY-SA 4.0
+
+def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
+    """Parameters:
+      - wf [float]:  width fraction in columnwidth units
+      - hf [float]:  height fraction in columnwidth units.
+                     Set by default to golden ratio.
+      - columnwidth [float]: width of the column in latex. Get this from LaTeX
+                             using \\showthe\\columnwidth
+    Returns:  [fig_width,fig_height]: that should be given to matplotlib
+    """
+    fig_width_pt = columnwidth * wf
+    inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+    fig_width = fig_width_pt * inches_per_pt  # width in inches
+    fig_height = fig_width * hf  # height in inches
+    return [fig_width, fig_height]
+
+
 def get_protocol_label(protocol_raw: str, filename: str) -> str:
     key = protocol_raw.lower()
     if key == "rpbob":
         delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
             if SCENARIO == "linkFailure":
-                return rf"RRP-N $\Delta = {delta}$ ms"
+                return rf"RRP-N Δ = {delta} ms"
             else:
                 return rf"RRP-N"
         else:
             if SCENARIO == "linkFailure":
-                return rf"RRP $\Delta = {delta}$ ms"
+                return rf"RRP".ljust(6) + f"Δ = {delta} ms"
             else:
                 return rf"RRP"
 
@@ -104,14 +121,18 @@ def load(network):
         protocol_label = get_protocol_label(protocol, filename)
         algebra_label = get_algebra(filename)
 
-        if not any(p in protocol_label for p in Proto_label):
+        if protocol_label not in Proto_label:
             continue
 
         if algebra_label not in Algebra_label:
             continue
 
-        if protocol.lower() == "rpbob" and re.findall(r"\d+\.\d+", filename)[0] != "1.0":
-            continue
+        if protocol.lower() == "rpbob":
+            delta = re.findall(r"\d+\.\d+", filename)[0]
+            if delta not in PERIODS:
+                continue
+            if len(PERIODS) > 1:
+                protocol_label += rf" Δ = {delta} ms"
 
         print(csv_path)
 
@@ -157,7 +178,7 @@ def plot_ccdf(df, network_name):
     pad_width = dfg["label_raw"].str.len().max() + 2
     dfg["group_label"] = dfg.apply(
         lambda row: (row['Protocol'] + " " + row['Algebra']).ljust(pad_width) +
-                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>6.2f} ms)",
+                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>4.2f} ms)",
         axis=1,
     )
 
@@ -167,7 +188,8 @@ def plot_ccdf(df, network_name):
     colors = dict(zip(protocols, sns.color_palette(palette="colorblind", n_colors=len(protocols))))
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
-    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
+    columnwidth = 345.0
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
 
     for algebra in algebras:
         for protocol in protocols:
@@ -180,13 +202,14 @@ def plot_ccdf(df, network_name):
                 color=colors[protocol],
                 linestyle=linestyles[algebra],
                 drawstyle="steps-post",
-                alpha=0.8,
+                alpha=1,
                 label=group["group_label"].iloc[0],
                 linewidth=2,
             )
 
     ax.set_ylim([-1e-2, 1.1])
-    ax.set_xlim([0.0, df["stab_time"].max()])
+    #ax.set_xscale('log')
+    ax.set_xlim([0.0, 500])
     ax.set_xlabel("Time [ms]")
     ax.set_ylabel("CCDF")
     ax.grid(alpha=0.3, which="both")
@@ -204,6 +227,8 @@ def plot_ccdf(df, network_name):
     #     fancybox=True, shadow=False, ncol=len(algebras),
     # )
 
+
+
     handles, labels = ax.get_legend_handles_labels()
     legend = ax.legend(
         handles, labels,
@@ -218,6 +243,8 @@ def plot_ccdf(df, network_name):
     name = f"ccdf_{network_name}_{SCENARIO}.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
+    pickle.dump(fig,open(f'raw_plots/ccdf_{network_name}_{SCENARIO}','wb'))
+
     plt.show()
     print(f"\tsaved {out_path}\n")
 
@@ -236,6 +263,7 @@ if __name__ == "__main__":
     DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
     Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
 
+    print(PERIODS)
     for network in NETWORKS:
         df = load(network)
         plot_ccdf(df, network)
