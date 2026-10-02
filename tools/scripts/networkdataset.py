@@ -454,7 +454,7 @@ def main():
         triangle_network(args.n, args.triangledir)
 
     elif args.cmd == "focus":
-        focus_network_inv(args.n, args.focusdir)
+        focus_network(args.n, args.focusdir)
 
     elif args.cmd == "sciera":
         print("Loading SCIERA topology")

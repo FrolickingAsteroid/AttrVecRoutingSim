@@ -59,19 +59,19 @@ ROOT_DIR = next(
 )
 
 DATASET = {
-    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 10, 16, 32]),
+    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 8, 16, 32]),
     "triangle": ("triangle", [4, 8, 16, 32])
 }
 
 DATASET_ = "clique"
 
-PERIODS = ["1.0", "4.0","8.0","16.0","32.0"]
+PERIODS = ["1.0"]
 
 FAMILY_STYLE = {
-    "BGP":     ("-",  ["s"]),
+    "BGP": ("-", ["s"]),
     "BGP-RCN": ("-.", ["o"]),
-    "RRP":     ("--", ["v", "^", "<", ">", "P", "X"]),
-    "RRP-N":   (":",  ["D", "p", "h", "*", "8", "d"]),
+    "RRP": ("--", ["v", "^", "<", ">", "P", "X"]),
+    "RRP-N": (":", ["D", "p", "h", "*", "8", "d"]),
 }
 
 DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET_
@@ -150,7 +150,7 @@ palette = {label: family_colors[get_family(label)] for label in labels}
 # same family -> same colour and line style; different periods within a family -> different markers
 markers = {}
 for fam in families:
-    fam_labels = [l for l in hue_order if get_family(l) == fam]          # already sorted by period
+    fam_labels = [l for l in hue_order if get_family(l) == fam]  # already sorted by period
     for marker, label in zip(itertools.cycle(FAMILY_STYLE[fam][1]), fam_labels):
         markers[label] = marker
 linestyles = {label: FAMILY_STYLE[get_family(label)][0] for label in hue_order}
@@ -158,7 +158,7 @@ linestyles = {label: FAMILY_STYLE[get_family(label)][0] for label in hue_order}
 columnwidth = 345.0
 fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.8))
 
-avg_times = clique_data.groupby(["protocol", f"{DATASET_}"])["stab_time"].mean()
+avg_times = clique_data.groupby(["protocol", f"{DATASET_}"])["stab_time"].max()
 print(avg_times)
 
 sns.pointplot(
@@ -169,10 +169,11 @@ sns.pointplot(
     order=DATASET[DATASET_][1],
     hue_order=hue_order,
     palette=palette,
-    markers=[markers[label] for label in hue_order],        # one per hue level, in hue_order
+    estimator="max",
+    markers=[markers[label] for label in hue_order],  # one per hue level, in hue_order
     linestyle=[linestyles[label] for label in hue_order],
     errorbar=None,
-    dodge=0.3,
+    dodge=0.5,
     markersize=8,
     linewidth=1,
     capsize=0.1,
@@ -185,6 +186,7 @@ ax.set_ylabel("Stabilization time [ms]")
 
 ax.set_yticks(DATASET[f"{DATASET_}"][2])
 ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+ax.grid(alpha=0.3, which="major")
 
 handles, labels = ax.get_legend_handles_labels()
 legend = ax.legend(handles=handles, labels=labels)
