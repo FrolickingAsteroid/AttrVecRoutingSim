@@ -20,7 +20,7 @@ cd "${REPO_ROOT}"
 
 SIMULATOR="./build/Simulator"
 
-ALL_TOPOS=(clique triangle rocketfuel scion)
+ALL_TOPOS=(clique triangle rocketfuel scion focus)
 ALL_PROTOCOLS=(R R-notif G C)          # R = -R, R-notif = -R notif, G = -G, C = -C
 DEFAULT_NODE_COUNTS=(4 8 16 32)
 DEFAULT_AS=3257
@@ -285,7 +285,7 @@ function launch {             # launch <Simulator args...>  (runs in background)
     PIDS+=($!)
 }
 
-function launch_protocol {    # launch_protocol <R|R-notif|G|C> <Simulator args...>
+function launch_protocol {
     local proto="$1"; shift
     # G and C have no period: launch them only on the first period of each step
     if ! is_rip "$proto" && (( period_idx > 0 )); then return 0; fi
@@ -335,6 +335,28 @@ function step_clique {
     wait_all
 }
 
+# ── Focus ──────────────────────────────────────────────────────
+function plan_focus {
+    local id ds
+    for id in "${node_counts[@]}"; do
+        ds="data/datasets/focus/focus_n${id}/focus_n${id}.tsv"
+        if [[ -f "$ds" ]]; then STEPS+=("$ds $id"); else warn "dataset not found, skipping n=$id: $ds"; fi
+    done
+}
+
+function step_focus {
+    local ds="$1" id="$2" proto
+    for proto in "${protocols[@]}"; do
+        if is_rip "$proto"; then
+            launch_protocol "$proto" -f "$ds" -A -i "$period" -F "$id" "$(( id + 1 ))" -t "$(( id + 1 ))"
+        else
+            launch_protocol "$proto" -f "$ds" -A -F "$id" "$(( id + 1 ))" -t "$(( id + 1 ))"
+        fi
+    done
+    wait_all
+}
+
+
 # ── Triangle ────────────────────────────────────────────────────
 function plan_triangle {
     local id ds
@@ -348,9 +370,9 @@ function step_triangle {
     local ds="$1" id="$2" proto
     for proto in "${protocols[@]}"; do
         if is_rip "$proto"; then
-            launch_protocol "$proto" -f "$ds" -A -i "$period" -F "$(( id - 1 ))" "$id" -t "$id" -m 2
+            launch_protocol "$proto" -f "$ds" -i "$period" -F "$(( id - 1 ))" "$id" -t "$id" -m 2
         else
-            launch_protocol "$proto" -f "$ds" -A -F "$(( id - 1 ))" "$id" -t "$id"
+            launch_protocol "$proto" -f "$ds" -F "$(( id - 1 ))" "$id" -t "$id"
         fi
     done
     wait_all
@@ -455,6 +477,7 @@ function describe_run {
     case "$topo" in
         clique)     echo "clique ($variant): node-counts ${node_counts[*]}" ;;
         triangle)   echo "triangle: node-counts ${node_counts[*]}" ;;
+        focus)   echo "focus: node-counts ${node_counts[*]}" ;;
         rocketfuel) echo "rocketfuel: AS ${ases[*]}, mode $mode" ;;
         scion)      echo "scion" ;;
     esac

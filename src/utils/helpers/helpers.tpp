@@ -40,6 +40,10 @@ bool CompareOpt(const std::vector<Msg> &l, const std::vector<Msg> &r)
 template <class Msg, class A>
 bool CompareOpt(const std::vector<Msg> &l, const std::vector<A> &r)
 {
+	if (r.empty() && l.front().attr.getSeqNum() == -1)
+	{
+		return true;
+	}
 	if (l.size() != r.size())
 	{
 		return false;

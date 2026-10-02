@@ -11,13 +11,14 @@ namespace utils
 {
 
 inline std::filesystem::path makeOutputPath(const std::filesystem::path &input, const std::string &proto,
-					    const std::map<std::string, std::string> &params, const std::string &suffix)
+					    const std::map<std::string, std::string> &params, const std::string &suffix,
+					    const std::string &scenario)
 {
 	auto stem        = input.stem().string();
 	auto dataset_id  = input.parent_path().filename().string();
 	auto dataset_fam = input.parent_path().parent_path().filename().string();
 
-	auto output_dir = std::filesystem::path("data") / "output" / dataset_fam / dataset_id / proto;
+	auto output_dir = std::filesystem::path("data") / "output" / dataset_fam / dataset_id / proto / scenario;
 
 	std::filesystem::create_directories(output_dir);
 

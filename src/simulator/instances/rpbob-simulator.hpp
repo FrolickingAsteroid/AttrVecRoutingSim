@@ -27,7 +27,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
-			conv_time      = 1.1 * ConvergenceTime(time);
+			conv_time      = 100; // 1.1 * ConvergenceTime(time);
 
 			if (!this->cfg.notif)
 			{
@@ -62,10 +62,8 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			{
 				for (const auto &cutset : this->cutsets)
 				{
-					std::cout << "Cutset:\n";
 					for (const auto &[u, v] : cutset)
 					{
-						std::cout << u << ", " << v << "\n";
 						this->graph.deactivate(u, v);
 					}
 					auto [opt_time, opt] = delayDijkstra(t);
@@ -73,7 +71,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 					{
 						this->graph.activate(u, v);
 					}
-					if (checkEmpty(opt))
+					if (!this->cfg.notif && checkEmpty(opt))
 					{
 						continue;
 					}
@@ -136,7 +134,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		proto.converged = [this, &proto, t]() {
 			for (int i = 0; i < this->graph.V; ++i)
 			{
-				if (i == t || convergence_attr[t][i].empty())
+				if (i == t || (convergence_attr[t][i].empty() && !this->cfg.notif))
 				{
 					continue;
 				}

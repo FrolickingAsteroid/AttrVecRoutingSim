@@ -188,6 +188,10 @@ bool SequenceWindow<RA>::UpdateOpt()
 			}
 		}
 	}
+	else
+	{
+		new_opt = {path(RA::Null(-1))};
+	}
 
 	auto changed = utils::helpers::CompareOpt<path>(new_opt, opt);
 	opt          = new_opt;

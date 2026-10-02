@@ -13,10 +13,10 @@ import re
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
-    "font.size": 10,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "font.size": 11,
+    "axes.labelsize": 11,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
     "legend.fontsize": 9,
 })
 
@@ -40,8 +40,8 @@ MAX_STAB = {"Hops": 69.4476, "SP": 62.7138}
 MAX_MSG= {"Hops": 69.4476, "SP": 62.7138}
 
 COLUMNWIDTH = 345.0     # LaTeX \columnwidth in pt
-PANEL_WF = 1.1          # width of one column of panels, in columnwidths
-PANEL_HF = 0.7          # height / width of one column of panels
+PANEL_WF = 1.
+PANEL_HF =0.9
 WSPACE = 0.04           # gap between columns, as a fraction of a panel's width
 PALETTE = "Set2"        # colours: the first column takes the first ones, the next column the following ones
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
@@ -88,11 +88,11 @@ def read_msgs_per_dest(csv_path):
 FILES = {
 
     "convergence": dict(read=read_stab_times, xlabel="Time [ms]",
-                        avg=lambda v: f"{v:>6.2f} ms",
+                        avg=lambda v: f"{v:>4.2f} ms",
                         marks=MAX_STAB, marks_label="Max Node Stabilization Time:",
                         time=True, name="ccdf_seq"),
     "msglog": dict(read=read_msgs_per_dest, xlabel="Number of Messages",
-                   avg=lambda v: f"{round(v):>6d} msgs",
+                   avg=lambda v: f"{round(v):>4d} msgs",
                    marks=MAX_MSG, marks_label="",
                    time=False, name="ccdf_msgs_seq"),
 }

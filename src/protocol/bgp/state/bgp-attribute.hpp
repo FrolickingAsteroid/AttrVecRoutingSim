@@ -66,6 +66,7 @@ struct BGPAttribute
 		return !(*this == other);
 	}
 
+
 	friend BGPAttribute operator+(const BGPAttribute &link, const BGPAttribute &a)
 	{
 		if (a.isInvalid())
@@ -82,6 +83,7 @@ struct BGPAttribute
 		}
 
 		Ext ext;
+
 		return BGPAttribute(ext(a.attribute, link.attribute));
 	}
 

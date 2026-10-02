@@ -23,7 +23,7 @@ void BGP<RA>::process()
 		if (cal.now() >= s[u].MRAI && (it == data.finalValue.end() || best != it->second.front()))
 		{
 			// A msg is sent each time the estimate to the destination changes
-			//s[u].MRAI = cal.now() + 1;
+			s[u].MRAI = cal.now() + 1;
 			this->Send(u, s[u].GetElected());
 			data.recordChange(u, cal.now(), best);
 		}
@@ -44,9 +44,9 @@ void BGP<RA>::LinkFailure(int u, int v)
                  std::pair{v, u}
         })
 	{
+		s[node].RemoveNeighbor(neighbor);
 		if (s[node].succ == neighbor)
 		{
-			s[node].RemoveNeighbor(neighbor);
 			if (s[node].ProcessBest())
 			{
 				this->Send(node, s[node].GetElected());

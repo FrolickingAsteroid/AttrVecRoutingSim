@@ -18,7 +18,14 @@ void RPBOB<RA>::process()
 
 		if (opt.empty())
 		{
-			continue;
+			// node has yet to register a route
+			if (it == data.finalValue.end())
+			{
+				continue;
+			}
+
+			// had a route and lost it after failure
+			opt = {RpbobAttr(RA::Null(-1))};
 		}
 
 		if (it == data.finalValue.end() || !utils::helpers::CompareOpt<RpbobAttr>(opt, it->second))
@@ -111,6 +118,10 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 			data.recordChange(u, cal.now(), s[u].GetOpt());
 		}
 		this->Send(u, Msg{notif});
+		if (data.log == true)
+		{
+			converged();
+		}
 	}
 }
 

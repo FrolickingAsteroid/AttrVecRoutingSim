@@ -64,26 +64,27 @@ class Recorder
 		 const std::map<std::string, std::string> &map, const int V_)
 	    : V(V_)
 	{
+		auto scenario     = map.at("S_");
 		bool append       = (map.at("append") == "1");
-		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "cutset");
+		bool link_failure = (scenario == "linkFailure" || scenario == "cutset");
 
 		if (proto == "beaconing")
 		{
 			progress_out =
-			    openFile(makeOutputPath(input, proto, map, "progress"), append, progressHeader());
+			    openFile(makeOutputPath(input, proto, map, "progress", scenario), append, progressHeader());
 		}
 
 		if (proto == "window")
 		{
-			wind_out = openFile(makeOutputPath(input, proto, map, ""), append, windHeader(link_failure));
+			wind_out = openFile(makeOutputPath(input, proto, map, "", scenario), append, windHeader(link_failure));
 		}
 		else
 		{
-			convergence_out = openFile(makeOutputPath(input, proto, map, "convergence"), append,
+			convergence_out = openFile(makeOutputPath(input, proto, map, "convergence",scenario), append,
 						   convergenceHeader(link_failure));
 
 			msglog_out =
-			    openFile(makeOutputPath(input, proto, map, "msglog"), append, msgLogHeader(link_failure));
+			    openFile(makeOutputPath(input, proto, map, "msglog",scenario), append, msgLogHeader(link_failure));
 		}
 	}
 

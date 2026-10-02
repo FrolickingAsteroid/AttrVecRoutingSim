@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from pathlib import Path
+import numpy as np
 import seaborn as sns
 import pandas as pd
 import argparse
@@ -23,7 +25,7 @@ ROOT_DIR = next(
 )
 
 DATASET = "clique"
-NETWORKS = ["32"]
+NETWORKS = ["64"]
 SCENARIO = "linkFailure"
 Proto_label = ["RRP", "RRP-N", "BGP", "BGP-RCN"]
 PERIODS = ["1.0"]
@@ -31,6 +33,12 @@ ALGEBRAS = []
 BIN = 10
 XMIN = 100
 PAD = True
+
+# RRP is periodic: once its log stops (the simulation stops issuing routing computations),
+# its line is continued at its steady rate, measured on [STEADY_FROM, T_FAIL), and drawn dotted.
+T_FAIL = 100  # failure time [ms]
+STEADY_FROM = 50  # start of the window where RRP's steady rate is measured [ms]
+EXTRAPOLATE_RRP = True
 
 NETWORK_DIR = {
     "clique": "bclique_n{}",
@@ -56,6 +64,7 @@ Algebra = {
     "prod-width-length-hops-suffix": "Product",
 }
 
+
 # Source - https://stackoverflow.com/a/31527287
 # Posted by rth, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-09-27, License - CC BY-SA 4.0
@@ -74,6 +83,7 @@ def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
     fig_width = fig_width_pt * inches_per_pt  # width in inches
     fig_height = fig_width * hf  # height in inches
     return [fig_width, fig_height]
+
 
 MARKERS = ['s', "o", "v", "D", "^", "P", "X", "*"]
 
@@ -105,6 +115,22 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
     return PROTOCOL.get(key, protocol_raw.upper())
 
 
+def extend_periodic(binned, t_end):
+    """RRP: cut the series where it stops issuing computations and continue it at its steady rate.
+
+    Returns (real part, extrapolated part). The stop is the first bin at or after T_FAIL whose rate
+    falls below half the steady rate; after it the log only holds messages still in flight.
+    """
+    steady = binned[(binned.index >= STEADY_FROM) & (binned.index + BIN <= T_FAIL)].mean()
+    after = binned[binned.index >= T_FAIL]
+    stopped = after[after < 0.5 * steady]
+    if stopped.empty or np.isnan(steady):
+        return binned, None
+    t_stop = stopped.index.min()
+    ext = pd.Series(steady, index=np.arange(t_stop, t_end + BIN, BIN))
+    return binned[binned.index < t_stop], ext
+
+
 def bin_series(df, bin_freq='10s', bin=10):
     df = df.copy()
     df['time_ms'] = pd.to_timedelta(df['time'], unit='s')
@@ -118,15 +144,18 @@ def bin_series(df, bin_freq='10s', bin=10):
 rows = []
 raw_frames = {}
 sort_keys = {}
+extensions = {}  # (label, n) -> extrapolated RRP series
 
 for n in NETWORKS:
     net_dir = DATA_DIR / NETWORK_DIR[DATASET].format(n)
-    for csv_path in net_dir.glob(f"*/*_S_{SCENARIO}_*msglog.csv"):
-        protocol = csv_path.parent.name
+    for csv_path in net_dir.glob(f"*/{SCENARIO}/*_S_{SCENARIO}_*msglog.csv"):
+        protocol = csv_path.parent.parent.name
         filename = csv_path.name
         protocol_label = get_protocol_label(protocol, csv_path.name)
 
         if protocol_label not in Proto_label:
+            print(protocol_label)
+            print(csv_path)
             continue
 
         m = re.search(r"_A_(.+?)_[NS]_", filename)
@@ -148,17 +177,13 @@ for n in NETWORKS:
         #     protocol_label += f" {algebra}"
         sort_keys[protocol_label] = (Proto_label.index(base), algebra, float(delta))
 
-        print(csv_path)
+        # print(csv_path)
 
-        df_raw = pd.read_csv(csv_path)[['time', 'msg']]
-
-        max = 0
-        conv_path = csv_path.with_name(filename.replace("_msglog.csv", "_convergence.csv"))
-        max_time = pd.read_csv(conv_path)["stab_time"].max() if conv_path.exists() else None
-        if max_time > max:
-            max = max_time
-
-        raw_frames[(protocol_label, n)] = df_raw
+        df_raw = pd.read_csv(csv_path, usecols=lambda c: c in ("failure", "time", "msg"))
+        # a log can hold several failure runs (e.g. one per cutset): average over them
+        if "failure" in df_raw:
+            df_raw["msg"] = df_raw["msg"] / df_raw["failure"].nunique()
+        raw_frames[(protocol_label, n)] = df_raw[["time", "msg"]]
 
 if not raw_frames:
     raise SystemExit(f"Nothing found in {DATA_DIR} for networks {NETWORKS}, scenario '{SCENARIO}', "
@@ -168,8 +193,8 @@ if not raw_frames:
 max_time = {}
 max_t = 0
 for (protocol_label, n), df_raw in raw_frames.items():
-    if max_t < df_raw["time"].max():
-        max_t = df_raw["time"].max()
+    if max_t < df_raw["time"].max() + 10:
+        max_t = 10 + df_raw["time"].max()
 
 for (protocol_label, n), df_raw in raw_frames.items():
     if PAD and df_raw["time"].max() < max_t:
@@ -177,6 +202,10 @@ for (protocol_label, n), df_raw in raw_frames.items():
         df_raw = pd.concat([df_raw, pad_row], ignore_index=True)
 
     binned = bin_series(df_raw, bin_freq=f"{BIN}s")
+    if EXTRAPOLATE_RRP and protocol_label.startswith("RRP"):
+        binned, ext = extend_periodic(binned, max_t)
+        if ext is not None:
+            extensions[(protocol_label, n)] = (binned, ext)
 
     rows.append(pd.DataFrame({
         "time": binned.index,
@@ -196,7 +225,7 @@ for n in NETWORKS:
 
     order = sorted(df_n["protocol"].unique(), key=sort_keys.get)
 
-    sns.set_palette("colorblind")
+    colors = dict(zip(order, sns.color_palette("colorblind", n_colors=len(order))))
 
     columnwidth = 345.0
     fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
@@ -207,11 +236,12 @@ for n in NETWORKS:
         y="msg",
         hue="protocol",
         hue_order=order,
+        palette=colors,
         style="protocol",
         style_order=order,
         markers=[MARKERS[i % len(MARKERS)] for i in range(len(order))],
         # markers=None,
-        alpha=0.9,
+        alpha=0.8,
         markersize=8,
         lw=1.5,
     )
@@ -219,10 +249,22 @@ for n in NETWORKS:
     plt.xlabel('Time [ms]')
     plt.ylabel(r'Rate of messages exchanged')
 
-    plt.ylim([-0.1, df_n["msg"].max() + 10 ** 6])
-    plt.xlim([XMIN, max+100])
+    top = max([df_n["msg"].max()] + [e.max() for (_, net), (_, e) in extensions.items() if net == n])
+    plt.ylim([-0.1, top * 10])  # a decade of headroom on the log axis
+    plt.xlim([XMIN, max_t])
+
+    # RRP beyond its log: its steady rate, dotted, joined to its last real point
+    for (label, net), (real, ext) in extensions.items():
+        if net != n:
+            continue
+        x = np.r_[real.index[-1], ext.index] if len(real) else ext.index
+        y = np.r_[real.values[-1], ext.values] if len(real) else ext.values
+        ax.plot(x, y, color=colors[label], ls=":", lw=1.5, alpha=0.8)
 
     handles, labels = ax.get_legend_handles_labels()
+    if any(net == n for (_, net) in extensions):
+        handles.append(Line2D([], [], color="0.4", ls=":", lw=1.5))
+        labels.append("RRP, periodic (extrap.)")
     legend = ax.legend(
         handles, labels,
         loc="lower left",
@@ -235,7 +277,7 @@ for n in NETWORKS:
     plt.tight_layout()
 
     out_path = OUTPUT_DIR / f"msgRate_{DATASET}_{n}_{SCENARIO}.pdf"
-    plt.savefig(out_path,format="pdf", bbox_inches="tight", dpi=1000)
+    plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
     print(f"saved {out_path}")
 
     plt.show()

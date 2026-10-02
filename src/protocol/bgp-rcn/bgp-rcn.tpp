@@ -11,9 +11,9 @@ void RCN<RA>::process()
 	for (int u = 0; u < graph.V; ++u)
 	{
 		auto it   = data.finalValue.find(u);
-		auto best = s[u].GetElected();
+		auto best = s[u].GetElected(u);
 
-		if (best.attribute == RA::Null())
+		if (best.attribute == RA::Null() && it == data.finalValue.end())
 		{
 			continue;
 		}
@@ -39,7 +39,7 @@ void RCN<RA>::NodeDown(int t)
 				rcn notif{t, ++s[r].t};
 
 				this->Send(r, Msg{s[r].GetElected(), notif});
-				data.recordChange(r, cal.now(), s[r].GetElected());
+				data.recordChange(r, cal.now(), s[r].GetElected(r));
 			}
 		}
 	}
@@ -60,15 +60,15 @@ void RCN<RA>::LinkFailure(int u, int v)
                  std::pair{v, u}
         })
 	{
+		s[node].RemoveNeighbor(neighbor);
 		if (s[node].succ == neighbor)
 		{
-			s[node].RemoveNeighbor(neighbor);
 			if (s[node].ProcessBest())
 			{
 				rcn notif{node, ++s[node].t};
 
-				this->Send(node, Msg{s[node].GetElected(), notif});
-				data.recordChange(node, cal.now(), s[node].GetElected());
+				this->Send(node, Msg{s[node].GetElected(node), notif});
+				data.recordChange(node, cal.now(), s[node].GetElected(node));
 			}
 		}
 	}
@@ -88,24 +88,32 @@ void RCN<RA>::MsgReception(int u, int v, Msg received)
 	{
 		return;
 	}
-
-	if (s[u].UpdateSeqTable(received))
+	if ((data.log == true && (u == 13)))
 	{
-		RCNAttr lw(u, graph.edgeWeight(u, v).buildLinkAttr(u), s[u].t);
-		RCNAttr extended = lw + received.route;
-		s[u].UpdateNeighbor(v, extended);
+		LOG_DEBUG << "node:" << u;
+		LOG_DEBUG << "Time:" << cal.now();
+	}
 
-		if (s[u].ProcessBest(v))
+	RCNAttr lw(u, graph.edgeWeight(u, v).buildLinkAttr(u), s[u].t);
+	RCNAttr extended = lw + received.route;
+	s[u].Update(v, extended);
+
+	s[u].UpdateSeqTable(received, u);
+
+	if (s[u].ProcessBest(v))
+	{
+		auto l = s[u];
+		//++s[u].t;
+		auto send = s[u].GetElected(u);
+
+		if (received.RCN.has_value())
 		{
 
-			if (received.RCN.has_value())
-			{
-				this->Send(u, Msg{s[u].GetElected(), *received.RCN});
-			}
-			else
-			{
-				this->Send(u, Msg{s[u].GetElected()});
-			}
+			this->Send(u, Msg{send, *received.RCN});
+		}
+		else
+		{
+			this->Send(u, Msg{send});
 		}
 	}
 }

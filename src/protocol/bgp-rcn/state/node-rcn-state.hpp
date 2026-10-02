@@ -16,54 +16,59 @@ struct RCNNodeState : BGP::BGPNodeState<RA, RCNAttribute<RA>>
 	int                          t = 0;
 	std::unordered_map<int, int> seq_num;
 
-	const attr &GetElected()
+	const attr &GetElected(int u)
 	{
-		if (!base::E.isInvalid())
+		if (base::E.isInvalid())
+		{
+			base::E.ts.clear();
+			base::E.ts[u] = t;
+		}
+		else
 		{
 			// update path's ts(u) with u's current seq number
-			base::E.ts.at(base::E.getAttr().getPath().front()) = t;
+			base::E.ts.at(u) = t;
 		}
 		return base::GetElected();
 	}
 
-	bool UpdateSeqTable(const RCNMsg<RA> &learned)
+	void Update(int v, const attr &learned)
 	{
-		// x in update.r.aspath, update.r.ts(x) > seqnum(v,x)
-		for (const auto &[x, ts_x] : learned.route.ts)
-		{
-			auto it = seq_num.find(x);
-			if (it == seq_num.end() || (ts_x > it->second))
-			{
-				seq_num[x] = ts_x;
-			}
-			// if update.r.ts(x) < seqnum(v,x) -> old update
-			else if (ts_x < it->second)
-			{
-				return false;
-			}
-		}
+		this->UpdateNeighbor(v, learned);
+	}
 
+	bool UpdateSeqTable(const RCNMsg<RA> &learned, int u)
+	{
 		// x = update.rcn.c, update.rcn.ts(c) > seqnum(v,x)
 		if (learned.RCN.has_value())
 		{
 			auto [x, ts_x] = *learned.RCN;
 			auto it        = seq_num.find(x);
 
-			if (it == seq_num.end() || ts_x > it->second)
+			if (u != x && (it == seq_num.end() || ts_x > it->second))
 			{
 				seq_num[x] = ts_x;
-			}
-			if (x == this->succ)
-			{
-				++t;
+				if (x == this->succ)
+				{
+					++t;
+				}
 			}
 		}
 
-		RmStaleRoutes();
-		return true;
+		// x in update.r.aspath, update.r.ts(x) > seqnum(v,x)
+		for (const auto &[x, ts_x] : learned.route.ts)
+		{
+			auto it = seq_num.find(x);
+			if ((it == seq_num.end() || ts_x > it->second) && x != u)
+			{
+				seq_num[x] = ts_x;
+			}
+			// if update.r.ts(x) < seqnum(v,x) -> old update
+		}
+
+		return RmStaleRoutes();
 	}
 
-	void RmStaleRoutes()
+	bool RmStaleRoutes()
 	{
 		std::vector<int> to_remove;
 		for (const auto &[v, a] : this->aTab)
@@ -85,8 +90,9 @@ struct RCNNodeState : BGP::BGPNodeState<RA, RCNAttribute<RA>>
 		}
 		for (int v : to_remove)
 		{
-			this->UpdateNeighbor(v, attr::Invalid());
+			this->Update(v, attr::Invalid());
 		}
+		return !to_remove.empty();
 	}
 };
 } // namespace Protocol::RCN

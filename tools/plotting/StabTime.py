@@ -16,10 +16,10 @@ import os
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
-    "font.size": 10,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "font.size": 11,
+    "axes.labelsize": 11,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
     "legend.fontsize": 9,
 })
 
@@ -41,6 +41,7 @@ PROTOCOL = {
     "rpbob": "RRP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
+    "beaconing": "B"
 }
 
 Algebra = {
@@ -80,17 +81,10 @@ def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
 def get_protocol_label(protocol_raw: str, filename: str) -> str:
     key = protocol_raw.lower()
     if key == "rpbob":
-        delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
-            if SCENARIO == "linkFailure":
-                return rf"RRP-N Δ = {delta} ms"
-            else:
-                return rf"RRP-N"
+            return rf"RRP-N"
         else:
-            if SCENARIO == "linkFailure":
-                return rf"RRP".ljust(6) + f"Δ = {delta} ms"
-            else:
-                return rf"RRP"
+            return rf"RRP"
 
     return PROTOCOL.get(key, protocol_raw.upper())
 
@@ -113,9 +107,9 @@ def get_family(label: str) -> str:
 
 def load(network):
     rows = []
-    DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
-    for csv_path in DATA_DIR.glob(f"{network}/*/*{SCENARIO}*convergence.csv"):
-        protocol = csv_path.parent.name
+    DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET / network
+    for csv_path in DATA_DIR.glob(f"*/{SCENARIO}/*{SCENARIO}*convergence.csv"):
+        protocol = csv_path.parent.parent.name
         filename = csv_path.name.lower()
 
         protocol_label = get_protocol_label(protocol, filename)
@@ -138,7 +132,6 @@ def load(network):
 
         df = pd.read_csv(csv_path)
         df = df[df["change_count"] != 0]
-        df = df[df["stab_time"] != 0]
         df = df[['stab_time']].copy()
         df['Protocol'] = protocol_label
         df['Algebra'] = algebra_label
@@ -189,7 +182,7 @@ def plot_ccdf(df, network_name):
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
     columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1, hf=0.8))
 
     for algebra in algebras:
         for protocol in protocols:
@@ -208,8 +201,8 @@ def plot_ccdf(df, network_name):
             )
 
     ax.set_ylim([-1e-2, 1.1])
-    #ax.set_xscale('log')
-    ax.set_xlim([0.0, 500])
+    # ax.set_xscale('log')
+    ax.set_xlim([0.0, df["stab_time"].max()])
     ax.set_xlabel("Time [ms]")
     ax.set_ylabel("CCDF")
     ax.grid(alpha=0.3, which="both")
@@ -227,8 +220,6 @@ def plot_ccdf(df, network_name):
     #     fancybox=True, shadow=False, ncol=len(algebras),
     # )
 
-
-
     handles, labels = ax.get_legend_handles_labels()
     legend = ax.legend(
         handles, labels,
@@ -243,7 +234,7 @@ def plot_ccdf(df, network_name):
     name = f"ccdf_{network_name}_{SCENARIO}.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
-    pickle.dump(fig,open(f'raw_plots/ccdf_{network_name}_{SCENARIO}','wb'))
+    pickle.dump(fig, open(f'raw_plots/ccdf_{network_name}_{SCENARIO}', 'wb'))
 
     plt.show()
     print(f"\tsaved {out_path}\n")

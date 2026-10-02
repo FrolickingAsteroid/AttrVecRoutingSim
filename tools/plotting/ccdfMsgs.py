@@ -25,10 +25,10 @@ FIG_H = 8  # 0.75 * FIG_W
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
-    "font.size": 10,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "font.size": 11,
+    "axes.labelsize": 11,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
     "legend.fontsize": 9,
 })
 
@@ -194,7 +194,7 @@ def plot_ccdf(df, network_name):
     pad_width = dfg["label_raw"].str.len().max() + 2
     dfg["group_label"] = dfg.apply(
         lambda row: (row['Protocol'] + " " + row['Algebra']).ljust(pad_width) +
-                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>4.0f} {unit})",
+                    f"({avg_times[(row['Protocol'], row['Algebra'])]:>2.0f} {unit})",
         axis=1,
     )
 
@@ -205,7 +205,7 @@ def plot_ccdf(df, network_name):
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
     columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1, hf=0.8))
 
     for algebra in algebras:
         for protocol in protocols:

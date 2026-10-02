@@ -17,7 +17,7 @@ struct BGPNodeState
 	using Ord = RA::Ord;
 
 	// Minimum Route Advertisement Interval
-	double MRAI = 0;
+	double MRAI = 1;
 
 	// using Route = std::pair<path, int>; //(attribute, succ)
 

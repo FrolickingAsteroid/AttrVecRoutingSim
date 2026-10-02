@@ -11,17 +11,27 @@ import matplotlib.ticker
 import matplotlib
 
 import itertools
+
 import glob
 import re
 import os
 
+import copyreg
+import pickle
+def _reduce_count(c):
+    # repr looks like "count(5)" or "count(5, 2)"
+    args = tuple(int(x) for x in repr(c)[6:-1].split(","))
+    return itertools.count, args
+
+copyreg.pickle(itertools.count, _reduce_count)
+
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
-    "font.size": 10,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "font.size": 12,
+    "axes.labelsize": 12,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 12,
     "legend.fontsize": 9,
 })
 
@@ -59,29 +69,33 @@ ROOT_DIR = next(
 )
 
 DATASET = {
-    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 10, 16, 32]),
-    "triangle": ("triangle", [4, 8, 16, 32])
+    "clique": ("bclique", [4, 8, 16, 32, 64], [1,2,4, 8, 16, 32, 64]),
+    "triangle": ("triangle", [4, 8, 16, 32]),
+    "focus": ("focus", [4, 8, 16])
 }
 
-DATASET_ = "clique"
+DATASET_ = "focus"
 
-PERIODS = ["1.0", "4.0","8.0","16.0","32.0"]
+#PERIODS = ["1.0","4.0","16.0","32.0"]
+PERIODS = ["1.0"]
 
 FAMILY_STYLE = {
-    "BGP":     ("-",  ["s"]),
+    "BGP": ("-", ["s"]),
     "BGP-RCN": ("-.", ["o"]),
-    "RRP":     ("--", ["v", "^", "<", ">", "P", "X"]),
-    "RRP-N":   (":",  ["D", "p", "h", "*", "8", "d"]),
+    "RRP": ("--", ["v", "^", "<", ">", "P", "X"]),
+    "RRP-N": (":", ["D", "p", "h", "*", "8", "d"]),
 }
 
 DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET_
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
+Proto_label = ["RRP", "RRP-N", "BGP", "BGP-RCN"]
 
 PROTOCOL = {
     "bgp": "BGP",
     "rpbob": "RRP",
     "rcn": "BGP-RCN",
 }
+
 
 
 def get_family(label: str) -> str:
@@ -100,11 +114,10 @@ def period_of(label: str) -> float:
 def get_protocol_label(protocol_raw: str, filename: str) -> str:
     key = protocol_raw.lower()
     if key == "rpbob":
-        delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
-            return rf"RRP-N Δ = {delta} ms"
+                return rf"RRP-N"
         else:
-            return rf"RRP".ljust(6) + f"Δ = {delta} ms"
+                return rf"RRP"
 
     return PROTOCOL.get(key, protocol_raw.upper())
 
@@ -115,18 +128,27 @@ for csv_path in DATA_DIR.glob(f"{DATASET[DATASET_][0]}_*/*/*convergence.csv"):
     protocol = csv_path.parent.name
     filename = csv_path.name.lower()
 
+    print(csv_path)
+
     n = int(re.findall(r"(\d+)", dataset)[0])
 
     if n not in DATASET[f"{DATASET_}"][1]:
-        continue
-
-    if "altered" in filename:
         continue
 
     if protocol.lower() == "rpbob" and PERIODS and re.findall(r"\d+\.\d+", filename)[0] not in PERIODS:
         continue
 
     protocol_label = get_protocol_label(protocol, filename)
+
+    if protocol_label not in Proto_label:
+        continue
+
+    if protocol.lower() == "rpbob":
+        delta = re.findall(r"\d+\.\d+", filename)[0]
+        if delta not in PERIODS:
+            continue
+        if len(PERIODS) >= 1:
+            protocol_label = protocol_label.ljust(6) + rf" Δ = {delta} ms"
 
     df = pd.read_csv(csv_path)
     df = df[df["change_count"] != 0]
@@ -140,17 +162,16 @@ clique_data = pd.concat(rows, ignore_index=True)
 clique_data["family"] = clique_data["protocol"].apply(get_family)
 
 labels = clique_data["protocol"].unique().tolist()
-families = ["BGP", "BGP-RCN", "RRP", "RRP-N", ]
+families = ["BGP", "BGP-RCN", "RRP", "RRP-N"]
 
 hue_order = sorted(labels, key=lambda l: (families.index(get_family(l)), period_of(l)))
 family_colors = dict(zip(families, sns.color_palette("colorblind", n_colors=len(families))))
 
 palette = {label: family_colors[get_family(label)] for label in labels}
 
-# same family -> same colour and line style; different periods within a family -> different markers
 markers = {}
 for fam in families:
-    fam_labels = [l for l in hue_order if get_family(l) == fam]          # already sorted by period
+    fam_labels = [l for l in hue_order if get_family(l) == fam]  # already sorted by period
     for marker, label in zip(itertools.cycle(FAMILY_STYLE[fam][1]), fam_labels):
         markers[label] = marker
 linestyles = {label: FAMILY_STYLE[get_family(label)][0] for label in hue_order}
@@ -169,7 +190,7 @@ sns.pointplot(
     order=DATASET[DATASET_][1],
     hue_order=hue_order,
     palette=palette,
-    markers=[markers[label] for label in hue_order],        # one per hue level, in hue_order
+    markers=[markers[label] for label in hue_order],  # one per hue level, in hue_order
     linestyle=[linestyles[label] for label in hue_order],
     errorbar=None,
     dodge=0.3,
@@ -179,12 +200,13 @@ sns.pointplot(
 )
 
 ax.set_yscale('log')
-
+#plt.yscale('symlog', linthresh=0.1)
 ax.set_xlabel("Number of Nodes in Clique Topology")
 ax.set_ylabel("Stabilization time [ms]")
 
-ax.set_yticks(DATASET[f"{DATASET_}"][2])
-ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+# ax.set_yticks(DATASET[f"{DATASET_}"][2])
+# ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+# ax.grid(alpha=0.3, which="major")
 
 handles, labels = ax.get_legend_handles_labels()
 legend = ax.legend(handles=handles, labels=labels)
@@ -198,5 +220,6 @@ name = f"{DATASET_}PointPlot_unit.pdf"
 out_path = os.path.join(OUTPUT_DIR, name)
 
 plt.savefig(out_path, format="pdf")
+pickle.dump(fig,open(f'raw_plots/{DATASET_}PointPlot_unit','wb'))
 print(f"\tsaved {out_path}\n")
 plt.show()

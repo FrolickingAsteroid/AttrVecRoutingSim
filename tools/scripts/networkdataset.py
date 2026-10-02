@@ -241,6 +241,30 @@ def triangle_network(max: int, triangledir: str):
             f.write(f"{2 * max - x}\t{x + 1}\t{0}\t{0}\n")
 
 
+def triangle_network_alt(max: int, triangledir: str, scale: float = 1.0, eps: float = 1):
+    """Chain 0 -> ... -> max (destination) of `max` gadgets. Gadget x (k = max-1-x steps from the
+    destination) offers the direct link x-(x+1) with weight 2^k and a detour x-(2max-x)-(x+1) with
+    weight 2^(k+1). Delays are anti-correlated with weights: the cheap direct link is slow
+    (scale * 2^k), the detour fast (eps). Within one routing computation node x then improves
+    2^(max-x) times, and node 0 settles only after about scale * (2^max - 1)."""
+    out_dir = Path(triangledir) / f"triangle_n{max}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    out_file = out_dir / f"triangle_n{max}_alt.tsv"
+    print(f"\n\t+ Saving triangle n={max} -> '{out_file}'")
+    with open(out_file, "w") as f:
+        f.write(f"{2 * max + 1}\n")
+        for x in range(max):
+            k = max - 1 - x
+            side = 2 * max - x
+            f.write(f"{x}\t{x + 1}\t{2 ** k}\t{scale * 2 ** k:g}\n")  # cheap and slow
+            f.write(f"{x + 1}\t{x}\t{2 ** k}\t{scale * 2 ** k:g}\n")
+            f.write(f"{x}\t{side}\t{2 ** (k + 1)}\t{eps:g}\n")
+            f.write(f"{side}\t{x}\t{2 ** (k + 1)}\t{eps:g}\n")  # expensive and fast
+            f.write(f"{side}\t{x + 1}\t0\t{eps:g}\n")
+            f.write(f"{x + 1}\t{side}\t0\t{eps:g}\n")
+
+
 # ──────────────────────────────────────────────────────────────────────
 # FOCUS network
 # ──────────────────────────────────────────────────────────────────────
@@ -255,16 +279,20 @@ def focus_network(max: int, focusdir: str):
 
         for x in range(max):
             if x == 0:
-                f.write(f"{0}\t{x+1}\t{0}\t{2 ** max}\n")
-                f.write(f"{x+1}\t{0}\t{0}\t{2 ** max}\n")
-                f.write(f"{max + 1}\t{x+1}\t{0}\t{(2 ** max)}\n")
-                f.write(f"{x+1}\t{max + 1}\t{0}\t{(2 ** max)}\n")
+                f.write(f"{0}\t{x + 1}\t{0}\t{max}\n")
+
+                f.write(f"{x + 1}\t{max + 1}\t{0}\t{(max)}\n")
                 continue
 
-            f.write(f"{0}\t{x+1}\t{2 ** x}\t{2 ** (max - x)}\n")
-            f.write(f"{x+1}\t{0}\t{2 ** x}\t{2 ** (max - x)}\n")
-            f.write(f"{max + 1}\t{x+1}\t{2 ** x}\t{2 ** (max - x)}\n")
-            f.write(f"{x+1}\t{max + 1}\t{2 ** x}\t{2 ** (max - x)}\n")
+            if x + 1 == max:
+                f.write(f"{0}\t{x + 1}\t{x}\t{(max - x)}\n")
+                f.write(f"{max + 1}\t{x + 1}\t{x}\t{(max - x)}\n")
+                f.write(f"{x + 1}\t{max + 1}\t{x}\t{(max - x)}\n")
+                break
+
+            f.write(f"{0}\t{x + 1}\t{x}\t{(max - x)}\n")
+            f.write(f"{x + 1}\t{max + 1}\t{x}\t{(max - x)}\n")
+
 
 def focus_network_inv(max: int, focusdir: str):
     out_dir = Path(focusdir) / f"focus_n{max}"
@@ -277,16 +305,21 @@ def focus_network_inv(max: int, focusdir: str):
 
         for x in range(max):
             if x == 0:
-                f.write(f"{0}\t{x+1}\t{2 ** max}\t{2 ** max}\n")
-                f.write(f"{x+1}\t{0}\t{2 ** max}\t{2 ** max}\n")
-                f.write(f"{max + 1}\t{x+1}\t{(2 ** max)}\t{(2 ** max)}\n")
-                f.write(f"{x+1}\t{max + 1}\t{(2 ** max)}\t{(2 ** max)}\n")
+                f.write(f"{0}\t{x + 1}\t{2 ** max}\t{2 ** max}\n")
+                # f.write(f"{x+1}\t{0}\t{2 ** max}\t{2 ** max}\n")
+                # f.write(f"{max + 1}\t{x+1}\t{(2 ** max)}\t{(2 ** max)}\n")
+                f.write(f"{x + 1}\t{max + 1}\t{(2 ** max)}\t{(2 ** max)}\n")
                 continue
 
-            f.write(f"{0}\t{x+1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
-            f.write(f"{x+1}\t{0}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
-            f.write(f"{max + 1}\t{x+1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
-            f.write(f"{x+1}\t{max + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+            if x + 1 == max:
+                f.write(f"{0}\t{x + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+                f.write(f"{x + 1}\t{0}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+                f.write(f"{max + 1}\t{x + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+                f.write(f"{x + 1}\t{max + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+                break
+
+            f.write(f"{0}\t{x + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
+            f.write(f"{x + 1}\t{max + 1}\t{2 ** (max - x)}\t{2 ** (max - x)}\n")
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -451,10 +484,10 @@ def main():
         write_b_clique(args.n, args.cliquedir, mode=args.mode)
 
     elif args.cmd == "triangle":
-        triangle_network(args.n, args.triangledir)
+        triangle_network_alt(args.n, args.triangledir)
 
     elif args.cmd == "focus":
-        focus_network_inv(args.n, args.focusdir)
+        focus_network(args.n, args.focusdir)
 
     elif args.cmd == "sciera":
         print("Loading SCIERA topology")

@@ -73,7 +73,7 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 			proto.Run();
 			for (const auto &[u, v] : *cutset)
 			{
-				proto.cal.schedule(proto.cal.now(), [&]() {
+				proto.cal.schedule(100, [&]() {
 					proto.LinkFailure(u, v);
 				});
 			}

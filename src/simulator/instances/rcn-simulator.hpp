@@ -67,10 +67,10 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 		}
 		else if (cutset)
 		{
-			proto.Run();
+			// proto.Run();
 			for (const auto &[u, v] : *cutset)
 			{
-				proto.cal.schedule(proto.cal.now(), [&]() {
+				proto.cal.schedule(100, [&]() {
 					proto.LinkFailure(u, v);
 				});
 			}
