@@ -70,7 +70,7 @@ std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<
 			Ns.push_back(1);
 			continue;
 		}
-		const double diff = 1.1 * node_paths.back().first - node_paths.front().first;
+		const double diff = node_paths.back().first - node_paths.front().first;
 		Ns.push_back(static_cast<int>(std::ceil(diff / Delta)) + 1);
 	}
 	return Ns;

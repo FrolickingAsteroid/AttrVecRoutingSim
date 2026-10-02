@@ -27,7 +27,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
-			conv_time      = 1.1 * ConvergenceTime(time);
+			conv_time      = ConvergenceTime(time);
 
 			if (!this->cfg.notif)
 			{
