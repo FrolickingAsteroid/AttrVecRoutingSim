@@ -19,9 +19,9 @@ plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
     "font.size": 10,
-    "axes.labelsize": 10,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
+    "axes.labelsize": 12,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
     "legend.fontsize": 9,
 })
 
@@ -59,7 +59,7 @@ ROOT_DIR = next(
 )
 
 DATASET = {
-    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 8, 16, 32]),
+    "clique": ("bclique", [4, 8, 16, 32], [1, 2, 4, 8, 16, 32]),
     "triangle": ("triangle", [4, 8, 16, 32])
 }
 
@@ -130,6 +130,7 @@ for csv_path in DATA_DIR.glob(f"{DATASET[DATASET_][0]}_*/*/*convergence.csv"):
 
     df = pd.read_csv(csv_path)
     df = df[df["change_count"] != 0]
+    df = df[df["stab_time"] > 0]  # log y axis cannot show 0
 
     df = df[['stab_time']].copy()
     df[f"{DATASET_}"] = n
@@ -158,8 +159,8 @@ linestyles = {label: FAMILY_STYLE[get_family(label)][0] for label in hue_order}
 columnwidth = 345.0
 fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.8))
 
-avg_times = clique_data.groupby(["protocol", f"{DATASET_}"])["stab_time"].max()
-print(avg_times)
+stats = clique_data.groupby(["protocol", f"{DATASET_}"])["stab_time"].agg(["min", "mean", "max"])
+print(stats)
 
 sns.pointplot(
     data=clique_data,
@@ -169,14 +170,13 @@ sns.pointplot(
     order=DATASET[DATASET_][1],
     hue_order=hue_order,
     palette=palette,
-    estimator="max",
+    estimator="max",                         # point = mean
+    errorbar=None,
     markers=[markers[label] for label in hue_order],  # one per hue level, in hue_order
     linestyle=[linestyles[label] for label in hue_order],
-    errorbar=None,
     dodge=0.5,
     markersize=8,
     linewidth=1,
-    capsize=0.1,
 )
 
 ax.set_yscale('log')

@@ -71,6 +71,7 @@ std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<
 			continue;
 		}
 		const double diff = node_paths.back().first - node_paths.front().first;
+		LOG_DEBUG << std::ceil(diff / Delta) + 1;
 		Ns.push_back(static_cast<int>(std::ceil(diff / Delta)) + 1);
 	}
 	return Ns;
