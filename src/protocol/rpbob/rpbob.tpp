@@ -61,6 +61,10 @@ void RPBOB<RA>::LinkFailure(int u, int v)
 	graph.deactivate(u, v);
 
 	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
+	if ((u == 60) && data.log == true)
+	{
+		LOG_DEBUG << s[u] << "\n";
+	}
 
 	if (cn)
 	{
@@ -69,21 +73,19 @@ void RPBOB<RA>::LinkFailure(int u, int v)
                          std::tuple{v, std::pair{v, u}}
                 })
 		{
+			s[node].AddFailedLink(link.first, link.second);
 			auto removed = s[node].FailureNotif(link);
 			if (!removed.empty())
 			{
-				s[node].failed_link = link;
 				if (s[node].UpdateOpt())
 				{
 					data.recordChange(node, cal.now(), s[node].GetOpt());
 				}
 
-				const auto &max =
-				    *std::max_element(removed.begin(), removed.end(), [](const auto &a, const auto &b) {
-					return a.attr.getSeqNum() < b.attr.getSeqNum();
-				});
-
-				auto notif = std::make_tuple(max.attr.getSeqNum(), link);
+			}
+			for (auto l : *s[node].failed_link)
+			{
+				auto notif = std::make_tuple(1, l);
 				this->Send(node, Msg{notif});
 			}
 		}
@@ -109,19 +111,25 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 {
 	(void)v;
 	auto f_link = get<1>(notif);
-
-	if (auto removed = s[u].FailureNotif(f_link); !removed.empty())
+	if ((u == 59 || u == 60) && data.log == true)
 	{
-		s[u].failed_link = f_link;
-		if (s[u].UpdateOpt())
+		LOG_DEBUG << "Notif for node " << u << ": " << f_link.first << ", " << f_link.second << "\n";
+	}
+
+	if (s[u].AddFailedLink(f_link.first, f_link.second))
+	{
+		if (auto removed = s[u].FailureNotif(f_link); !removed.empty())
 		{
-			data.recordChange(u, cal.now(), s[u].GetOpt());
+			if (s[u].UpdateOpt())
+			{
+				data.recordChange(u, cal.now(), s[u].GetOpt());
+			}
 		}
 		this->Send(u, Msg{notif});
-		if (data.log == true)
-		{
-			converged();
-		}
+	}
+	if (data.log == true)
+	{
+		converged();
 	}
 }
 
@@ -138,9 +146,6 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
 
-	LOG_DEBUG << "Time: " << cal.now();
-	LOG_DEBUG << "node: " << u << "\nextended: " << extended;
-
 	if (changed.has_value())
 	{
 		this->Send(u, Msg{extended});
@@ -150,7 +155,12 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 		}
 	}
 
-	LOG_DEBUG << s[u] << "\n";
+	if ((u == 59 || u == 60) && data.log == true)
+	{
+		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
+		LOG_DEBUG << s[u] << "\n";
+	}
 }
 
 template <class RA>

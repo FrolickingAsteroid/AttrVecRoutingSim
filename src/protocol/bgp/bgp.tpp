@@ -114,21 +114,11 @@ void BGP<RA>::MsgReception(int u, int v, BGPAttr received)
 		return;
 	}
 
-	if ((data.log == true && u == 0))
-	{
-		LOG_DEBUG << "node:" << u;
-		LOG_DEBUG << "Time:" << cal.now();
-		LOG_DEBUG << "candidate from " << v << ": " << received;
-	}
 	BGPAttr lw(graph.edgeWeight(u, v).buildLinkAttr(u));
 	BGPAttr extended = lw + received;
+	
 	s[u].UpdateNeighbor(v, extended);
 	s[u].ProcessBest(v);
-
-	if (data.log == true && u == 0)
-	{
-		LOG_DEBUG << s[u] << "\n";
-	}
 }
 } // namespace Protocol::BGP
 #endif

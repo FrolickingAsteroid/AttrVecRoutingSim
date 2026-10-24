@@ -60,8 +60,11 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			}
 			if (this->cfg.scenario == config::Type::Cutset)
 			{
+
+
 				for (const auto &cutset : this->cutsets)
 				{
+					//auto cutset = {std::pair{0, 59}, std::pair{60, 1}};
 					for (const auto &[u, v] : cutset)
 					{
 						this->graph.deactivate(u, v);

@@ -327,6 +327,7 @@ def focus_network_inv(max: int, focusdir: str):
 # ──────────────────────────────────────────────────────────────────────
 
 def print_graph_info(g: nx.DiGraph, AS: str):
+    print(g)
     V = g.number_of_nodes()
     E = g.number_of_edges()
     print(f"\n--- Network AS{AS} ---")

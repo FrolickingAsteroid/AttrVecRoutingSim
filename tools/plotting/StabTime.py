@@ -231,6 +231,12 @@ def plot_ccdf(df, network_name):
     for text in legend.get_texts():
         text.set_fontfamily("monospace")
 
+    ax.set_xscale('symlog', linthresh=1)   # linear in [0, 1] ms, log above
+    ax.set_xlim([-0.1, 500])
+    ax.set_xticks([0, 1, 10, 100, 500])
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_ylim([0, 1.02])
+
     name = f"ccdf_{network_name}_{SCENARIO}.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
@@ -258,3 +264,4 @@ if __name__ == "__main__":
     for network in NETWORKS:
         df = load(network)
         plot_ccdf(df, network)
+        matplotlib.use("QtAgg")

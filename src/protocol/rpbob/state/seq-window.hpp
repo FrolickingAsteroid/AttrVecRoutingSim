@@ -37,11 +37,13 @@ class SequenceWindow
 
 	std::vector<path> FailureNotif(std::pair<int, int> link_notif);
 
+	bool AddFailedLink(int u, int v);
+
 	static bool ContainsFailedLink(const path &p, int u, int v);
 
 	bool ContainsFailedLink(const path &p) const;
 
-	std::optional<std::pair<int, int>> failed_link = std::nullopt;
+	std::optional<std::vector<std::pair<int, int>>> failed_link = std::nullopt;
 
 	friend std::ostream &operator<<(std::ostream &os, const SequenceWindow &sw)
 	{

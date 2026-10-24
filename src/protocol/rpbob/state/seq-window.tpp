@@ -51,6 +51,22 @@ void SequenceWindow<RA>::SetOrigin(int n, int u)
 // ---------------------------------------------------------------------------- *
 
 template <class RA>
+bool SequenceWindow<RA>::AddFailedLink(int u, int v)
+{
+	if (!failed_link)
+	{
+		failed_link.emplace();
+	}
+	if (std::ranges::find(*failed_link, std::pair{u, v}) != failed_link->end())
+	{
+		return false;
+	}
+
+	failed_link->emplace_back(u, v);
+
+	return true;
+}
+template <class RA>
 bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 {
 	A seq_attr = p.getAttr();
@@ -75,7 +91,10 @@ bool SequenceWindow<RA>::ContainsFailedLink(const path &p, int u, int v)
 template <class RA>
 bool SequenceWindow<RA>::ContainsFailedLink(const path &p) const
 {
-	return failed_link.has_value() && ContainsFailedLink(p, failed_link->first, failed_link->second);
+	return failed_link && std::ranges::any_of(*failed_link, [&](const auto &l) {
+		auto [u, v] = l;
+		return ContainsFailedLink(p, u, v);
+	});
 }
 
 template <class RA>
