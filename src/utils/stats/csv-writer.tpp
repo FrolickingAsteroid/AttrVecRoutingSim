@@ -34,6 +34,11 @@ void Recorder<R>::recordDest(int dest, const Data<R> &data, std::optional<std::p
 		stats.nodes.add(static_cast<double>(data.msgCount[u]));
 
 		writeConvergenceRow(convergence_out, dest, u, data, failure);
+
+		if (state_out.is_open())
+		{
+			writeStateRow(state_out, dest, u, data, failure);
+		}
 	}
 
 	for (const auto &[time, per_node] : data.msgLog)
@@ -64,6 +69,11 @@ void Recorder<R>::recordDest(int dest, const Data<R> &data, const std::vector<st
 		stats.nodes.add(static_cast<double>(data.msgCount[u]));
 
 		writeConvergenceRow(convergence_out, dest, u, data, cutset);
+
+		if (state_out.is_open())
+		{
+			writeStateRow(state_out, dest, u, data, cutset);
+		}
 	}
 
 	for (const auto &[time, per_node] : data.msgLog)
@@ -153,6 +163,39 @@ void Recorder<R>::writeConvergenceRow(std::ostream &out, int dest, int u, const 
 
 	out << dest << "," << u << "," << data.lastChangeTime[u] << "," << data.changeCounts[u] << "," << it->second
 	    << "\n";
+}
+
+template <class R>
+void Recorder<R>::writeStateRow(std::ostream &out, int dest, int u, const Data<R> &data,
+				const std::optional<std::pair<int, int>> &failure)
+{
+	if (failure)
+	{
+		if (failure->second == -1)
+		{
+			out << failure->first << ",";
+		}
+		else
+		{
+			out << "(" << failure->first << ";" << failure->second << "),";
+		}
+	}
+	out << dest << "," << u << "," << data.ribSize[u] << "," << data.seqSize[u] << "\n";
+}
+
+template <class R>
+void Recorder<R>::writeStateRow(std::ostream &out, int dest, int u, const Data<R> &data,
+				const std::vector<std::pair<int, int>> &cutset)
+{
+	for (const auto &[a, b] : cutset)
+	{
+		out << "(" << a << ";" << b << ")";
+	}
+	if (!cutset.empty())
+	{
+		out << ",";
+	}
+	out << dest << "," << u << "," << data.ribSize[u] << "," << data.seqSize[u] << "\n";
 }
 
 template <class R>

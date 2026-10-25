@@ -64,6 +64,8 @@ SCENARIO = "normal"
 Proto_label = ["RRP","BGP"]
 Algebra_label = ["SP", "Hops"]
 PERIODS = ["1.0"]
+BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
+DPROPS = ["5.0"]        # beaconing: propagation interval
 METRIC = "time"      # time: convergence time (..._convergence.csv) | msgs: messages exchanged per destination (msglog)
 LOGX = False         # log time/message axis
 
@@ -73,6 +75,7 @@ PROTOCOL = {
     "rpbob": "RRP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
+    "beaconing": "Beaconing",
 }
 
 Algebra = {
@@ -99,8 +102,19 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
                 return rf"RRP $\Delta = {delta}$ ms"
             else:
                 return rf"RRP"
+    if key == "beaconing":
+        if len(BCN_PERIODS) > 1 or len(DPROPS) > 1:
+            delta, dprop = get_bcn_params(filename)
+            return rf"Beaconing $\Delta = {delta}$, $d_{{prop}} = {dprop}$ ms"
+        return "Beaconing"
 
     return PROTOCOL.get(key, protocol_raw.upper())
+
+
+def get_bcn_params(filename: str):
+    period = re.search(r"period_(\d+\.\d+)", filename).group(1)
+    dprop = re.search(r"dprop_(\d+\.\d+)", filename).group(1)
+    return period, dprop
 
 
 def get_algebra(filename: str) -> str:
@@ -116,6 +130,8 @@ def get_family(label: str) -> str:
         return "RRP-N"
     if label.startswith("RRP"):
         return "RRP"
+    if label.startswith("Beaconing"):
+        return "Beaconing"
     return label
 
 
@@ -123,8 +139,11 @@ def load(network):
     rows = []
     DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
     kind = "convergence" if METRIC == "time" else "msglog"
-    for csv_path in DATA_DIR.glob(f"{network}/*/*_S_{SCENARIO}_*{kind}*.csv"):
-        protocol = csv_path.parent.name
+    paths = [p for p in DATA_DIR.glob(f"{network}/*/*_S_{SCENARIO}_*{kind}*.csv") if p.parent.name != "beaconing"]
+    # beaconing writes into a per-scenario sub-directory
+    paths += DATA_DIR.glob(f"{network}/beaconing/{SCENARIO}/*_S_{SCENARIO}_*{kind}*.csv")
+    for csv_path in paths:
+        protocol = csv_path.relative_to(DATA_DIR / network).parts[0]
         filename = csv_path.name.lower()
         wanted = f"_{kind}_seq_0.csv" if METRIC == "msgs" and protocol.lower() == "rpbob" else f"_{kind}.csv"
         if not filename.endswith(wanted):
@@ -140,6 +159,14 @@ def load(network):
             continue
 
         if protocol.lower() == "rpbob" and re.findall(r"\d+\.\d+", filename)[0] not in PERIODS:
+            continue
+
+        if protocol.lower() == "beaconing":
+            period, dprop = get_bcn_params(filename)
+            if period not in BCN_PERIODS or dprop not in DPROPS:
+                continue
+
+        if csv_path.stat().st_size == 0:  # runs that were interrupted leave empty files behind
             continue
 
         print(csv_path)
@@ -273,6 +300,10 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--algebras", nargs="+", default=Algebra_label,
                         help=f"default: {' '.join(Algebra_label)}")
     parser.add_argument("--periods", nargs="+", default=PERIODS, help=f"default: {' '.join(PERIODS)}")
+    parser.add_argument("--bperiods", nargs="+", default=BCN_PERIODS,
+                        help=f"beaconing announcement periods (default: {' '.join(BCN_PERIODS)})")
+    parser.add_argument("--dprops", nargs="+", default=DPROPS,
+                        help=f"beaconing propagation intervals (default: {' '.join(DPROPS)})")
     parser.add_argument("-m", "--metric", choices=["time", "msgs"], default=METRIC,
                         help="time: convergence time; msgs: messages per destination (default: %(default)s)")
     parser.add_argument("--logx", action="store_true", default=LOGX, help="log x axis")
@@ -280,6 +311,7 @@ if __name__ == "__main__":
 
     DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
     Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
+    BCN_PERIODS, DPROPS = args.bperiods, args.dprops
     METRIC, LOGX = args.metric, args.logx
 
     for network in NETWORKS:

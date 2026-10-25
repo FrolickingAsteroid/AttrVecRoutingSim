@@ -27,7 +27,7 @@ struct BEACONING : IProtocol<typename RA::Attr, Beacon<RA>>
 	}
 
 	void DestinationAnnouncement(int t, int n, double period, std::optional<int> max);
-	void SchedulePropagation(int u, double d_prop, int max);
+	void SchedulePropagation(int u, double d_prop, double horizon);
 	void Propagate(int u);
 
 	void MsgReception(int u, int v, Bcn beacon) override;

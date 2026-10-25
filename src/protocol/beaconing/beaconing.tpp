@@ -51,10 +51,6 @@ void BEACONING<RA>::DestinationAnnouncement(int t, int n, double period, std::op
 			this->DestinationAnnouncement(t, n, period, max);
 		});
 	}
-	else
-	{
-		cal.clear();
-	}
 }
 
 template <class RA>
@@ -96,16 +92,21 @@ void BEACONING<RA>::MsgReception(int u, int v, Bcn beacon)
 }
 
 template <class RA>
-void BEACONING<RA>::SchedulePropagation(int u, double d_prop, int max)
+void BEACONING<RA>::SchedulePropagation(int u, double d_prop, double horizon)
 {
 	cal.schedule(cal.now(), [this, u]() {
 		this->Propagate(u);
 	});
 
-	// will continue to run,
-	// must find something more suitable
-	cal.schedule(cal.now() + d_prop, [this, u, d_prop, max]() {
-		this->SchedulePropagation(u, d_prop, max);
+	// past the horizon every beacon has expired,
+	// so a propagation event can no longer send anything
+	if (cal.now() + d_prop > horizon)
+	{
+		return;
+	}
+
+	cal.schedule(cal.now() + d_prop, [this, u, d_prop, horizon]() {
+		this->SchedulePropagation(u, d_prop, horizon);
 	});
 }
 

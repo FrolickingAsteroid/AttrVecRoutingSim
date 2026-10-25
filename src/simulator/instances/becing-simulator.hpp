@@ -55,6 +55,10 @@ class BCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::Beaco
 
 		proto.DestinationAnnouncement(t, 0, *this->cfg.period, this->cfg.max);
 
+		// the last announcement is issued at (max - 1) * period and its beacons expire
+		// one expiration interval later; no propagation can send anything afterwards
+		const double horizon = (*this->cfg.max - 1) * *this->cfg.period + BeaconingAttribute::expiration;
+
 		// periodic propagation on every node,
 		// independent of destination announcement
 		for (int x = 0; x < this->graph.V; ++x)
@@ -63,7 +67,7 @@ class BCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::Beaco
 			{
 				continue;
 			}
-			proto.SchedulePropagation(x, *this->cfg.dprop, *this->cfg.max);
+			proto.SchedulePropagation(x, *this->cfg.dprop, horizon);
 		}
 
 		if (u && v)

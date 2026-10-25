@@ -82,6 +82,12 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 			proto.Run();
 		}
 
+		for (int x = 0; x < this->graph.V; ++x)
+		{
+			proto.data.ribSize[x] = static_cast<int>(proto.s[x].GetAttrTable().size());
+			proto.data.seqSize[x] = static_cast<int>(proto.s[x].seq_num.size());
+		}
+
 		return proto.data;
 	}
 };

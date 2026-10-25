@@ -86,6 +86,12 @@ class Recorder
 			msglog_out =
 			    openFile(makeOutputPath(input, proto, map, "msglog",scenario), append, msgLogHeader(link_failure));
 		}
+
+		if (proto == "bgp" || proto == "rcn")
+		{
+			state_out =
+			    openFile(makeOutputPath(input, proto, map, "state", scenario), append, stateHeader(link_failure));
+		}
 	}
 
 	static std::string progressHeader()
@@ -106,6 +112,11 @@ class Recorder
 	static std::string msgLogHeader(bool with_failure = false)
 	{
 		return (with_failure ? "failure," : "") + std::string("dest,node,time,msg\n");
+	}
+
+	static std::string stateHeader(bool with_failure = false)
+	{
+		return (with_failure ? "failure," : "") + std::string("dest,node,rib_size,seq_size\n");
 	}
 
 	void recordDest(int dest, const Data<R> &data, std::optional<std::pair<int, int>> failure = std::nullopt);
@@ -134,6 +145,12 @@ class Recorder
 	static void writeConvergenceRow(std::ostream &out, int dest, int u, const Data<R> &data,
 					const std::vector<std::pair<int, int>> &cutset);
 
+	static void writeStateRow(std::ostream &out, int dest, int u, const Data<R> &data,
+				  const std::optional<std::pair<int, int>> &failure);
+
+	static void writeStateRow(std::ostream &out, int dest, int u, const Data<R> &data,
+				  const std::vector<std::pair<int, int>> &cutset);
+
 	SummaryStats Summary();
 
     private:
@@ -141,6 +158,7 @@ class Recorder
 	std::ofstream progress_out;
 	std::ofstream msglog_out;
 	std::ofstream wind_out;
+	std::ofstream state_out;
 };
 } // namespace utils::stats
 

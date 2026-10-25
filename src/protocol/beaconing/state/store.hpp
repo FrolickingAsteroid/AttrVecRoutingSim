@@ -11,7 +11,7 @@ template <class RA>
 class BeaconStore
 {
 	static constexpr int CandidateSetSize = 100; // default is 100
-	static constexpr int BestSetSize      = 1;   // default is 20
+	static constexpr int BestSetSize      = 20;   // default is 20
 
 	using beacon = Beacon<RA>;
 	using A      = RA::Attr;

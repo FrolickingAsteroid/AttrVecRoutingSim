@@ -85,6 +85,11 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 			proto.Run();
 		}
 
+		for (int x = 0; x < this->graph.V; ++x)
+		{
+			proto.data.ribSize[x] = static_cast<int>(proto.s[x].GetAttrTable().size());
+		}
+
 		return proto.data;
 	}
 };

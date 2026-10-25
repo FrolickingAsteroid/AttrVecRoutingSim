@@ -1,6 +1,7 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -13,6 +14,8 @@ struct Data
 	    : msgCount(V)
 	    , changeCounts(V, 0)
 	    , lastChangeTime(V, 0.0)
+	    , ribSize(V, 0)
+	    , seqSize(V, 0)
 	{
 	}
 
@@ -51,6 +54,10 @@ struct Data
 	std::vector<double>                     lastChangeTime;
 	std::unordered_map<int, std::vector<R>> finalValue;
 	std::map<double, std::map<int, int>>    msgLog;
+
+	// per node state size at the end of the run (bgp / rcn)
+	std::vector<int> ribSize; // entries in the attribute table (one per neighbor)
+	std::vector<int> seqSize; // entries in the sequence number table (rcn only)
 };
 } // namespace utils::stats
 

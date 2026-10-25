@@ -29,6 +29,8 @@ NETWORKS = ["64"]
 SCENARIO = "linkFailure"
 Proto_label = ["RRP", "RRP-N", "BGP", "BGP-RCN"]
 PERIODS = ["1.0"]
+BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
+DPROPS = ["5.0"]  # beaconing: propagation interval
 ALGEBRAS = []
 BIN = 10
 XMIN = 100
@@ -53,6 +55,7 @@ PROTOCOL = {
     "rpbob": "RRP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
+    "beaconing": "Beaconing",
 }
 
 Algebra = {
@@ -93,6 +96,10 @@ parser.add_argument("-n", "--networks", nargs="+", default=NETWORKS, help=f"defa
 parser.add_argument("-s", "--scenario", default=SCENARIO, help=f"default: {SCENARIO}")
 parser.add_argument("-p", "--protocols", nargs="+", default=Proto_label, help=f"default: {' '.join(Proto_label)}")
 parser.add_argument("--periods", nargs="+", default=PERIODS, help=f"default: {' '.join(PERIODS)}")
+parser.add_argument("--bperiods", nargs="+", default=BCN_PERIODS,
+                    help=f"beaconing announcement periods (default: {' '.join(BCN_PERIODS)})")
+parser.add_argument("--dprops", nargs="+", default=DPROPS,
+                    help=f"beaconing propagation intervals (default: {' '.join(DPROPS)})")
 parser.add_argument("-a", "--algebras", nargs="+", default=ALGEBRAS,
                     help="algebras to plot, e.g. Hops SP (or lex-hops-suffix); default: all")
 parser.add_argument("--bin", type=int, default=BIN, help=f"bin width (default: {BIN})")
@@ -104,6 +111,7 @@ args = parser.parse_args()
 
 DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
 Proto_label, PERIODS, ALGEBRAS = args.protocols, args.periods, args.algebras
+BCN_PERIODS, DPROPS = args.bperiods, args.dprops
 BIN, XMIN, PAD = args.bin, args.xmin, args.pad
 DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
 
@@ -172,6 +180,16 @@ for n in NETWORKS:
                 continue
             if len(PERIODS) > 1:
                 protocol_label += rf" Δ = {delta} ms"
+        elif protocol.lower() == "beaconing":
+            delta = re.search(r"period_(\d+\.\d+)", filename).group(1)
+            dprop = re.search(r"dprop_(\d+\.\d+)", filename).group(1)
+            if delta not in BCN_PERIODS or dprop not in DPROPS:
+                continue
+            if len(BCN_PERIODS) > 1 or len(DPROPS) > 1:
+                protocol_label += rf" Δ = {delta} ms, dprop = {dprop} ms"
+
+        if csv_path.stat().st_size == 0:  # runs that were interrupted leave empty files behind
+            continue
 
         # if algebra:
         #     protocol_label += f" {algebra}"
