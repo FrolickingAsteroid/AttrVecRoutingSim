@@ -41,11 +41,11 @@ declare -A ROCKET_TOP_EDGES=(
 
 # Rocketfuel failure modes and the Simulator flags each one adds.
 # ("edges" is built per edge as: -F <id1> <id2>)
-ROCKET_MODES=(normal all-edges cutset edges)
+ROCKET_MODES=(normal all-edges cutset.tsv edges)
 declare -A ROCKET_MODE_FLAGS=(
     [normal]=""
     [all-edges]="-F"
-    [cutset]="--cutset"
+    [cutset.tsv]="--cutset"
 )
 
 # SCION: "file:algebra" pairs

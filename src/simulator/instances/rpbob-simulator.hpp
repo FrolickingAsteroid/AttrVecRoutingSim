@@ -63,6 +63,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 				for (const auto &cutset : this->cutsets)
 				{
 					std::cout << "Cutset:\n";
+
 					for (const auto &[u, v] : cutset)
 					{
 						std::cout << u << ", " << v << "\n";

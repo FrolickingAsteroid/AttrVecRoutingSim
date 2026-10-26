@@ -65,7 +65,7 @@ class Recorder
 	    : V(V_)
 	{
 		bool append       = (map.at("append") == "1");
-		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "cutset");
+		bool link_failure = (map.at("S_") == "linkFailure" || map.at("S_") == "cutset.tsv");
 
 		if (proto == "beaconing")
 		{

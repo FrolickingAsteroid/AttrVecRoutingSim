@@ -115,7 +115,7 @@ SimulationConfig ParseArgs(int argc, char *const *argv)
 	    {"window",    required_argument, nullptr,              'w'      },
 	    {"period",    required_argument, nullptr,              'i'      },
 	    {"failure",   optional_argument, nullptr,              'F'      },
-	    {"cutset",    optional_argument, (int *)&cfg.scenario, Cutset   },
+	    {"cutset.tsv",    optional_argument, (int *)&cfg.scenario, Cutset   },
 	    {"rpbob",     optional_argument, nullptr,              'R'      },
 	    {"bgp",       no_argument,       nullptr,              'G'      },
 	    {"rcn",       no_argument,       nullptr,              'C'      },

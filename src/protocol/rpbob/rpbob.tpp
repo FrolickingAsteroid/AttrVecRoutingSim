@@ -127,8 +127,11 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 
 	std::optional<RpbobAttr> changed = s[u].CompareWind(extended);
 
-	LOG_DEBUG << "Time: " << cal.now();
-	LOG_DEBUG << "node: " << u << "\nextended: " << extended;
+	if (u == 0)
+	{
+		LOG_DEBUG << "Time: " << cal.now();
+		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
+	}
 
 	if (changed.has_value())
 	{
@@ -139,7 +142,10 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 		}
 	}
 
-	LOG_DEBUG << s[u] << "\n";
+	if (u == 0)
+	{
+		LOG_DEBUG << s[u] << "\n";
+	}
 }
 
 template <class RA>

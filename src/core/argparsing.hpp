@@ -50,7 +50,7 @@ inline std::string ScenarioName(Type m)
 	case LinkFailure:
 		return "linkFailure";
 	case Cutset:
-		return "cutset";
+		return "cutset.tsv";
 	default:
 		throw std::runtime_error("unknown scenario");
 	}
