@@ -52,7 +52,8 @@ struct IProtocol
 				continue;
 			}
 
-			double arrival = ScheduleTime(cal.now(), delay, r, t);
+			//double arrival = ScheduleTime(cal.now(), delay, r, t);
+			double arrival = cal.now() + delay;
 
 			cal.schedule(arrival, [this, r, t, msg]() mutable {
 				this->MsgReception(r, t, msg);
