@@ -111,8 +111,10 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 {
 	(void)v;
 	auto f_link = get<1>(notif);
-	if ((u == 59 || u == 60) && data.log == true)
+	if ((u == 0) && data.log == true)
 	{
+		LOG_DEBUG << "from" << v;
+		LOG_DEBUG << "Time: " << cal.now();
 		LOG_DEBUG << "Notif for node " << u << ": " << f_link.first << ", " << f_link.second << "\n";
 	}
 
@@ -124,8 +126,8 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 			{
 				data.recordChange(u, cal.now(), s[u].GetOpt());
 			}
+			this->Send(u, Msg{notif});
 		}
-		this->Send(u, Msg{notif});
 	}
 	if (data.log == true)
 	{
