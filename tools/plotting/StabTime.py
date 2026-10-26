@@ -56,6 +56,9 @@ Algebra = {
 Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
 Proto_label = ["RRP"]
 
+# protocols whose curves coincide with the plotted ones: named in the legend title instead of drawn
+SAME_AS = []
+
 
 # Source - https://stackoverflow.com/a/31527287
 # Posted by rth, modified by community. See post 'Timeline' for change history
@@ -233,7 +236,9 @@ def plot_ccdf(df, network_name):
     legend = ax.legend(
         handles, labels,
         loc='upper right',
-        fancybox=True, shadow=False
+        fancybox=True, shadow=False,
+        title=("Same for " + (", ".join(SAME_AS[:-1]) + " and " if len(SAME_AS) > 1 else "") + SAME_AS[-1])
+        if SAME_AS else None,
     )
     # legend.set_title("Protocol")
     # legend.get_title().set_fontweight("bold") if legend.get_title() else None
@@ -258,10 +263,13 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--algebras", nargs="+", default=Algebra_label,
                         help=f"default: {' '.join(Algebra_label)}")
     parser.add_argument("--periods", nargs="+", default=PERIODS, help=f"default: {' '.join(PERIODS)}")
+    parser.add_argument("--same-as", nargs="+", default=SAME_AS,
+                        help="protocols whose curves coincide with the plotted ones, named in the legend title")
     args = parser.parse_args()
 
     DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
     Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
+    SAME_AS = args.same_as
 
     print(PERIODS)
     for network in NETWORKS:

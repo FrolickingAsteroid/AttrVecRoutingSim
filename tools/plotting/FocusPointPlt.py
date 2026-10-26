@@ -60,37 +60,44 @@ SIZES = [4, 8, 16, 32]
 SCENARIO = "cutset"  # also matches the files named after the cutset file ("cutset.tsv")
 NODE = 0
 PERIOD = "1.0"
-DODGE = 0.3
+DODGE = 0.45  # protocols with equal values are shifted sideways so their markers don't overlap
+METRIC = "time"  # time: stabilisation time | changes: number of route changes during convergence
+COLUMN = {"time": "stab_time", "changes": "change_count"}
 
-# same colours, line styles and markers as PointPlt.py
+# same colours, line styles and markers as PointPlt.py; the dict order is the left-to-right order
 FAMILIES = ["BGP", "BGP-RCN", "RRP", "RRP-N"]
 FAMILY_STYLE = {
     "BGP": ("-", "s"),
-    "RRP": ("--", "v"),
+    "BGP-RCN": ("-.", "o"),
     "RRP-N": (":", "D"),
+    "RRP": ("--", "v"),
 }
 
-# BGP and BGP-RCN converge identically on focus: only BGP is read, and labelled as both
-LABELS = {
-    "BGP": "BGP / BGP-RCN",
-    "RRP": "RRP",
-    "RRP-N": "RRP-N",
-}
+# BGP-RCN and RRP-N stabilise exactly like BGP on focus: their points reuse BGP's values,
+# marked "(same as BGP)" in the printed table
+SAME_AS_BGP = ["BGP-RCN", "RRP-N"]
 
-# RRP on focus_n32 runs out of memory. Its point is estimated as 2 * BGP - 1, which holds exactly
-# for n = 4, 8 and 16 (BGP = 2^(n-1), RRP = 2^n - 1). It is flagged in the printed table
+# RRP on focus_n32 runs out of memory, so its point is estimated (and flagged in the printed table):
+#   time:    2 * BGP - 1, exact for n = 4, 8 and 16 (BGP = 2^(n-1), RRP = 2^n - 1)
+#   changes: n - 1, one change per path in RRP's window (3, 7 and 15 for n = 4, 8 and 16)
 EXTRAPOLATE = [("RRP", 32)]
+ESTIMATE = {
+    "time": ("(2 * BGP - 1)", lambda bgp, n: 2 * bgp - 1),
+    "changes": ("(n - 1)", lambda bgp, n: n - 1),
+}
 
-parser = argparse.ArgumentParser(description="Plot the stabilisation time of one node of the focus topology.")
+parser = argparse.ArgumentParser(description="Plot the stabilisation time, or the number of route changes, of one "
+                                             "node of the focus topology.")
+parser.add_argument("-m", "--metric", choices=list(COLUMN), default=METRIC,
+                    help="time: stabilisation time; changes: route changes during convergence (default: %(default)s)")
 parser.add_argument("-s", "--scenario", default=SCENARIO, help=f"default: {SCENARIO}")
 parser.add_argument("--node", type=int, default=NODE, help=f"default: {NODE}")
 parser.add_argument("--period", default=PERIOD, help=f"RRP period (default: {PERIOD})")
 parser.add_argument("--sizes", nargs="+", type=int, default=SIZES, help=f"default: {' '.join(map(str, SIZES))}")
 parser.add_argument("--no-estimate", dest="estimate", action="store_false", help="don't add the estimated RRP point")
-parser.add_argument("--no-ratio", dest="ratio", action="store_false", help="don't draw the panel relative to BGP")
 args = parser.parse_args()
 
-SCENARIO, NODE, PERIOD, SIZES = args.scenario, args.node, args.period, args.sizes
+SCENARIO, NODE, PERIOD, SIZES, METRIC = args.scenario, args.node, args.period, args.sizes, args.metric
 if not args.estimate:
     EXTRAPOLATE = []
 
@@ -98,9 +105,11 @@ if not args.estimate:
 def get_family(protocol: str, filename: str):
     if protocol == "bgp":
         return "BGP"
+    if protocol == "rcn":
+        return "BGP-RCN"
     if protocol == "rpbob":
         return "RRP-N" if "_notif_" in filename else "RRP"
-    return None  # rcn: identical to bgp
+    return None
 
 
 # runs are either directly in <protocol>/ or in <protocol>/<scenario>/; the latter are newer and win
@@ -133,7 +142,7 @@ for csv_path in paths:
     if df.empty:
         continue
 
-    rows.append({"family": family, "n": n, "stab_time": df["stab_time"].max(), "estimated": False,
+    rows.append({"family": family, "n": n, "value": df[COLUMN[METRIC]].max(), "estimated": False,
                  "priority": 0 if len(parts) == 4 else 1, "file": str(csv_path.relative_to(DATA_DIR))})
 
 data = (pd.DataFrame(rows)
@@ -141,16 +150,19 @@ data = (pd.DataFrame(rows)
         .drop_duplicates(["family", "n"])
         .drop(columns="priority"))
 
+bgp_rows = data[data["family"] == "BGP"]
+data = pd.concat([data[~data["family"].isin(SAME_AS_BGP)]] +
+                 [bgp_rows.assign(family=family, estimated=True, file="(same as BGP)") for family in SAME_AS_BGP],
+                 ignore_index=True)
+
 for family, n in EXTRAPOLATE:
     measured = data[(data["family"] == family) & (data["n"] == n)]
     bgp = data[(data["family"] == "BGP") & (data["n"] == n)]
     if not measured.empty or bgp.empty:
         continue
-    data = pd.concat([data, pd.DataFrame([{"family": family, "n": n, "stab_time": 2 * bgp["stab_time"].iloc[0] - 1,
-                                           "estimated": True, "file": "(2 * BGP - 1)"}])], ignore_index=True)
-
-bgp_time = data[data["family"] == "BGP"].set_index("n")["stab_time"]
-data["ratio"] = data["stab_time"] / data["n"].map(bgp_time)
+    source, estimate = ESTIMATE[METRIC]
+    data = pd.concat([data, pd.DataFrame([{"family": family, "n": n, "value": estimate(bgp["value"].iloc[0], n),
+                                           "estimated": True, "file": source}])], ignore_index=True)
 
 data = data.sort_values(["family", "n"])
 print(data.to_string(index=False))
@@ -160,12 +172,7 @@ present = [f for f in FAMILY_STYLE if f in data["family"].unique()]
 offsets = dict(zip(present, np.linspace(-DODGE / 2, DODGE / 2, len(present)) if len(present) > 1 else [0.0]))
 
 columnwidth = 345.0
-if args.ratio:
-    fig, (ax, ax_ratio) = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2.2, 1]},
-                                       figsize=get_figsize(columnwidth, wf=1.1, hf=1.05))
-else:
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.8))
-    ax_ratio = None
+fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.8))
 
 handles, labels = [], []
 for family in present:
@@ -174,43 +181,35 @@ for family in present:
     linestyle, marker = FAMILY_STYLE[family]
     style = dict(color=colors[family], linestyle=linestyle, linewidth=1, marker=marker, markersize=7)
 
-    ax.plot(x, group["stab_time"], **style)
-    if ax_ratio is not None:
-        ax_ratio.plot(x, group["ratio"], **style)
+    ax.plot(x, group["value"], **style)
 
     handles.append(Line2D([], [], **style))
-    labels.append(LABELS[family])
+    labels.append(family.ljust(6) + f"Δ = 1.0 ms" if family.startswith("RRP") else family)
 
-# symlog: the RRP-N times are 0, which a log axis can't show
-ax.set_yscale('symlog', linthresh=1, linscale=0.5)
-ax.yaxis.set_major_locator(matplotlib.ticker.FixedLocator([0] + [10 ** k for k in range(0, 11, 2)]))
-ax.yaxis.set_major_formatter(
-    matplotlib.ticker.FuncFormatter(lambda v, _: "0" if v == 0 else rf"$10^{{{int(round(np.log10(v)))}}}$"))
-ax.set_ylim(-0.3, data["stab_time"].max() * 5)
-ax.set_ylabel(f"Stabilization time\nof node {NODE} [ms]")
+ax.set_yscale('log')
+if METRIC == "time":
+    ax.yaxis.set_major_locator(matplotlib.ticker.FixedLocator([10 ** k for k in range(0, 11, 2)]))
+    ax.yaxis.set_major_formatter(matplotlib.ticker.LogFormatterMathtext())
+    ax.set_ylim(data["value"].min() / 3, data["value"].max() * 5)
+    ax.set_ylabel(fr"Stabilization time of node $u$ [ms]")
+else:
+    ax.yaxis.set_major_locator(matplotlib.ticker.FixedLocator([1, 2, 4, 8, 16, 32]))
+    ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_ylim(0.7, data["value"].max() * 1.6)
+    ax.set_ylabel(fr"Attribute changes of node $u$")
 ax.grid(alpha=0.3, which="major")
 
 legend = ax.legend(handles=handles, labels=labels, loc="upper left")
 for text in legend.get_texts():
     text.set_fontfamily("monospace")
 
-bottom = ax
-if ax_ratio is not None:
-    ax_ratio.axhline(1, color="0.5", linewidth=0.8, zorder=0)
-    ax_ratio.set_ylim(-0.25, max(2.5, data["ratio"].max() + 0.3))
-    ax_ratio.set_yticks([0, 1, 2])
-    ax_ratio.set_ylabel("Relative\nto BGP")
-    ax_ratio.grid(alpha=0.3, which="major")
-    bottom = ax_ratio
-
-bottom.set_xticks(range(len(SIZES)), [str(n) for n in SIZES])
-bottom.set_xlim(-0.5, len(SIZES) - 0.5)
-bottom.set_xlabel("Number of Nodes in Focus Topology")
+ax.set_xticks(range(len(SIZES)), [str(n) for n in SIZES])
+ax.set_xlim(-0.5, len(SIZES) - 0.5)
+ax.set_xlabel("Number of nodes in Focus topology")
 
 plt.tight_layout()
-fig.align_ylabels()
 
-name = f"focusNode{NODE}_{SCENARIO}.pdf"
+name = f"focusNode{NODE}_{SCENARIO}.pdf" if METRIC == "time" else f"focusNode{NODE}_{SCENARIO}_changes.pdf"
 out_path = os.path.join(OUTPUT_DIR, name)
 
 plt.savefig(out_path, format="pdf")
