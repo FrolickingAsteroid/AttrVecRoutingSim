@@ -69,6 +69,9 @@ DPROPS = ["5.0"]        # beaconing: propagation interval
 METRIC = "time"      # time: convergence time (..._convergence.csv) | msgs: messages exchanged per destination (msglog)
 LOGX = False         # log time/message axis
 
+# protocols whose curves coincide with the plotted ones: named in each legend entry instead of drawn
+SAME_AS = []
+
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 PROTOCOL = {
@@ -214,13 +217,16 @@ def plot_ccdf(df, network_name):
         .reset_index(drop=True)
     )
 
+    # protocols with coinciding curves share the plotted line and its legend entry
+    dfg["name"] = dfg["Protocol"].apply(lambda p: " / ".join([p] + SAME_AS))
+
     dfg["label_raw"] = dfg.apply(
-        lambda row: row["Protocol"].replace(r"\Delta", "Delta").replace("$", "") + " " + row['Algebra'],
+        lambda row: row["name"].replace(r"\Delta", "Delta").replace("$", "") + " " + row['Algebra'],
         axis=1
     )
     pad_width = dfg["label_raw"].str.len().max() + 2
     dfg["group_label"] = dfg.apply(
-        lambda row: (row['Protocol'] + " " + row['Algebra']).ljust(pad_width) +
+        lambda row: (row['name'] + " " + row['Algebra']).ljust(pad_width) +
                     f"({avg_times[(row['Protocol'], row['Algebra'])]:>2.0f} {unit})",
         axis=1,
     )
@@ -232,7 +238,7 @@ def plot_ccdf(df, network_name):
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
     columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1, hf=0.8))
+    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
 
     for algebra in algebras:
         for protocol in protocols:
@@ -307,12 +313,15 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--metric", choices=["time", "msgs"], default=METRIC,
                         help="time: convergence time; msgs: messages per destination (default: %(default)s)")
     parser.add_argument("--logx", action="store_true", default=LOGX, help="log x axis")
+    parser.add_argument("--same-as", nargs="+", default=SAME_AS,
+                        help="protocols whose curves coincide with the plotted ones, named in each legend entry")
     args = parser.parse_args()
 
     DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
     Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
     BCN_PERIODS, DPROPS = args.bperiods, args.dprops
     METRIC, LOGX = args.metric, args.logx
+    SAME_AS = args.same_as
 
     for network in NETWORKS:
         df = load(network)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 from pathlib import Path
 import numpy as np
 import seaborn as sns
@@ -32,12 +31,20 @@ PERIODS = ["1.0"]
 BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
 DPROPS = ["5.0"]  # beaconing: propagation interval
 ALGEBRAS = []
-BIN = 10
+BIN = 20
 XMIN = 100
+XMAX = None  # right edge of the x axis; default: just past the longest log
 PAD = True
 
+# figure size: LINEWIDTH is the width the figure takes in the paper, in pt (from LaTeX: \showthe\linewidth,
+# or \showthe\textwidth for a figure* across both columns). Include it with \includegraphics[width=\linewidth]:
+# the pdf is exactly that wide, so it isn't scaled and its fonts keep their size
+LINEWIDTH = 345.0
+WF = 2  # width, as a fraction of LINEWIDTH
+HF = 0.35  # height, as a fraction of the width
+
 # RRP is periodic: once its log stops (the simulation stops issuing routing computations),
-# its line is continued at its steady rate, measured on [STEADY_FROM, T_FAIL), and drawn dotted.
+# its line is continued with its periodic pattern (see extend_periodic), drawn like the rest of the line.
 T_FAIL = 100  # failure time [ms]
 STEADY_FROM = 50  # start of the window where RRP's steady rate is measured [ms]
 EXTRAPOLATE_RRP = True
@@ -104,15 +111,22 @@ parser.add_argument("-a", "--algebras", nargs="+", default=ALGEBRAS,
                     help="algebras to plot, e.g. Hops SP (or lex-hops-suffix); default: all")
 parser.add_argument("--bin", type=int, default=BIN, help=f"bin width (default: {BIN})")
 parser.add_argument("--xmin", type=float, default=XMIN, help=f"left edge of the x axis (default: {XMIN})")
+parser.add_argument("--xmax", type=float, default=XMAX,
+                    help="right edge of the x axis, up to which RRP's pattern is continued (default: end of the logs)")
 parser.add_argument("--no-pad", dest="pad", action="store_false", default=PAD,
                     help="don't pad lines that end early with zeros")
 parser.add_argument("--save", action="store_true", help="also save the plot to data/plots")
+parser.add_argument("--linewidth", type=float, default=LINEWIDTH,
+                    help=rf"width of the line in the paper, in pt (\showthe\linewidth; default: {LINEWIDTH})")
+parser.add_argument("--wf", type=float, default=WF, help=f"width as a fraction of --linewidth (default: {WF})")
+parser.add_argument("--hf", type=float, default=HF, help=f"height as a fraction of the width (default: {HF})")
 args = parser.parse_args()
 
 DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
 Proto_label, PERIODS, ALGEBRAS = args.protocols, args.periods, args.algebras
 BCN_PERIODS, DPROPS = args.bperiods, args.dprops
-BIN, XMIN, PAD = args.bin, args.xmin, args.pad
+BIN, XMIN, XMAX, PAD = args.bin, args.xmin, args.xmax, args.pad
+LINEWIDTH, WF, HF = args.linewidth, args.wf, args.hf
 DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
 
 
@@ -123,12 +137,27 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
     return PROTOCOL.get(key, protocol_raw.upper())
 
 
-def extend_periodic(binned, t_end):
-    """RRP: cut the series where it stops issuing computations and continue it at its steady rate.
+def extend_periodic(binned, t_end, period):
+    """RRP: cut the series where it stops issuing computations and continue its pattern.
 
-    Returns (real part, extrapolated part). The stop is the first bin at or after T_FAIL whose rate
-    falls below half the steady rate; after it the log only holds messages still in flight.
+    Returns (real part, extrapolated part). Periods up to one bin give a steady rate, measured on
+    [STEADY_FROM, T_FAIL): the stop is the first bin at or after T_FAIL whose rate falls below half of it,
+    after which the log only holds messages still in flight. Longer periods send one burst per
+    announcement (at multiples of the period): the log is kept to its end, and its last complete period
+    is repeated from there, aligned to the announcements.
     """
+    if period > BIN:
+        t_stop = binned[binned > 0].index.max() + BIN  # first bin past the end of the log
+        last = int(t_stop // period) - 1  # last period that ends before the log does
+        if last < 0:
+            return binned, None
+        start = last * period
+        template = binned[(binned.index >= start) & (binned.index < start + period)]
+        times = np.arange(t_stop, t_end + BIN, BIN)
+        phase = start + ((times - start) % period) // BIN * BIN
+        ext = pd.Series(template.reindex(phase, fill_value=0).to_numpy(), index=times)
+        return binned[binned.index < t_stop], ext
+
     steady = binned[(binned.index >= STEADY_FROM) & (binned.index + BIN <= T_FAIL)].mean()
     after = binned[binned.index >= T_FAIL]
     stopped = after[after < 0.5 * steady]
@@ -152,7 +181,6 @@ def bin_series(df, bin_freq='10s', bin=10):
 rows = []
 raw_frames = {}
 sort_keys = {}
-extensions = {}  # (label, n) -> extrapolated RRP series
 
 for n in NETWORKS:
     net_dir = DATA_DIR / NETWORK_DIR[DATASET].format(n)
@@ -213,6 +241,8 @@ max_t = 0
 for (protocol_label, n), df_raw in raw_frames.items():
     if max_t < df_raw["time"].max() + 10:
         max_t = 10 + df_raw["time"].max()
+if XMAX is not None:
+    max_t = XMAX  # how far the lines are padded and RRP's pattern is continued
 
 for (protocol_label, n), df_raw in raw_frames.items():
     if PAD and df_raw["time"].max() < max_t:
@@ -221,9 +251,10 @@ for (protocol_label, n), df_raw in raw_frames.items():
 
     binned = bin_series(df_raw, bin_freq=f"{BIN}s")
     if EXTRAPOLATE_RRP and protocol_label.startswith("RRP"):
-        binned, ext = extend_periodic(binned, max_t)
+        # the continuation is part of the series: drawn exactly like the logged part
+        binned, ext = extend_periodic(binned, max_t, sort_keys[protocol_label][2])
         if ext is not None:
-            extensions[(protocol_label, n)] = (binned, ext)
+            binned = pd.concat([binned, ext])
 
     rows.append(pd.DataFrame({
         "time": binned.index,
@@ -242,11 +273,11 @@ for n in NETWORKS:
         continue
 
     order = sorted(df_n["protocol"].unique(), key=sort_keys.get)
-
+    max_y = df_n["msg"].max() * 10
     colors = dict(zip(order, sns.color_palette("colorblind", n_colors=len(order))))
 
-    columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
+    fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
+    plt.vlines(x = 100, ymin = -0.1, ymax =max_y, linestyles="--", colors="black")
 
     sns.lineplot(
         data=df_n,
@@ -263,29 +294,19 @@ for n in NETWORKS:
         markersize=8,
         lw=1.5,
     )
+
     plt.yscale('symlog', linthresh=0.5)
     plt.xlabel('Time [ms]')
     plt.ylabel(r'Rate of messages exchanged')
 
-    top = max([df_n["msg"].max()] + [e.max() for (_, net), (_, e) in extensions.items() if net == n])
-    plt.ylim([-0.1, top * 10])  # a decade of headroom on the log axis
+
+    plt.ylim([-0.1, df_n["msg"].max() * 10])  # a decade of headroom on the log axis
     plt.xlim([XMIN, max_t])
 
-    # RRP beyond its log: its steady rate, dotted, joined to its last real point
-    for (label, net), (real, ext) in extensions.items():
-        if net != n:
-            continue
-        x = np.r_[real.index[-1], ext.index] if len(real) else ext.index
-        y = np.r_[real.values[-1], ext.values] if len(real) else ext.values
-        ax.plot(x, y, color=colors[label], ls=":", lw=1.5, alpha=0.8)
-
     handles, labels = ax.get_legend_handles_labels()
-    if any(net == n for (_, net) in extensions):
-        handles.append(Line2D([], [], color="0.4", ls=":", lw=1.5))
-        labels.append("RRP, periodic (extrap.)")
     legend = ax.legend(
         handles, labels,
-        loc="lower left",
+        loc="upper right",
         fancybox=True, shadow=False
     )
     for text in legend.get_texts():
@@ -295,7 +316,9 @@ for n in NETWORKS:
     plt.tight_layout()
 
     out_path = OUTPUT_DIR / f"msgRate_{DATASET}_{n}_{SCENARIO}.pdf"
-    plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
+    # no bbox_inches="tight": it crops the figure to its contents, so the pdf would no longer be LINEWIDTH wide
+    # (tight_layout above already fits the axes, labels and legend inside the figure)
+    plt.savefig(out_path, format="pdf", dpi=1000)
     print(f"saved {out_path}")
 
     plt.show()

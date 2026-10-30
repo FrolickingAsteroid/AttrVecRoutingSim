@@ -399,18 +399,19 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
             max_deg_node = node
 
     u, v, max_d = max(g.edges(data="Delay"), key=lambda e: e[2])
+    u, v, min_d = max(g.edges(data="Delay"), key=lambda e: e[2])
     print(f"\n\tLargest edge delay: {max_d}  on ({u},{v})")
     print(f"\tNode with maximum degree: {max_deg_node} with degree {max_deg}\n")
 
-    G = g.to_undirected()
-    cutsets = list(nx.all_node_cuts(G))
-
-    k = nx.edge_connectivity(G)
-    print(f"\tEdge connectivity: {k}")
-    cutsets = all_minimum_edge_cutsets(G)
-    print(f"\t{len(cutsets)} minimum cutset(s) of size {k}:")
-    for cutset in cutsets:
-        print(f"\t\t  {cutset}")
+    # G = g.to_undirected()
+    # cutsets = list(nx.all_node_cuts(G))
+    #
+    # k = nx.edge_connectivity(G)
+    # print(f"\tEdge connectivity: {k}")
+    # cutsets = all_minimum_edge_cutsets(G)
+    # print(f"\t{len(cutsets)} minimum cutset(s) of size {k}:")
+    # for cutset in cutsets:
+    #     print(f"\t\t  {cutset}")
 
     # edge_centrality(g)
 

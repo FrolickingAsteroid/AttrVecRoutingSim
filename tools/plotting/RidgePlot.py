@@ -40,8 +40,8 @@ MAX_STAB = {"Hops": 69.4476, "SP": 62.7138}
 MAX_MSG= {"Hops": 69.4476, "SP": 62.7138}
 
 COLUMNWIDTH = 345.0     # LaTeX \columnwidth in pt
-PANEL_WF = 1.
-PANEL_HF =0.9
+PANEL_WF = 1.1
+PANEL_HF =0.7
 WSPACE = 0.04           # gap between columns, as a fraction of a panel's width
 PALETTE = "Set2"        # colours: the first column takes the first ones, the next column the following ones
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
