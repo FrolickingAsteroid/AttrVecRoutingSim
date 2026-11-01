@@ -26,8 +26,8 @@ class WindowSimulation
 			{
 				auto [opt_time, _] = utils::helpers::DelayDijkstra<RA>(this->graph, dest);
 
-				std::vector<int> wind =
-				    utils::helpers::ComputeWindu<bAttr>(*this->cfg.period, opt_time);
+				std::vector<long long> wind =
+				    utils::helpers::ComputeWindu<bAttr, long long>(*this->cfg.period, opt_time);
 				this->recorder.template recordWind<bAttr>(dest, opt_time, wind);
 			}
 			if (this->cfg.scenario == config::Type::LinkFailure)
@@ -38,8 +38,8 @@ class WindowSimulation
 					auto [opt_time, opt] = utils::helpers::DelayDijkstra<RA>(this->graph, dest);
 					this->graph.activate(u, v);
 
-					std::vector<int> wind =
-					    utils::helpers::ComputeWindu<bAttr>(*this->cfg.period, opt_time);
+					std::vector<long long> wind =
+					    utils::helpers::ComputeWindu<bAttr, long long>(*this->cfg.period, opt_time);
 
 					this->recorder.template recordWind<bAttr>(dest, opt_time, wind,
 										  std::make_pair(u, v));

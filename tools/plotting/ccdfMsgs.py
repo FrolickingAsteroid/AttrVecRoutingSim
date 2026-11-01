@@ -12,11 +12,25 @@ import glob
 import re
 import os
 
-# plt.rcParams.update({
-#     "font.family": "Liberation Sans",
-#     "mathtext.fontset": "cm",
-#     "font.size": 10,
-# })
+# # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
+# the figure is drawn at the width it takes in the paper and included at that width, e.g.
+# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
+# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
+LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+
+SIDE_BY_SIDE = True
+WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+
+# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
+plt.rcParams.update({
+    "font.family": "Arial",
+    "mathtext.fontset": "cm",
+    "font.size": 10,
+    "axes.labelsize": 12,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 10,
+})
 
 TEXTWIDTH = 6.30
 FIG_W = 10  # 0.49 * TEXTWIDTH
@@ -61,7 +75,7 @@ ROOT_DIR = next(
 DATASET = "rocketfuel"
 NETWORKS = ["1755"]
 SCENARIO = "normal"
-Proto_label = ["RRP","BGP"]
+Proto_label = ["SyRuP","BGP"]
 Algebra_label = ["SP", "Hops"]
 PERIODS = ["1.0"]
 BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
@@ -75,7 +89,7 @@ SAME_AS = []
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 PROTOCOL = {
-    "rpbob": "RRP",
+    "rpbob": "SyRuP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
     "beaconing": "Beaconing",
@@ -97,14 +111,14 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
         delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
             if SCENARIO == "linkFailure":
-                return rf"RRP-N $\Delta = {delta}$ ms"
+                return rf"SyRuP-LFN $\Delta = {delta}$ ms"
             else:
-                return rf"RRP-N"
+                return rf"SyRuP-LFN"
         else:
             if SCENARIO == "linkFailure":
-                return rf"RRP $\Delta = {delta}$ ms"
+                return rf"SyRuP $\Delta = {delta}$ ms"
             else:
-                return rf"RRP"
+                return rf"SyRuP"
     if key == "beaconing":
         if len(BCN_PERIODS) > 1 or len(DPROPS) > 1:
             delta, dprop = get_bcn_params(filename)
@@ -129,10 +143,10 @@ def get_algebra(filename: str) -> str:
 
 
 def get_family(label: str) -> str:
-    if label.startswith("RRP-N"):
-        return "RRP-N"
-    if label.startswith("RRP"):
-        return "RRP"
+    if label.startswith("SyRuP-LFN"):
+        return "SyRuP-LFN"
+    if label.startswith("SyRuP"):
+        return "SyRuP"
     if label.startswith("Beaconing"):
         return "Beaconing"
     return label
@@ -237,8 +251,7 @@ def plot_ccdf(df, network_name):
     colors = dict(zip(protocols, sns.color_palette(palette="colorblind", n_colors=len(protocols))))
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
-    columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.7))
+    fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
 
     for algebra in algebras:
         for protocol in protocols:
@@ -292,7 +305,8 @@ def plot_ccdf(df, network_name):
 
     name = f"ccdf_{network_name}_{SCENARIO}.pdf" if METRIC == "time" else f"ccdf_msgs_{network_name}_{SCENARIO}.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
-    plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
+    plt.tight_layout()  # fits the labels inside the figure, which keeps its size
+    plt.savefig(out_path, format="pdf", dpi=1000)  # no bbox_inches="tight": it would crop the figure below its width
     plt.show()
     print(f"\tsaved {out_path}\n")
 

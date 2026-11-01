@@ -15,14 +15,24 @@ import glob
 import re
 import os
 
+# sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
+# the figure is drawn at the width it takes in the paper and included at that width, e.g.
+# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
+# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
+LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+
+SIDE_BY_SIDE = True
+WF, HF = (1.6, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+
+# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
-    "font.size": 11,
-    "axes.labelsize": 11,
+    "font.size": 10,
+    "axes.labelsize": 12,
     "xtick.labelsize": 10,
     "ytick.labelsize": 10,
-    "legend.fontsize": 9,
+    "legend.fontsize": 10,
 })
 
 ROOT_DIR = next(
@@ -33,14 +43,14 @@ ROOT_DIR = next(
 DATASET = "rocketfuel"
 NETWORKS = ["1755"]
 SCENARIO = "normal"
-Proto_label = ["RRP"]
+Proto_label = ["SyRuP"]
 Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
 PERIODS = ["1.0"]
 
 # log y axis (x stays linear), labelled 1, 0.1, 0.01, ...
 LOGY = False
 
-# log x axis: separates time scales an order of magnitude apart (e.g. RRP with several periods in cutset).
+# log x axis: separates time scales an order of magnitude apart (e.g. SyRuP with several periods in cutset).
 # A time of 0 can't be shown, so a curve starts below 1 when some of its nodes settle at the failure instant
 LOGX = False
 
@@ -66,13 +76,13 @@ COMMON = False
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 PROTOCOL = {
-    "rpbob": "RRP",
+    "rpbob": "SyRuP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
 }
 
 # colour order when protocols are coloured by family (several periods of one algebra)
-FAMILIES = ["BGP", "BGP-RCN", "RRP", "RRP-N"]
+FAMILIES = ["BGP", "BGP-RCN", "SyRuP", "SyRuP-LFN"]
 PERIOD_STYLES = ['-', (0, (5, 2)), (0, (1.2, 1.2)), '-.']
 
 Algebra = {
@@ -86,7 +96,7 @@ Algebra = {
 }
 
 Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
-Proto_label = ["RRP"]
+Proto_label = ["SyRuP"]
 
 # protocols whose curves coincide with the plotted ones: named in each legend entry instead of drawn
 SAME_AS = []
@@ -117,15 +127,15 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
     if key == "rpbob":
         delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
-            if SCENARIO == "linkFailure":
-                return rf"RRP-N Δ = {delta} ms"
+            if SCENARIO != "normal":  # after a failure the period matters: name it
+                return rf"SyRuP-LFN Δ = {delta} ms"
             else:
-                return rf"RRP-N"
+                return rf"SyRuP-LFN"
         else:
-            if SCENARIO == "linkFailure":
-                return rf"RRP".ljust(6) + f"Δ = {delta} ms"
+            if SCENARIO != "normal":  # after a failure the period matters: name it
+                return rf"SyRuP".ljust(10) + f"Δ = {delta} ms"
             else:
-                return rf"RRP"
+                return rf"SyRuP"
 
     return PROTOCOL.get(key, protocol_raw.upper())
 
@@ -139,10 +149,10 @@ def get_algebra(filename: str) -> str:
 
 
 def get_family(label: str) -> str:
-    if label.startswith("RRP-N"):
-        return "RRP-N"
-    if label.startswith("RRP"):
-        return "RRP"
+    if label.startswith("SyRuP-LFN"):
+        return "SyRuP-LFN"
+    if label.startswith("SyRuP"):
+        return "SyRuP"
     return label
 
 
@@ -156,7 +166,7 @@ def load(network):
         protocol_label = get_protocol_label(protocol, filename)
         algebra_label = get_algebra(filename)
 
-        # filter by family: under linkFailure the RRP labels carry the period ("RRP   Δ = 1.0 ms")
+        # filter by family: after a failure (any scenario but normal) the SyRuP labels carry the period ("SyRuP     Δ = 1.0 ms")
         if get_family(protocol_label) not in Proto_label:
             continue
 
@@ -193,6 +203,9 @@ def load(network):
         df['Algebra'] = algebra_label
         rows.append(df)
 
+    if not rows:
+        raise SystemExit(f"Nothing found in {DATA_DIR / network}/<protocol>/{SCENARIO}/ for protocols {Proto_label}, "
+                         f"algebras {Algebra_label}, periods {PERIODS} (-n is the network, -s the scenario).")
 
     df = pd.concat(rows, ignore_index=True)
 
@@ -301,8 +314,7 @@ def plot_ccdf(df, network_name, tag=""):
     if by_period:
         colors = {p: family_colors[get_family(p)] for p in protocols}
 
-    columnwidth = 345.0
-    fig, ax = plt.subplots(figsize=get_figsize(columnwidth, wf=1.1, hf=0.75))
+    fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
 
     # log y: lowest value a curve can reach is one sample left (MIN_LEFT when smoothed), on the largest curve
     largest_n = df.groupby(["Protocol", "Algebra"]).size().max()
@@ -416,9 +428,7 @@ def plot_ccdf(df, network_name, tag=""):
         # the curves fall from the top left: the upper right stays free on a linear x axis. On a log x axis
         # with a linear y axis the slow curves sit at the top right instead, and the lower left is free
         table_loc, style_loc = ("lower left", "upper right") if LOGX and not LOGY else ("upper right", "lower left")
-        if LOGX and not LOGY:
-            tight["fontsize"] = 7.5  # the free lower-left corner is small: about 0.1-5 ms, below 0.4
-        legend = ax.legend(handles, labels, loc=table_loc, **tight)
+        legend = ax.legend(handles, labels, loc=table_loc, **tight)  # same font size whatever the axes
         for text in legend.get_texts():
             text.set_fontfamily("monospace")
         ax.add_artist(legend)
@@ -436,10 +446,11 @@ def plot_ccdf(df, network_name, tag=""):
             text.set_fontfamily("monospace")
 
     suffix = tag + ("_logx" if LOGX else "") + ("_logy" if LOGY else "") + ("_smooth" if SMOOTH else "")
-    name = f"ccdf_{network_name}_{SCENARIO}{suffix}.pdf"
+    name = f"ccdf_{network_name}_{SCENARIO}{suffix}_70.pdf"
     out_path = os.path.join(OUTPUT_DIR, name)
-    plt.savefig(out_path, format="pdf", bbox_inches="tight", dpi=1000)
-    pickle.dump(fig,open(f'raw_plots/ccdf_{network_name}_{SCENARIO}{suffix}','wb'))
+    plt.tight_layout()  # fits the labels inside the figure, which keeps its size
+    plt.savefig(out_path, format="pdf", dpi=1000)  # no bbox_inches="tight": it would crop the figure below its width
+    pickle.dump(fig,open(f'raw_plots/ccdf_{network_name}_{SCENARIO}{suffix}_70','wb'))
 
     plt.show()
     print(f"\tsaved {out_path}\n")

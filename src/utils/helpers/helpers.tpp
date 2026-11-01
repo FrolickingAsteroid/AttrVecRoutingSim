@@ -61,10 +61,10 @@ bool CompareOpt(const std::vector<Msg> &l, const std::vector<A> &r)
 	return true;
 }
 
-template <class A>
-std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
+template <class A, class N>
+std::vector<N> ComputeWindu(const double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time)
 {
-	std::vector<int> Ns;
+	std::vector<N> Ns;
 	Ns.reserve(opt_time.size());
 	for (const auto &node_paths : opt_time)
 	{
@@ -75,7 +75,7 @@ std::vector<int> ComputeWindu(const double Delta, const std::vector<std::vector<
 			continue;
 		}
 		const double diff = 1.1 * node_paths.back().first - node_paths.front().first;
-		Ns.push_back(static_cast<int>(std::ceil(diff / Delta)) + 1);
+		Ns.push_back(static_cast<N>(std::ceil(diff / Delta)) + 1);
 	}
 	return Ns;
 }

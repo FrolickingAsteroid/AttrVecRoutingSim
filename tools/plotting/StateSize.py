@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 from pathlib import Path
 import seaborn as sns
 import pandas as pd
@@ -80,31 +81,49 @@ FOCUS_NODE = 0
 FOCUS_PROTOCOLS = ["BGP", "SyRuP"]
 FOCUS_PERIODS = ["1.0", "100.0"]
 
-# periods whose window is shown as recorded; every other window is shown one entry smaller
+# SyRuP periods whose window on focus_n<n> is computed instead of read: 2^n for Δ = 1
+FOCUS_COMPUTED = {"1.0": lambda n: 2 ** n}
+
+# log y axis on the focus plot: the computed windows reach ~10^10, next to BGP's n and the 2 of long periods
+FOCUS_LOGY = True
+
+# clique / focus: periods whose window is shown as recorded; every other window is shown one entry smaller.
+# The network CCDF always shows the windows as recorded
 FULL_WINDOW = ["100.0"]
 
 # how a period is named in the legend, when not by its value (e.g. a period that scales with the topology)
-PERIOD_NAMES = {"100.0": "2·2ⁿ"}
+PERIOD_NAMES = {"100.0": "2^n"}
 
 # bars at every BIN entries (1, 2, 3, ... by default), up to XMAX (default: the largest state)
 BIN = 1
 XMAX = None
+LOG_BINS = False  # bars at 1, 2, 4, 8, ... instead: for states of very different sizes (e.g. SyRuP and Beaconing)
+AT_LEAST = False  # bars: share of nodes holding at least x entries instead of more than x (a state of 1 shows at 1)
+LOGY = False  # log y axis, labelled 1, 0.1, 0.01, ...: small shares (a short tail) stay visible
 
 # statistics printed with each plot: share of (destination, node) pairs holding more than THRESHOLD entries
 THRESHOLD = 10
 
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
-# state.csv (bgp / rcn) and the window csv (rrp) live in different protocol directories
+# state.csv (bgp / rcn), the window csv (rrp) and the progress log (beaconing) live in different protocol directories
 PROTOCOL = {
     "window": "SyRuP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
+    "beaconing": "Beaconing",
 }
+
+# Beaconing (-p Beaconing): its state is the beacon store at the end of the run, counted in the progress log
+# (too large to load: streamed once and cached next to it in *_beaconstate.csv). The store only grows during a run,
+# so its last size is also its largest. candidates: every beacon stored | best: the best set it propagates (<= 20)
+BCN_PERIODS = ["31.0"]  # destination announcement period
+DPROPS = ["5.0"]  # propagation interval
+BEACON_STATE = "candidates"
 
 # same colours as the other scripts: one per protocol family, Δ as the hatch of the bars.
 # With several algebras, each protocol and algebra gets its own colour
-FAMILIES = ["BGP", "BGP-RCN", "SyRuP", "SyRuP-LFN"]
+FAMILIES = ["BGP", "BGP-RCN", "SyRuP", "SyRuP-LFN", "Beaconing"]
 HATCHES = ['', '////', '....', 'xxxx']
 
 Algebra = {
@@ -115,6 +134,12 @@ Algebra = {
     "lex-length-width-suffix": "WSP",
     "prod-width-length-hops-suffix": "Product",
 }
+
+# networks (rocketfuel, ...): an algebra's runs on every delay graph are counted together (e.g. SP on DelayLength and
+# on DelayHops: 1755 SyRuP SP averages 3.8). MATCH_DELAY keeps only the runs on the algebra's own delay graph,
+# the prefix of its files in DELAY_OF (SP on DelayLength alone: 4.4)
+MATCH_DELAY = False
+DELAY_OF = {"Hops": "DelayHops", "All Hops": "DelayHops"}  # every other algebra: DelayLength
 
 
 def get_algebra(filename: str) -> str:
@@ -127,24 +152,52 @@ def get_period(filename: str) -> str:
     return m.group(1) if m else ""
 
 
-def read_state(net_dir, protocol, label, scenario, protocols=None, periods=None):
+def beacon_state(progress):
+    """Beacon store of every (destination, node) at the end of the run: the sizes of its best set and candidates."""
+    cache = progress.with_name(progress.name.replace("_progress.csv", "_beaconstate.csv"))
+    if not cache.exists() or cache.stat().st_mtime < progress.stat().st_mtime:
+        print(f"streaming {progress.name} (once, cached in {cache.name})")
+        last = {}
+        with open(progress, "rb") as f:
+            next(f)  # header: dest,node,time,opt,wind,tag (opt: best set, wind: candidates, "; " between beacons)
+            for line in f:
+                dest, node, _, best, candidates, _ = line.split(b",")
+                last[dest, node] = (best.count(b";") + 1 if best else 0,
+                                    candidates.count(b";") + 1 if candidates else 0)
+        pd.DataFrame([(int(d), int(n), b, c) for (d, n), (b, c) in last.items()],
+                     columns=["dest", "node", "best", "candidates"]).to_csv(cache, index=False)
+    return pd.read_csv(cache)
+
+
+def read_state(net_dir, protocol, label, scenario, protocols=None, periods=None, match_delay=False,
+               full_window=False):
     """One frame per state file in <net_dir>/<protocol>/<scenario>/ that passes the filters (protocols and periods
-    default to Proto_label and PERIODS): one row per (failure,) destination and node, with the number of state
+    default to Proto_label and PERIODS; match_delay: only the files of each algebra's delay graph, DELAY_OF;
+    full_window: every window as recorded): one row per (failure,) destination and node, with the number of state
     entries the node keeps for that destination."""
     protocols, periods = protocols or Proto_label, periods or PERIODS
-    pattern = f"*_S_{scenario}_*.csv" if protocol == "window" else f"*_S_{scenario}_state.csv"
+    pattern = {"window": f"*_S_{scenario}_*.csv", "beaconing": f"*_S_{scenario}_*progress.csv"}.get(
+        protocol, f"*_S_{scenario}_state.csv")
     for csv_path in (net_dir / protocol / scenario).glob(pattern):
         filename = csv_path.name
         family = "SyRuP-LFN" if protocol == "window" and "notif" in filename else label
         algebra = get_algebra(filename)
         if family not in protocols or algebra not in Algebra_label:
             continue
+        if match_delay and not filename.startswith(DELAY_OF.get(algebra, "DelayLength") + "_"):
+            continue
 
-        period = get_period(filename) if protocol == "window" else ""  # bgp / rcn have none
+        period = get_period(filename) if protocol == "window" else ""  # the others aren't told apart by period
         if protocol == "window" and period not in periods:
             continue
 
-        df = pd.read_csv(csv_path)
+        if protocol == "beaconing":
+            dprop = re.search(r"dprop_(\d+\.\d+)", filename).group(1)
+            if get_period(filename) not in BCN_PERIODS or dprop not in DPROPS or csv_path.stat().st_size == 0:
+                continue  # interrupted runs leave empty files behind
+            df = beacon_state(csv_path)
+        else:
+            df = pd.read_csv(csv_path)
         df = df[df["node"] != df["dest"]]  # the destination keeps no state towards itself
 
         # runs appended to an existing file (-A) repeat its rows: keep the last run
@@ -156,8 +209,10 @@ def read_state(net_dir, protocol, label, scenario, protocols=None, periods=None)
 
         if protocol == "window":
             df = df[df["opt_time"].notna()]  # unreachable nodes hold no window
-            # the recorded window size counts one entry more than it holds, except for the periods in FULL_WINDOW
-            values, seq = df["wind_size"] - (0 if period in FULL_WINDOW else 1), 0
+            # clique / focus: the recorded window size counts one entry more than it holds, except for FULL_WINDOW
+            values, seq = df["wind_size"] - (0 if full_window or period in FULL_WINDOW else 1), 0
+        elif protocol == "beaconing":
+            values, seq = df[BEACON_STATE], 0
         else:
             seq = df["seq_size"].to_numpy()  # 0 for bgp
             values = df["rib_size"] + df["seq_size"]
@@ -169,7 +224,8 @@ def read_state(net_dir, protocol, label, scenario, protocols=None, periods=None)
 
 def load(network):
     net_dir = ROOT_DIR / 'data' / 'output' / DATASET / network
-    rows = [df for protocol, label in PROTOCOL.items() for df in read_state(net_dir, protocol, label, SCENARIO)]
+    rows = [df for protocol, label in PROTOCOL.items()
+            for df in read_state(net_dir, protocol, label, SCENARIO, match_delay=MATCH_DELAY, full_window=True)]
     if not rows:
         raise SystemExit(f"Nothing found for {DATASET}/{network}, scenario '{SCENARIO}', protocols {Proto_label}, "
                          f"algebras {Algebra_label}, periods {PERIODS}.")
@@ -181,13 +237,20 @@ def load_focus():
     for size in FOCUS_SIZES:
         net_dir = ROOT_DIR / 'data' / 'output' / "focus" / f"focus_n{size}"
         for protocol, label in PROTOCOL.items():
+            if protocol not in CLIQUE_SCENARIO:  # e.g. beaconing: not run on these topologies
+                continue
             for df in read_state(net_dir, protocol, label, CLIQUE_SCENARIO[protocol],
                                  protocols=FOCUS_PROTOCOLS, periods=FOCUS_PERIODS):
                 rows.append(df[df["node"] == FOCUS_NODE].assign(Size=size))
     if not rows:
         raise SystemExit(f"Nothing found for focus sizes {FOCUS_SIZES}, protocols {FOCUS_PROTOCOLS}, "
                          f"periods {FOCUS_PERIODS}.")
-    return pd.concat(rows, ignore_index=True)
+    df = pd.concat(rows, ignore_index=True)
+
+    for period, window in FOCUS_COMPUTED.items():
+        computed = (df["Family"] == "SyRuP") & (df["Period"] == period)
+        df.loc[computed, "value"] = df.loc[computed, "Size"].map(window)
+    return df
 
 
 def load_clique():
@@ -195,6 +258,8 @@ def load_clique():
     for size in CLIQUE_SIZES:
         net_dir = ROOT_DIR / 'data' / 'output' / "clique" / f"bclique_n{size}"
         for protocol, label in PROTOCOL.items():
+            if protocol not in CLIQUE_SCENARIO:  # e.g. beaconing: not run on these topologies
+                continue
             for df in read_state(net_dir, protocol, label, CLIQUE_SCENARIO[protocol]):
                 rows.append(df.assign(Size=size))
     if not rows:
@@ -225,8 +290,15 @@ def stats(g):
 
 
 def ccdf(data, xs):
-    """Share of the samples holding more than x entries, for each x in xs."""
+    """Share of the samples holding more than x entries (at least x with AT_LEAST), for each x in xs."""
+    if AT_LEAST:
+        return (data[:, None] >= xs[None, :]).mean(axis=0)
     return (data[:, None] > xs[None, :]).mean(axis=0)
+
+
+# tick label 1, 0.1, 0.01, ... never 1e-05
+def decimal_label(v, _):
+    return f"{v:.{max(0, -int(np.floor(np.log10(v))))}f}"
 
 
 def plot_ccdf(df, network_name):
@@ -263,17 +335,23 @@ def plot_ccdf(df, network_name):
     def average(family, group):
         """The mean state, saying what it is made of."""
         if family.startswith("SyRuP"):
-            return f"avg  {group['value'].mean():.1}"
+            return f"avg  {group['value'].mean():.1f}"
         seq = group["seq"].mean()
         routes = group["value"].mean() - seq
         if family == "BGP-RCN":
             return f"avg {routes:.1f} routes + {seq:.1f} seq. numbers"
         return f"avg {routes:.1f}"
 
-    # one group of bars per threshold x, one bar per curve: the share of nodes holding more than x entries
+    # one group of bars per threshold x, one bar per curve: the share of nodes holding more than x entries.
+    # Thresholds every BIN entries, or at 1, 2, 4, 8, ... with LOG_BINS (evenly spaced on the axis)
     xmax = XMAX if XMAX is not None else df["value"].max()
-    xs = np.arange(BIN, xmax + 1, BIN)
-    width = 0.8 * BIN / len(groups)
+    if LOG_BINS:
+        xs = 2 ** np.arange(0, int(np.ceil(np.log2(xmax))) + 1)
+        pos, step = np.arange(len(xs)), 1
+    else:
+        xs = np.arange(BIN, xmax + 1, BIN)
+        pos, step = xs, BIN
+    width = 0.8 * step / len(groups)
 
     fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
 
@@ -286,7 +364,7 @@ def plot_ccdf(df, network_name):
         hatch = HATCHES[periods.index(period) % len(HATCHES)] if period and many_periods else ''
 
         ax.bar(
-            xs + (i - (len(groups) - 1) / 2) * width,
+            pos + (i - (len(groups) - 1) / 2) * width,
             ccdf(group["value"].to_numpy(), xs),
             width=width,
             color=color,
@@ -296,10 +374,17 @@ def plot_ccdf(df, network_name):
             label=name(family, period, algs).ljust(pad_width) + f"({average(family, group)})",
         )
 
-    ax.set_ylim([0, 1.0])
-    ax.set_xlim([BIN / 2, xs[-1] + BIN / 2])
-    if len(xs) <= 12:
-        ax.set_xticks(xs)  # a tick under each group of bars
+    if LOGY:
+        # down to the decade of a single sample of the largest curve, so every non-empty bar shows
+        largest_n = max(len(group) for _, group in groups)
+        ax.set_yscale("log")
+        ax.set_ylim([10 ** np.floor(np.log10(1 / largest_n)), 1.0])
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(decimal_label))
+    else:
+        ax.set_ylim([0, 1.0])
+    ax.set_xlim([pos[0] - step / 2, pos[-1] + step / 2])
+    if LOG_BINS or len(xs) <= 12:
+        ax.set_xticks(pos, [str(x) for x in xs])  # a tick under each group of bars
     else:
         ax.xaxis.get_major_locator().set_params(integer=True)  # entries are counts
     ax.set_xlabel("State size")
@@ -308,7 +393,7 @@ def plot_ccdf(df, network_name):
     ax.grid(alpha=0.3, which="major")
 
     # 8 pt: at 10 pt the BGP-RCN entry (routes + seq. numbers) is wider than the axes
-    legend = ax.legend(loc='upper right', fancybox=True, shadow=False, fontsize=8)
+    legend = ax.legend(loc='upper right', fancybox=True, shadow=False)
     for text in legend.get_texts():
         text.set_fontfamily("monospace")
 
@@ -319,9 +404,10 @@ def plot_ccdf(df, network_name):
     print(f"\tsaved {out_path}\n")
 
 
-def plot_sizes(df, sizes, xlabel, ylabel, name, with_period):
+def plot_sizes(df, sizes, xlabel, ylabel, name, with_period, logy=False):
     """One group of bars per topology size, one bar per protocol (and per period with with_period: the first plain,
-    the next ones hatched): the mean of its state over the rows of that size."""
+    the next ones hatched): the mean of its state over the rows of that size. logy: log y axis from 1, labelled
+    10^0, 10^2, ..."""
     family_colors = dict(zip(FAMILIES, sns.color_palette(palette="colorblind", n_colors=len(FAMILIES))))
     sizes = [s for s in sizes if s in set(df["Size"])]
     keys = ["Family", "Period"] if with_period else ["Family"]
@@ -355,6 +441,14 @@ def plot_sizes(df, sizes, xlabel, ylabel, name, with_period):
     ax.set_axisbelow(True)
     ax.grid(alpha=0.3, which="major", axis="y")
 
+    if logy:
+        top = means.max() * 1e3  # headroom for the legend above the bars
+        ax.set_yscale("log")
+        ax.set_ylim(1, top)
+        ax.yaxis.set_major_locator(matplotlib.ticker.LogLocator(base=10, numticks=8))
+        ax.yaxis.set_major_formatter(matplotlib.ticker.LogFormatterMathtext())
+        ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+
     legend = ax.legend(loc="upper left")
     for text in legend.get_texts():
         text.set_fontfamily("monospace")
@@ -376,7 +470,7 @@ def plot_focus(df):
     """State of node u for each focus size, one bar per period of SyRuP."""
     xlabel = "Nodes in Focus Topology" if SIDE_BY_SIDE else "Number of nodes in Focus topology"
     plot_sizes(df, FOCUS_SIZES, xlabel, r"State size of node $u$", f"state_focusNode{FOCUS_NODE}.pdf",
-               with_period=True)
+               with_period=True, logy=FOCUS_LOGY)
 
 
 if __name__ == "__main__":
@@ -390,6 +484,13 @@ if __name__ == "__main__":
     parser.add_argument("--periods", nargs="+", default=PERIODS, help=f"RRP periods (default: {' '.join(PERIODS)})")
     parser.add_argument("--bin", type=int, default=BIN, help=f"entries between two groups of bars (default: {BIN})")
     parser.add_argument("--xmax", type=int, default=XMAX, help="last threshold shown (default: the largest state)")
+    parser.add_argument("--log-bins", action="store_true", default=LOG_BINS,
+                        help="bars at 1, 2, 4, 8, ... entries instead of every --bin entries")
+    parser.add_argument("--at-least", action="store_true", default=AT_LEAST,
+                        help="bars: share of nodes holding at least x entries instead of more than x")
+    parser.add_argument("--logy", action="store_true", default=LOGY, help="log y axis (1, 0.1, 0.01, ...)")
+    parser.add_argument("--match-delay", action="store_true", default=MATCH_DELAY,
+                        help="only each algebra's runs on its own delay graph (SP: DelayLength, Hops: DelayHops)")
     parser.add_argument("--threshold", type=float, default=THRESHOLD,
                         help=f"statistics: pairs holding more than this many entries (default: {THRESHOLD})")
     parser.add_argument("--clique", action="store_true",
@@ -398,6 +499,12 @@ if __name__ == "__main__":
                         help=f"clique sizes (default: {' '.join(map(str, CLIQUE_SIZES))})")
     parser.add_argument("--focus", action="store_true",
                         help="plot the state of node u per focus size instead of the CCDF of a network")
+    parser.add_argument("--beacon-state", choices=["candidates", "best"], default=BEACON_STATE,
+                        help=f"Beaconing: count every stored beacon or only the best set (default: {BEACON_STATE})")
+    parser.add_argument("--bperiods", nargs="+", default=BCN_PERIODS,
+                        help=f"Beaconing announcement periods (default: {' '.join(BCN_PERIODS)})")
+    parser.add_argument("--dprops", nargs="+", default=DPROPS,
+                        help=f"Beaconing propagation intervals (default: {' '.join(DPROPS)})")
     parser.add_argument("--focus-periods", nargs="+", default=FOCUS_PERIODS,
                         help=f"SyRuP periods for --focus, the first plain, the next hatched "
                              f"(default: {' '.join(FOCUS_PERIODS)})")
@@ -405,9 +512,11 @@ if __name__ == "__main__":
 
     DATASET, NETWORKS, SCENARIO = args.topo, args.networks, args.scenario
     Proto_label, Algebra_label, PERIODS = args.protocols, args.algebras, args.periods
-    BIN, XMAX, THRESHOLD = args.bin, args.xmax, args.threshold
+    BIN, XMAX, THRESHOLD, LOG_BINS = args.bin, args.xmax, args.threshold, args.log_bins
+    AT_LEAST, LOGY, MATCH_DELAY = args.at_least, args.logy, args.match_delay
     CLIQUE_SIZES = args.sizes
     FOCUS_PERIODS = args.focus_periods
+    BEACON_STATE, BCN_PERIODS, DPROPS = args.beacon_state, args.bperiods, args.dprops
 
     if args.focus:
         df = load_focus()

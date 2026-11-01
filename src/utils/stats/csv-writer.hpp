@@ -124,14 +124,14 @@ class Recorder
 
 	template <class A>
 	void recordWind(int dest, const std::vector<std::vector<std::pair<double, A>>> &opt_time,
-			std::vector<int> &wind_size, std::optional<std::pair<int, int>> failure = std::nullopt);
+			std::vector<long long> &wind_size, std::optional<std::pair<int, int>> failure = std::nullopt);
 
 	template <class A>
 	void recordProgress(int dest, int node, double time, A &best, A &wind, std::string tag);
 
 	template <class A>
 	static void writeWind(std::ostream &out, int dest, int u, const std::vector<std::pair<double, A>> &opt_time_u,
-			      int wind_size, const std::optional<std::pair<int, int>> &failure);
+			      long long wind_size, const std::optional<std::pair<int, int>> &failure);
 
 	static void writeMsgLogRow(std::ostream &out, std::optional<std::pair<int, int>> failure, int dest, int node,
 				   double time, int msg);

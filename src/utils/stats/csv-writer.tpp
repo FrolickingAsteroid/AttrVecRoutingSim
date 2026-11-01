@@ -88,7 +88,7 @@ void Recorder<R>::recordDest(int dest, const Data<R> &data, const std::vector<st
 template <class R>
 template <class A>
 void Recorder<R>::recordWind(int dest, const std::vector<std::vector<std::pair<double, A>>> &opt_time,
-			     std::vector<int> &wind_size, std::optional<std::pair<int, int>> failure)
+			     std::vector<long long> &wind_size, std::optional<std::pair<int, int>> failure)
 {
 	for (std::size_t u = 0; u < opt_time.size(); ++u)
 	{
@@ -99,7 +99,7 @@ void Recorder<R>::recordWind(int dest, const std::vector<std::vector<std::pair<d
 template <class R>
 template <class A>
 void Recorder<R>::writeWind(std::ostream &out, int dest, int u, const std::vector<std::pair<double, A>> &opt_time_u,
-			    int wind_size, const std::optional<std::pair<int, int>> &failure)
+			    long long wind_size, const std::optional<std::pair<int, int>> &failure)
 {
 	std::ostringstream s;
 	bool               first = true;

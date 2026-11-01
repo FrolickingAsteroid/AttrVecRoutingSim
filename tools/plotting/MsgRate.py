@@ -8,14 +8,15 @@ import pandas as pd
 import argparse
 import re
 
+# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
     "font.size": 10,
-    "axes.labelsize": 10,
+    "axes.labelsize": 12,
     "xtick.labelsize": 10,
     "ytick.labelsize": 10,
-    "legend.fontsize": 9,
+    "legend.fontsize": 10,
 })
 
 ROOT_DIR = next(
@@ -26,7 +27,7 @@ ROOT_DIR = next(
 DATASET = "clique"
 NETWORKS = ["64"]
 SCENARIO = "linkFailure"
-Proto_label = ["RRP", "RRP-N", "BGP", "BGP-RCN"]
+Proto_label = ["SyRuP", "SyRuP-LFN", "BGP", "BGP-RCN"]
 PERIODS = ["1.0"]
 BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
 DPROPS = ["5.0"]  # beaconing: propagation interval
@@ -40,14 +41,15 @@ PAD = True
 # or \showthe\textwidth for a figure* across both columns). Include it with \includegraphics[width=\linewidth]:
 # the pdf is exactly that wide, so it isn't scaled and its fonts keep their size
 LINEWIDTH = 345.0
-WF = 2  # width, as a fraction of LINEWIDTH
-HF = 0.35  # height, as a fraction of the width
 
-# RRP is periodic: once its log stops (the simulation stops issuing routing computations),
+SIDE_BY_SIDE = True
+WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+
+# SyRuP is periodic: once its log stops (the simulation stops issuing routing computations),
 # its line is continued with its periodic pattern (see extend_periodic), drawn like the rest of the line.
 T_FAIL = 100  # failure time [ms]
-STEADY_FROM = 50  # start of the window where RRP's steady rate is measured [ms]
-EXTRAPOLATE_RRP = True
+STEADY_FROM = 50  # start of the window where SyRuP's steady rate is measured [ms]
+EXTRAPOLATE_SYRUP = True
 
 NETWORK_DIR = {
     "clique": "bclique_n{}",
@@ -59,7 +61,7 @@ NETWORK_DIR = {
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 PROTOCOL = {
-    "rpbob": "RRP",
+    "rpbob": "SyRuP",
     "bgp": "BGP",
     "rcn": "BGP-RCN",
     "beaconing": "Beaconing",
@@ -112,7 +114,7 @@ parser.add_argument("-a", "--algebras", nargs="+", default=ALGEBRAS,
 parser.add_argument("--bin", type=int, default=BIN, help=f"bin width (default: {BIN})")
 parser.add_argument("--xmin", type=float, default=XMIN, help=f"left edge of the x axis (default: {XMIN})")
 parser.add_argument("--xmax", type=float, default=XMAX,
-                    help="right edge of the x axis, up to which RRP's pattern is continued (default: end of the logs)")
+                    help="right edge of the x axis, up to which SyRuP's pattern is continued (default: end of the logs)")
 parser.add_argument("--no-pad", dest="pad", action="store_false", default=PAD,
                     help="don't pad lines that end early with zeros")
 parser.add_argument("--save", action="store_true", help="also save the plot to data/plots")
@@ -133,12 +135,12 @@ DATA_DIR = ROOT_DIR / 'data' / 'output' / DATASET
 def get_protocol_label(protocol_raw: str, filename: str) -> str:
     key = protocol_raw.lower()
     if key == "rpbob" and "notif" in filename.lower():
-        return "RRP-N"
+        return "SyRuP-LFN"
     return PROTOCOL.get(key, protocol_raw.upper())
 
 
 def extend_periodic(binned, t_end, period):
-    """RRP: cut the series where it stops issuing computations and continue its pattern.
+    """SyRuP: cut the series where it stops issuing computations and continue its pattern.
 
     Returns (real part, extrapolated part). Periods up to one bin give a steady rate, measured on
     [STEADY_FROM, T_FAIL): the stop is the first bin at or after T_FAIL whose rate falls below half of it,
@@ -242,7 +244,7 @@ for (protocol_label, n), df_raw in raw_frames.items():
     if max_t < df_raw["time"].max() + 10:
         max_t = 10 + df_raw["time"].max()
 if XMAX is not None:
-    max_t = XMAX  # how far the lines are padded and RRP's pattern is continued
+    max_t = XMAX  # how far the lines are padded and SyRuP's pattern is continued
 
 for (protocol_label, n), df_raw in raw_frames.items():
     if PAD and df_raw["time"].max() < max_t:
@@ -250,7 +252,7 @@ for (protocol_label, n), df_raw in raw_frames.items():
         df_raw = pd.concat([df_raw, pad_row], ignore_index=True)
 
     binned = bin_series(df_raw, bin_freq=f"{BIN}s")
-    if EXTRAPOLATE_RRP and protocol_label.startswith("RRP"):
+    if EXTRAPOLATE_SYRUP and protocol_label.startswith("SyRuP"):
         # the continuation is part of the series: drawn exactly like the logged part
         binned, ext = extend_periodic(binned, max_t, sort_keys[protocol_label][2])
         if ext is not None:
@@ -277,7 +279,8 @@ for n in NETWORKS:
     colors = dict(zip(order, sns.color_palette("colorblind", n_colors=len(order))))
 
     fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
-    plt.vlines(x = 100, ymin = -0.1, ymax =max_y, linestyles="--", colors="black")
+    if SCENARIO == "cutset":
+        plt.vlines(x = 100, ymin = -0.1, ymax =max_y, linestyles="--", colors="black")
 
     sns.lineplot(
         data=df_n,
@@ -290,7 +293,7 @@ for n in NETWORKS:
         style_order=order,
         markers=[MARKERS[i % len(MARKERS)] for i in range(len(order))],
         # markers=None,
-        alpha=0.8,
+        alpha=1,
         markersize=8,
         lw=1.5,
     )
@@ -315,7 +318,7 @@ for n in NETWORKS:
     plt.grid(alpha=0.3, which='both')
     plt.tight_layout()
 
-    out_path = OUTPUT_DIR / f"msgRate_{DATASET}_{n}_{SCENARIO}.pdf"
+    out_path = OUTPUT_DIR / f"msgRate_{DATASET}_{n}_{SCENARIO}_SP.pdf"
     # no bbox_inches="tight": it crops the figure to its contents, so the pdf would no longer be LINEWIDTH wide
     # (tight_layout above already fits the axes, labels and legend inside the figure)
     plt.savefig(out_path, format="pdf", dpi=1000)

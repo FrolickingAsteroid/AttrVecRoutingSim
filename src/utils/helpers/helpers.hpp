@@ -22,8 +22,10 @@ auto BaseHelper()
 template <class RA>
 using Base = decltype(BaseHelper<RA>())::type;
 
-template <class A>
-std::vector<int> ComputeWindu(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
+// N: integer type of the window sizes. The window simulator uses long long: on topologies with exponential path
+// delays (focus) a window at small periods exceeds what an int holds
+template <class A, class N = int>
+std::vector<N> ComputeWindu(double Delta, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
 
 template <class A>
 void updateWindu(double Delta, std::vector<int> &wind, const std::vector<std::vector<std::pair<double, A>>> &opt_time);
