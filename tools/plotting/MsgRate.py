@@ -8,7 +8,7 @@ import pandas as pd
 import argparse
 import re
 
-# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
+
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
@@ -29,26 +29,23 @@ NETWORKS = ["64"]
 SCENARIO = "linkFailure"
 Proto_label = ["SyRuP", "SyRuP-LFN", "BGP", "BGP-RCN"]
 PERIODS = ["1.0"]
-BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
-DPROPS = ["5.0"]  # beaconing: propagation interval
+BCN_PERIODS = ["31.0"]
+DPROPS = ["5.0"]
 ALGEBRAS = []
 BIN = 20
 XMIN = 100
-XMAX = None  # right edge of the x axis; default: just past the longest log
+XMAX = None
 PAD = True
 
-# figure size: LINEWIDTH is the width the figure takes in the paper, in pt (from LaTeX: \showthe\linewidth,
-# or \showthe\textwidth for a figure* across both columns). Include it with \includegraphics[width=\linewidth]:
-# the pdf is exactly that wide, so it isn't scaled and its fonts keep their size
+
 LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = True
-WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)
 
-# SyRuP is periodic: once its log stops (the simulation stops issuing routing computations),
-# its line is continued with its periodic pattern (see extend_periodic), drawn like the rest of the line.
-T_FAIL = 100  # failure time [ms]
-STEADY_FROM = 50  # start of the window where SyRuP's steady rate is measured [ms]
+
+T_FAIL = 100
+STEADY_FROM = 50
 EXTRAPOLATE_SYRUP = True
 
 NETWORK_DIR = {
@@ -139,36 +136,6 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
     return PROTOCOL.get(key, protocol_raw.upper())
 
 
-def extend_periodic(binned, t_end, period):
-    """SyRuP: cut the series where it stops issuing computations and continue its pattern.
-
-    Returns (real part, extrapolated part). Periods up to one bin give a steady rate, measured on
-    [STEADY_FROM, T_FAIL): the stop is the first bin at or after T_FAIL whose rate falls below half of it,
-    after which the log only holds messages still in flight. Longer periods send one burst per
-    announcement (at multiples of the period): the log is kept to its end, and its last complete period
-    is repeated from there, aligned to the announcements.
-    """
-    if period > BIN:
-        t_stop = binned[binned > 0].index.max() + BIN  # first bin past the end of the log
-        last = int(t_stop // period) - 1  # last period that ends before the log does
-        if last < 0:
-            return binned, None
-        start = last * period
-        template = binned[(binned.index >= start) & (binned.index < start + period)]
-        times = np.arange(t_stop, t_end + BIN, BIN)
-        phase = start + ((times - start) % period) // BIN * BIN
-        ext = pd.Series(template.reindex(phase, fill_value=0).to_numpy(), index=times)
-        return binned[binned.index < t_stop], ext
-
-    steady = binned[(binned.index >= STEADY_FROM) & (binned.index + BIN <= T_FAIL)].mean()
-    after = binned[binned.index >= T_FAIL]
-    stopped = after[after < 0.5 * steady]
-    if stopped.empty or np.isnan(steady):
-        return binned, None
-    t_stop = stopped.index.min()
-    ext = pd.Series(steady, index=np.arange(t_stop, t_end + BIN, BIN))
-    return binned[binned.index < t_stop], ext
-
 
 def bin_series(df, bin_freq='10s', bin=10):
     df = df.copy()
@@ -218,7 +185,7 @@ for n in NETWORKS:
             if len(BCN_PERIODS) > 1 or len(DPROPS) > 1:
                 protocol_label += rf" Δ = {delta} ms, dprop = {dprop} ms"
 
-        if csv_path.stat().st_size == 0:  # runs that were interrupted leave empty files behind
+        if csv_path.stat().st_size == 0:
             continue
 
         # if algebra:
@@ -228,15 +195,10 @@ for n in NETWORKS:
         # print(csv_path)
 
         df_raw = pd.read_csv(csv_path, usecols=lambda c: c in ("failure", "time", "msg"))
-        # a log can hold several failure runs (e.g. one per cutset): average over them
         if "failure" in df_raw:
             df_raw["msg"] = df_raw["msg"] / df_raw["failure"].nunique()
         raw_frames[(protocol_label, n)] = df_raw[["time", "msg"]]
 
-if not raw_frames:
-    raise SystemExit(f"Nothing found in {DATA_DIR} for networks {NETWORKS}, scenario '{SCENARIO}', "
-                     f"protocols {Proto_label}, periods {PERIODS}" + (
-                         f", algebras {ALGEBRAS}" if ALGEBRAS else "") + ".")
 
 max_time = {}
 max_t = 0
@@ -244,7 +206,7 @@ for (protocol_label, n), df_raw in raw_frames.items():
     if max_t < df_raw["time"].max() + 10:
         max_t = 10 + df_raw["time"].max()
 if XMAX is not None:
-    max_t = XMAX  # how far the lines are padded and SyRuP's pattern is continued
+    max_t = XMAX
 
 for (protocol_label, n), df_raw in raw_frames.items():
     if PAD and df_raw["time"].max() < max_t:
@@ -253,7 +215,6 @@ for (protocol_label, n), df_raw in raw_frames.items():
 
     binned = bin_series(df_raw, bin_freq=f"{BIN}s")
     if EXTRAPOLATE_SYRUP and protocol_label.startswith("SyRuP"):
-        # the continuation is part of the series: drawn exactly like the logged part
         binned, ext = extend_periodic(binned, max_t, sort_keys[protocol_label][2])
         if ext is not None:
             binned = pd.concat([binned, ext])
@@ -303,7 +264,7 @@ for n in NETWORKS:
     plt.ylabel(r'Rate of messages exchanged')
 
 
-    plt.ylim([-0.1, df_n["msg"].max() * 10])  # a decade of headroom on the log axis
+    plt.ylim([-0.1, df_n["msg"].max() * 10])
     plt.xlim([XMIN, max_t])
 
     handles, labels = ax.get_legend_handles_labels()
@@ -319,8 +280,7 @@ for n in NETWORKS:
     plt.tight_layout()
 
     out_path = OUTPUT_DIR / f"msgRate_{DATASET}_{n}_{SCENARIO}_SP.pdf"
-    # no bbox_inches="tight": it crops the figure to its contents, so the pdf would no longer be LINEWIDTH wide
-    # (tight_layout above already fits the axes, labels and legend inside the figure)
+
     plt.savefig(out_path, format="pdf", dpi=1000)
     print(f"saved {out_path}")
 

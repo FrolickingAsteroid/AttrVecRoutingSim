@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ## File        : Scripts/NetworkDataSets.py
-## Description : build datasets, analyze graph properties
+## Description : builds datasets
 
 import argparse
 import numpy as np
@@ -51,8 +51,11 @@ def _proportional_length(base: int = 10) -> int:
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Rocketfuel loader/dataset writer
+# Rocketfuel 
+# in part similar to:
+# https://github.com/miferrei/rmoc-sigcomm2020-artifact/blob/master/Scripts/NetworkDataSets.py
 # ──────────────────────────────────────────────────────────────────────
+
 _DATASET_SPECS = [
     ("DelayLength", "delay + length", ["Delay", "Length"]),
     ("DelayLengthWidth", "delay + length + width", ["Delay", "Length", "Width"]),
@@ -142,7 +145,7 @@ def write_datasets(graph: nx.DiGraph, AS: str, delay: str, testdir: str):
 
 
 # ──────────────────────────────────────────────────────────────────────
-# B-Clique dataset writer
+# B-Clique
 # ──────────────────────────────────────────────────────────────────────
 def b_clique_network(
         n: int,
@@ -219,7 +222,7 @@ def write_b_clique(n: int, dir: str, mode: str = "unit"):
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Triangle network
+# Triangle
 # ──────────────────────────────────────────────────────────────────────
 def triangle_network(max: int, triangledir: str):
     out_dir = Path(triangledir) / f"triangle_n{max}"
@@ -240,33 +243,8 @@ def triangle_network(max: int, triangledir: str):
             f.write(f"{x}\t{2 * max - x}\t{2 ** (max - (x + 1))}\t{2 ** (max - (x + 1))}\n")
             f.write(f"{2 * max - x}\t{x + 1}\t{0}\t{0}\n")
 
-
-def triangle_network_alt(max: int, triangledir: str, scale: float = 1.0, eps: float = 1):
-    """Chain 0 -> ... -> max (destination) of `max` gadgets. Gadget x (k = max-1-x steps from the
-    destination) offers the direct link x-(x+1) with weight 2^k and a detour x-(2max-x)-(x+1) with
-    weight 2^(k+1). Delays are anti-correlated with weights: the cheap direct link is slow
-    (scale * 2^k), the detour fast (eps). Within one routing computation node x then improves
-    2^(max-x) times, and node 0 settles only after about scale * (2^max - 1)."""
-    out_dir = Path(triangledir) / f"triangle_n{max}"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    out_file = out_dir / f"triangle_n{max}_alt.tsv"
-    print(f"\n\t+ Saving triangle n={max} -> '{out_file}'")
-    with open(out_file, "w") as f:
-        f.write(f"{2 * max + 1}\n")
-        for x in range(max):
-            k = max - 1 - x
-            side = 2 * max - x
-            f.write(f"{x}\t{x + 1}\t{2 ** k}\t{scale * 2 ** k:g}\n")  # cheap and slow
-            f.write(f"{x + 1}\t{x}\t{2 ** k}\t{scale * 2 ** k:g}\n")
-            f.write(f"{x}\t{side}\t{2 ** (k + 1)}\t{eps:g}\n")
-            f.write(f"{side}\t{x}\t{2 ** (k + 1)}\t{eps:g}\n")  # expensive and fast
-            f.write(f"{side}\t{x + 1}\t0\t{eps:g}\n")
-            f.write(f"{x + 1}\t{side}\t0\t{eps:g}\n")
-
-
 # ──────────────────────────────────────────────────────────────────────
-# FOCUS network
+# FOCUS
 # ──────────────────────────────────────────────────────────────────────
 def focus_network(max: int, focusdir: str):
     out_dir = Path(focusdir) / f"focus_n{max}"
@@ -360,19 +338,6 @@ def edge_centrality(G: nx.DiGraph):
     for u, score in top_nodes:
         print(f"\t\t{u}: centrality={score:.4f}")
 
-    ranked_edges = sorted(merged.items(), key=lambda kv: kv[1], reverse=False)
-    ranked_nodes = sorted(node_centrality.items(), key=lambda kv: kv[1], reverse=False)
-
-    top_nodes = ranked_nodes[:10]
-    candidates = ranked_edges[:top_k]
-    print(f"\n\n\tSmall Edge centrality:")
-    for (u, v), score in candidates:
-        print(f"\t\t{u} - {v}: centrality={score:.4f}")
-
-    print(f"\n\tSmall Node centrality:")
-    for u, score in top_nodes:
-        print(f"\t\t{u}: centrality={score:.4f}")
-
 
 def all_minimum_edge_cutsets(G):
     k = nx.edge_connectivity(G)
@@ -403,17 +368,17 @@ def cmd_info(g: nx.DiGraph, AS: str, **_):
     print(f"\n\tLargest edge delay: {max_d}  on ({u},{v})")
     print(f"\tNode with maximum degree: {max_deg_node} with degree {max_deg}\n")
 
-    # G = g.to_undirected()
-    # cutsets = list(nx.all_node_cuts(G))
-    #
-    # k = nx.edge_connectivity(G)
-    # print(f"\tEdge connectivity: {k}")
-    # cutsets = all_minimum_edge_cutsets(G)
-    # print(f"\t{len(cutsets)} minimum cutset(s) of size {k}:")
-    # for cutset in cutsets:
-    #     print(f"\t\t  {cutset}")
+    G = g.to_undirected()
+    cutsets = list(nx.all_node_cuts(G))
+    
+    k = nx.edge_connectivity(G)
+    print(f"\tEdge connectivity: {k}")
+    cutsets = all_minimum_edge_cutsets(G)
+    print(f"\t{len(cutsets)} minimum cutset(s) of size {k}:")
+    for cutset in cutsets:
+         print(f"\t\t  {cutset}")
 
-    # edge_centrality(g)
+    edge_centrality(g)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -450,7 +415,7 @@ def build_parser() -> argparse.ArgumentParser:
     bc.add_argument("--mode", choices=["unit", "equal", "uniform"], default="equal",
                     help="delay/length distribution (default: unit)")
 
-    # SCIERA real-world core topology
+    # SCIERA real-world core topology (unused)
     sc = sub.add_parser("sciera", help="generate dataset files from a real-world SCIERA topology")
     sc.add_argument("--AS", default=DEFAULT_SCIERA_AS,
                     help=f"topology label for the SCIERA topology (default: {DEFAULT_SCIERA_AS})")
@@ -503,7 +468,6 @@ def main():
         dispatch[args.sciera_cmd]()
 
     else:
-        # Rocketfuel dataset commands
         print("Loading Rocketfuel topology")
         g, id_to_name = load_graph(args.AS, args.topdir, source="rocketfuel")
         dispatch = {

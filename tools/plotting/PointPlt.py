@@ -16,16 +16,11 @@ import re
 import os
 
 # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
-# the figure is drawn at the width it takes in the paper and included at that width, e.g.
-# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
-# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
-LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = True
-WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)
 
-# the same sizes in PointPlt.py, periodPlot.py and StateSize.py: as no figure is scaled, their text
-# is then the same size in the paper whatever width each one takes
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
@@ -141,7 +136,7 @@ for csv_path in DATA_DIR.glob(f"{DATASET[DATASET_][0]}_*/*/*convergence.csv"):
 
     df = pd.read_csv(csv_path)
     df = df[df["change_count"] != 0]
-    df = df[df["stab_time"] > 0]  # log y axis cannot show 0
+    df = df[df["stab_time"] > 0]  
 
     df = df[['stab_time']].copy()
     df[f"{DATASET_}"] = n
@@ -159,7 +154,6 @@ family_colors = dict(zip(families, sns.color_palette("colorblind", n_colors=len(
 
 palette = {label: family_colors[get_family(label)] for label in labels}
 
-# same family -> same colour and line style; different periods within a family -> different markers
 markers = {}
 for fam in families:
     fam_labels = [l for l in hue_order if get_family(l) == fam]  # already sorted by period
@@ -180,9 +174,9 @@ sns.pointplot(
     order=DATASET[DATASET_][1],
     hue_order=hue_order,
     palette=palette,
-    estimator="max",                         # point = mean
+    estimator="max",                         # mean or max...
     errorbar=None,
-    markers=[markers[label] for label in hue_order],  # one per hue level, in hue_order
+    markers=[markers[label] for label in hue_order],
     linestyle=[linestyles[label] for label in hue_order],
     dodge=0.5,
     markersize=8,
@@ -191,7 +185,6 @@ sns.pointplot(
 
 ax.set_yscale('log')
 
-# at half the line, the full label is wider than the figure at 10 pt
 ax.set_xlabel("Nodes in Clique Topology" if SIDE_BY_SIDE else "Number of Nodes in Clique Topology")
 ax.set_ylabel("Stabilization time [ms]")
 
@@ -200,13 +193,12 @@ ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 ax.grid(alpha=0.3, which="major")
 
 handles, labels = ax.get_legend_handles_labels()
-# compact: at half the line a default legend covers most of the axes
 legend = ax.legend(handles=handles, labels=labels, loc="upper left")
 new_labels = [rf"{label}" for label in labels]
 for text in legend.get_texts():
     text.set_fontfamily("monospace")
 
-plt.tight_layout()  # fits the labels inside the figure, which keeps its size
+plt.tight_layout()
 
 name = f"{DATASET_}PointPlot_unit.pdf"
 out_path = os.path.join(OUTPUT_DIR, name)

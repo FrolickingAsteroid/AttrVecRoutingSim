@@ -12,16 +12,13 @@ import glob
 import re
 import os
 
-# # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
-# the figure is drawn at the width it takes in the paper and included at that width, e.g.
-# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
-# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
-LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+
+LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = True
-WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)
 
-# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
+
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
@@ -33,8 +30,8 @@ plt.rcParams.update({
 })
 
 TEXTWIDTH = 6.30
-FIG_W = 10  # 0.49 * TEXTWIDTH
-FIG_H = 8  # 0.75 * FIG_W
+FIG_W = 10
+FIG_H = 8
 
 plt.rcParams.update({
     "font.family": "Arial",
@@ -78,12 +75,10 @@ SCENARIO = "normal"
 Proto_label = ["SyRuP","BGP"]
 Algebra_label = ["SP", "Hops"]
 PERIODS = ["1.0"]
-BCN_PERIODS = ["31.0"]  # beaconing: destination announcement period
-DPROPS = ["5.0"]        # beaconing: propagation interval
-METRIC = "time"      # time: convergence time (..._convergence.csv) | msgs: messages exchanged per destination (msglog)
-LOGX = False         # log time/message axis
-
-# protocols whose curves coincide with the plotted ones: named in each legend entry instead of drawn
+BCN_PERIODS = ["31.0"]
+DPROPS = ["5.0"]
+METRIC = "time"
+LOGX = False
 SAME_AS = []
 
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
@@ -183,7 +178,7 @@ def load(network):
             if period not in BCN_PERIODS or dprop not in DPROPS:
                 continue
 
-        if csv_path.stat().st_size == 0:  # runs that were interrupted leave empty files behind
+        if csv_path.stat().st_size == 0:
             continue
 
         print(csv_path)
@@ -211,7 +206,7 @@ def ecdf(data, array: bool = True):
     x = np.sort(data)
     y = 1 - np.arange(1, n + 1) / n
 
-    x = np.concatenate([[x[0] if LOGX else 0.0], x])     # 0 can't be shown on a log axis
+    x = np.concatenate([[x[0] if LOGX else 0.0], x])
     y = np.concatenate([[1.0], y])
     if not array:
         return pd.DataFrame({'x': x, 'y': y})
@@ -231,7 +226,7 @@ def plot_ccdf(df, network_name):
         .reset_index(drop=True)
     )
 
-    # protocols with coinciding curves share the plotted line and its legend entry
+
     dfg["name"] = dfg["Protocol"].apply(lambda p: " / ".join([p] + SAME_AS))
 
     dfg["label_raw"] = dfg.apply(

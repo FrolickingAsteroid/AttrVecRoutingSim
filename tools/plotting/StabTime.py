@@ -16,15 +16,13 @@ import re
 import os
 
 # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
-# the figure is drawn at the width it takes in the paper and included at that width, e.g.
-# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
-# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
-LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+
+LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = True
-WF, HF = (1.6, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
+WF, HF = (1.6, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)
 
-# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
+
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
@@ -47,30 +45,14 @@ Proto_label = ["SyRuP"]
 Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
 PERIODS = ["1.0"]
 
-# log y axis (x stays linear), labelled 1, 0.1, 0.01, ...
 LOGY = False
-
-# log x axis: separates time scales an order of magnitude apart (e.g. SyRuP with several periods in cutset).
-# A time of 0 can't be shown, so a curve starts below 1 when some of its nodes settle at the failure instant
 LOGX = False
-
-# one plot per period (with BGP and BGP-RCN in each) instead of every period in one plot
 SPLIT_PERIODS = False
-
-# smooth: each curve is evaluated at SMOOTH_POINTS evenly spaced times instead of a step per sample.
-# On a log y axis it is also cut once fewer than MIN_LEFT samples remain, so the last few don't drop it by decades
 SMOOTH = False
 SMOOTH_POINTS = 300
 MIN_LEFT = 5
-
-# compact legend: one entry per protocol (colour, with its mean per algebra) and one per algebra (line style)
-# instead of one per curve
 COMPACT_LEGEND = False
-
-# statistics printed with each plot: share of affected nodes taking longer than THRESHOLD ms
 THRESHOLD = 40.0
-
-# keep only the (failure, destination) pairs every loaded protocol was run on (e.g. after an interrupted run)
 COMMON = False
 
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
@@ -81,7 +63,7 @@ PROTOCOL = {
     "rcn": "BGP-RCN",
 }
 
-# colour order when protocols are coloured by family (several periods of one algebra)
+
 FAMILIES = ["BGP", "BGP-RCN", "SyRuP", "SyRuP-LFN"]
 PERIOD_STYLES = ['-', (0, (5, 2)), (0, (1.2, 1.2)), '-.']
 
@@ -98,7 +80,7 @@ Algebra = {
 Algebra_label = ["SP", "All SP", "Hops", "All Hops"]
 Proto_label = ["SyRuP"]
 
-# protocols whose curves coincide with the plotted ones: named in each legend entry instead of drawn
+
 SAME_AS = []
 
 
@@ -127,12 +109,12 @@ def get_protocol_label(protocol_raw: str, filename: str) -> str:
     if key == "rpbob":
         delta = re.findall(r"\d+\.\d+", filename)[0]
         if "notif" in filename:
-            if SCENARIO != "normal":  # after a failure the period matters: name it
+            if SCENARIO != "normal":
                 return rf"SyRuP-LFN Δ = {delta} ms"
             else:
                 return rf"SyRuP-LFN"
         else:
-            if SCENARIO != "normal":  # after a failure the period matters: name it
+            if SCENARIO != "normal":
                 return rf"SyRuP".ljust(10) + f"Δ = {delta} ms"
             else:
                 return rf"SyRuP"
@@ -166,7 +148,6 @@ def load(network):
         protocol_label = get_protocol_label(protocol, filename)
         algebra_label = get_algebra(filename)
 
-        # filter by family: after a failure (any scenario but normal) the SyRuP labels carry the period ("SyRuP     Δ = 1.0 ms")
         if get_family(protocol_label) not in Proto_label:
             continue
 
@@ -184,20 +165,13 @@ def load(network):
 
         df = pd.read_csv(csv_path)
 
-        # an interrupted run leaves a truncated last row behind
-        broken = df[["dest", "node", "stab_time", "change_count"]].isna().any(axis=1)
-        if broken.any():
-            print(f"\tdropping {broken.sum()} incomplete row(s) from {csv_path.name}")
-            df = df[~broken]
 
-        # a run appended (-A) to an existing file repeats every (failure, destination, node): keep the first
         keys = [c for c in ("failure", "dest", "node") if c in df]
         repeated = df.duplicated(keys)
         if repeated.any():
             print(f"\tdropping {repeated.sum()} repeated row(s) from {csv_path.name} (appended run?)")
             df = df[~repeated]
 
-        # every node is kept: the unaffected ones (change_count == 0) are needed for the statistics
         df = df[[c for c in ("failure", "dest", "stab_time", "change_count") if c in df]].copy()
         df['Protocol'] = protocol_label
         df['Algebra'] = algebra_label
@@ -210,7 +184,6 @@ def load(network):
     df = pd.concat(rows, ignore_index=True)
 
     if COMMON and "failure" in df:
-        # keep only the (failure, destination) pairs every protocol was run on, per algebra
         keep = []
         for algebra, group in df.groupby("Algebra"):
             pairs = [set(zip(g["failure"], g["dest"])) for _, g in group.groupby("Protocol")]
@@ -224,8 +197,6 @@ def load(network):
 
 
 def stats(g):
-    # affected: preferred attribute changed. Not stab_time == 0, which also holds for nodes that change
-    # exactly at the failure instant. Means, tail share and maximum are over the affected nodes only
     affected = g["change_count"] != 0
     t = g.loc[affected, "stab_time"]
     slow = t[t > THRESHOLD]
@@ -254,9 +225,8 @@ def ecdf(data, array: bool = True):
         return x, y
 
 
-# tick label as a module-level function: the figure is pickled, and lambdas can't be
 def decimal_label(v, _):
-    decimals = max(0, -int(np.floor(np.log10(v))))  # 1, 0.1, 0.01, ... never 1e-05
+    decimals = max(0, -int(np.floor(np.log10(v))))
     return f"{v:.{decimals}f}"
 
 
@@ -285,7 +255,6 @@ def plot_ccdf(df, network_name, tag=""):
         .reset_index(drop=True)
     )
 
-    # protocols with coinciding curves share the plotted line and its legend entry
     dfg["name"] = dfg["Protocol"].apply(lambda p: " / ".join([p] + SAME_AS))
 
     dfg["label_raw"] = dfg.apply(
@@ -305,7 +274,6 @@ def plot_ccdf(df, network_name, tag=""):
     colors = dict(zip(protocols, sns.color_palette(palette="colorblind", n_colors=len(protocols))))
     linestyles = dict(zip(algebras, itertools.cycle(['-', 'dotted'])))
 
-    # several periods of a single algebra: colour by protocol family, line style by period
     periods = sorted({period_of(p) for p in protocols} - {None}, key=float)
     by_period = len(algebras) == 1 and len(periods) > 1
     families = [f for f in FAMILIES if any(get_family(p) == f for p in protocols)]
@@ -316,7 +284,6 @@ def plot_ccdf(df, network_name, tag=""):
 
     fig, ax = plt.subplots(figsize=get_figsize(LINEWIDTH, wf=WF, hf=HF))
 
-    # log y: lowest value a curve can reach is one sample left (MIN_LEFT when smoothed), on the largest curve
     largest_n = df.groupby(["Protocol", "Algebra"]).size().max()
     y_bottom = 10 ** np.floor(np.log10((MIN_LEFT if SMOOTH else 1) / largest_n))
 
@@ -330,13 +297,9 @@ def plot_ccdf(df, network_name, tag=""):
                 x, y = smooth_ccdf(values.to_numpy())
                 drawstyle = "default"
             else:
-                # stable: ecdf() already ordered tied times by decreasing y; an unstable sort shuffles them,
-                # and a curve whose largest time repeats can then end on a higher point instead of its last drop
                 group = group.sort_values("x", kind="stable")
                 x, y = group["x"], group["y"].to_numpy()
                 if LOGY:
-                    # a log axis can't draw the final 0: end each curve below the axis instead,
-                    # so its last drop always runs off the bottom
                     y = np.where(y > 0, y, y_bottom / 10)
                 drawstyle = "steps-post"
             ax.plot(
@@ -352,7 +315,7 @@ def plot_ccdf(df, network_name, tag=""):
     if LOGY:
         ax.set_yscale('log')
         ax.set_ylim([y_bottom, 1.2])
-        ax.set_xlim([0.0, df["stab_time"].max() * 1.05])  # the tail is what the log axis is for: show all of it
+        ax.set_xlim([0.0, df["stab_time"].max() * 1.05])
         ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(decimal_label))
         ax.grid(alpha=0.3, which="major")
     else:
@@ -360,11 +323,11 @@ def plot_ccdf(df, network_name, tag=""):
         ax.set_xlim([0.0, 65])
         ax.grid(alpha=0.3, which="both")
     if LOGX:
-        # from the decade holding the shortest 1% of the (non-zero) times to just past the longest
+
         positive = df.loc[df["stab_time"] > 0, "stab_time"]
         left = np.floor(np.log10(positive.quantile(0.01)))
         if COMPACT_LEGEND and not LOGY:
-            left -= 1  # one empty decade on the left, for the means table to sit in
+            left -= 1
         ax.set_xscale('log')
         ax.set_xlim([10 ** left, df["stab_time"].max() * 1.2])
         ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(decimal_label))
@@ -390,11 +353,10 @@ def plot_ccdf(df, network_name, tag=""):
 
     handles, labels = ax.get_legend_handles_labels()
     if COMPACT_LEGEND:
-        # two legends: a table of means (one row per protocol, one column per algebra, or per period when
-        # several periods of one algebra are plotted), and the line styles side by side in a single row
+
         header = "mean [ms]"
         if by_period:
-            # families without a period (BGP, BGP-RCN) have a single value, under the first column
+            # families without a period (BGP, BGP-RCN) have a single value
             columns = [f"Δ={float(d):g}" for d in periods]
             cells = {}
             for p in protocols:
@@ -412,11 +374,9 @@ def plot_ccdf(df, network_name, tag=""):
             style_handles = [Line2D([], [], color="0.35", linestyle=linestyles[a], linewidth=2) for a in algebras]
             style_labels = list(algebras)
 
-        # every cell padded to one width, so the "|" line up in the monospace font
         width = max([len(name) for _, name, _ in rows] + [len(header)]) + 2
         cell = max(len(v) for v in [v for _, _, values in rows for v in values] + columns)
 
-        # header row (no line sample) naming the columns, then one row per protocol
         handles = [Line2D([], [], linestyle="none")]
         labels = [header.ljust(width) + " " + " | ".join(c.center(cell) for c in columns) + " "]
         handles += [Line2D([], [], color=color, linestyle="-", linewidth=2) for color, _, _ in rows]
@@ -425,15 +385,13 @@ def plot_ccdf(df, network_name, tag=""):
         tight = dict(fancybox=True, shadow=False, handlelength=1.8, handletextpad=0.5,
                      borderpad=0.4, labelspacing=0.3, borderaxespad=0.4)
 
-        # the curves fall from the top left: the upper right stays free on a linear x axis. On a log x axis
-        # with a linear y axis the slow curves sit at the top right instead, and the lower left is free
+
         table_loc, style_loc = ("lower left", "upper right") if LOGX and not LOGY else ("upper right", "lower left")
         legend = ax.legend(handles, labels, loc=table_loc, **tight)  # same font size whatever the axes
         for text in legend.get_texts():
             text.set_fontfamily("monospace")
         ax.add_artist(legend)
 
-        # the line styles side by side, without a box (a single style says nothing)
         if len(style_handles) > 1:
             ax.legend(style_handles, style_labels, loc=style_loc, frameon=False, ncol=len(style_handles))
     else:

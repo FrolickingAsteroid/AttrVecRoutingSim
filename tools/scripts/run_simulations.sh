@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-#
-# Launch Simulator runs for the clique, triangle, rocketfuel and scion topologies.
-# Run with --help for usage and examples.
+## File        : Scripts/networkdataset.py
+## Description : Runs Simulations in batch
 
 set -o errexit -o pipefail -o noclobber -o nounset
 
@@ -14,33 +13,29 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}"
 
-# ════════════════════════════════════════════════════════════════
-# Configuration — edit here, the rest of the script adapts
-# ════════════════════════════════════════════════════════════════
 
 SIMULATOR="./build/Simulator"
 
 ALL_TOPOS=(clique triangle rocketfuel scion focus)
-ALL_PROTOCOLS=(R R-notif G C)          # R = -R, R-notif = -R notif, G = -G, C = -C
+ALL_PROTOCOLS=(R R-notif G C)          
 DEFAULT_NODE_COUNTS=(4 8 16 32)
 DEFAULT_AS=3257
-DEFAULT_PERIODS=(1.0)                 # R / R-notif update period (-i)
+DEFAULT_PERIODS=(1.0)                
 
-# Rocketfuel: "file:algebra" pairs per AS (files live in data/datasets/rocketfuel/<AS>/)
+# Rocketfuel: data/datasets/rocketfuel/<AS>/
 declare -A ROCKET_COMBOS=(
     [3257]="DelayLength.tsv:lex-length-hops-suffix DelayHops.tsv:lex-hops-suffix"
     [1755]="DelayHops.tsv:lex-hops-suffix DelayLength.tsv:lex-length-hops-suffix"
     [1221]="DelayLengthWidth.tsv:lex-length-width-suffix DelayLengthWidth.tsv:prod-width-length-hops-suffix"
 )
 
-# Rocketfuel: top edges by centrality per AS, as comma-separated "id1 id2" pairs
+
 declare -A ROCKET_TOP_EDGES=(
     [3257]="2 34, 34 45, 8 47, 45 6, 16 47, 8 9, 5 6"
     [1755]="18 45, 24 25, 0 18, 25 50, 24 19, 45 13, 0 24, 50 68, 3 19, 0 38"
 )
 
-# Rocketfuel failure modes and the Simulator flags each one adds.
-# ("edges" is built per edge as: -F <id1> <id2>)
+
 ROCKET_MODES=(normal all-edges cutset edges)
 declare -A ROCKET_MODE_FLAGS=(
     [normal]=""
@@ -48,22 +43,13 @@ declare -A ROCKET_MODE_FLAGS=(
     [cutset]="--cutset"
 )
 
-# SCION: "file:algebra" pairs
-SCION_COMBOS=(
-    "data/datasets/scion/sciera/DelayLength.tsv:lex-length-hops-suffix"
-    "data/datasets/scion/sciera/DelayLength.tsv:lex-length-explicit"
-    "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-suffix"
-    "data/datasets/scion/sciera/DelayHops.tsv:lex-hops-explicit"
-)
 
-# ════════════════════════════════════════════════════════════════
+
 # Helpers
-# ════════════════════════════════════════════════════════════════
-
 function die  { echo "$(basename "$0"): $*" >&2; echo "Try --help." >&2; exit 1; }
 function warn { printf '\nWarning: %s\n' "$*" >&2; }
 
-function in_list {            # in_list <value> <item>...
+function in_list {            
     local x="$1" y; shift
     for y in "$@"; do
         if [[ "$x" == "$y" ]]; then return 0; fi
@@ -81,10 +67,6 @@ function progress_bar {       # progress_bar <done> <total>
     bar="$(printf '%*s' "$filled" '' | tr ' ' '#')$(printf '%*s' $(( 40 - filled )) '' | tr ' ' '-')"
     printf '\rProgress : [%s] %d%%' "$bar" "$pct"
 }
-
-# ════════════════════════════════════════════════════════════════
-# Arg parsing
-# ════════════════════════════════════════════════════════════════
 
 function usage {
     local me topos modes
@@ -124,17 +106,6 @@ General:
   -C, --clean         <topo>               delete data/output/<topo>/**/*.csv
   -h, --help
 
-Examples:
-  $me -t clique -T unit -n "4 8" -N 3
-  $me -t triangle -n "4 8 16"
-  $me -t rocketfuel -a 3257                     # normal run
-  $me -t rocketfuel -a 3257 -m all-edges
-  $me -t rocketfuel -a 3257 -m cutset
-  $me -t rocketfuel -a "3257 1755" -m edges -N 5
-  $me -t rocketfuel -a 1755 -m edges -e "18 45,24 25"
-  $me -t rocketfuel -a 3257 -m all-edges -p R -P 0.5:0.5:3
-  $me -t clique -T unit -P "0.5 1 2"          # R/R-notif per period, G/C once
-  $me -t scion --dry-run
 EOF
     exit "${1:-1}"
 }
@@ -268,15 +239,15 @@ function validate_args {
     esac
 }
 
-# ════════════════════════════════════════════════════════════════
-# Launching
-# ════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────
+# Runs
+# ──────────────────────────────────────────────────────────────────────
 
 PIDS=()
-period="${DEFAULT_PERIODS[0]}"   # current R period (set per step in main)
+period="${DEFAULT_PERIODS[0]}"   
 period_idx=0
 
-function launch {             # launch <Simulator args...>  (runs in background)
+function launch { 
     if (( dry_run )); then
         printf '  %q' "$SIMULATOR" "$@"; echo
         return 0
@@ -287,7 +258,6 @@ function launch {             # launch <Simulator args...>  (runs in background)
 
 function launch_protocol {
     local proto="$1"; shift
-    # G and C have no period: launch them only on the first period of each step
     if ! is_rip "$proto" && (( period_idx > 0 )); then return 0; fi
     case "$proto" in
         R)       launch -R "$@";;
@@ -306,11 +276,6 @@ function wait_all {
     return "$status"
 }
 
-# ════════════════════════════════════════════════════════════════
-# Topologies
-#   plan_<topo>  fills STEPS (one entry = one parallel batch)
-#   step_<topo>  runs one batch; its args are the words of a STEPS entry
-# ════════════════════════════════════════════════════════════════
 
 STEPS=()
 
@@ -429,34 +394,10 @@ function step_rocketfuel {    # step_rocketfuel <AS> [id1 id2]
     wait_all
 }
 
-# ── SCION ───────────────────────────────────────────────────────
-function plan_scion {
-    local combo
-    for combo in "${SCION_COMBOS[@]}"; do
-        [[ -f "${combo%%:*}" ]] || warn "dataset not found: ${combo%%:*}"
-    done
-    STEPS+=("sciera")
-}
 
-function step_scion {
-    local combo file algebra proto
-    for combo in "${SCION_COMBOS[@]}"; do
-        file="${combo%%:*}"
-        algebra="${combo##*:}"
-        for proto in "${protocols[@]}"; do
-            if is_rip "$proto"; then
-                launch_protocol "$proto" -f "$file" -a "$algebra" -i "$period" -m 0 -A
-            else
-                launch_protocol "$proto" -f "$file" -A -a "$algebra" -m 0
-            fi
-        done
-    done
-    wait_all
-}
-
-# ════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────
 # Clean
-# ════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────
 
 function clean_output {
     local dir="data/output/$1"
@@ -469,9 +410,9 @@ function clean_output {
     fi
 }
 
-# ════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────
 # Main
-# ════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────
 
 function describe_run {
     case "$topo" in

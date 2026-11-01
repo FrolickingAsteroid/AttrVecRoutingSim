@@ -12,15 +12,11 @@ import argparse
 import re
 
 # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
-# the figure is drawn at the width it takes in the paper and included at that width, e.g.
-# \includegraphics[width=0.5\linewidth] side by side (or [width=\linewidth] alone), so it isn't scaled
-# and these font sizes are the sizes in the paper: 10 pt like the body text, smaller ticks and legend
-LINEWIDTH = 345.0  # pt, from LaTeX: \showthe\linewidth
+LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = False
 WF, HF = (1, 0.85) if SIDE_BY_SIDE else (1.0, (5. ** 0.5 - 1.0) / 2.0)  # width / LINEWIDTH, height / width
 
-# the same sizes in PointPlt.py, periodPlot.py, StateSize.py, FocusPlot.py, StabTime.py, MsgRate.py and RidgePlot.py
 plt.rcParams.update({
     "font.family": "Arial",
     "mathtext.fontset": "cm",
@@ -45,13 +41,13 @@ PERIODS = ["1.0"]
 SEQS = []
 NOTIF = False
 XMAX = None
-FILES_TO_PLOT = ["convergence", "msglog"]   # one column each, side by side, sharing the CCDF axis
+FILES_TO_PLOT = ["convergence", "msglog"]
 
 MAX_STAB = {"Hops": 69.4476, "SP": 62.7138}
 MAX_MSG= {"Hops": 69.4476, "SP": 62.7138}
 
-WSPACE = 0.04           # gap between columns, as a fraction of a panel's width
-PALETTE = "Set2"        # colours: the first column takes the first ones, the next column the following ones
+WSPACE = 0.04
+PALETTE = "Set2"
 OUTPUT_DIR = ROOT_DIR / 'data' / "plots"
 
 Algebra = {
@@ -66,7 +62,6 @@ Algebra = {
 # Source - https://stackoverflow.com/a/31527287
 # Posted by rth, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-09-27, License - CC BY-SA 4.0
-
 def get_figsize(columnwidth, wf=0.5, hf=(5. ** 0.5 - 1.0) / 2.0, ):
     """Parameters:
       - wf [float]:  width fraction in columnwidth units
@@ -223,13 +218,11 @@ def mark_max(ax, colors, metric):
 
 
 def plot_ridge(period):
-    """One figure: a column per file in FILES_TO_PLOT, a row per version, all sharing the CCDF axis."""
-    data = {f: load(period, f) for f in FILES_TO_PLOT}      # file -> algebra -> {version: values}
+    data = {f: load(period, f) for f in FILES_TO_PLOT}
     delta = float(period)
     algebras = list(dict.fromkeys(a for curves in data.values() for a in curves))
     seqs = sorted({s for curves in data.values() for c in curves.values() for s in c})
     first = seqs[0]
-    # each column gets its own colours: column 0 takes the first colours of the palette, column 1 the next, ...
     palette = sns.color_palette(PALETTE, n_colors=len(algebras) * len(FILES_TO_PLOT))
     colors_of = {f: dict(zip(algebras, palette[j * len(algebras):(j + 1) * len(algebras)]))
                  for j, f in enumerate(FILES_TO_PLOT)}
@@ -269,8 +262,7 @@ def plot_ridge(period):
     right.yaxis.set_label_position("right")
     right.set_ylabel("CCDF")
     left.set_ylabel("Routing Computation Instance")
-    # centred on the rows, a fixed distance in pt from the panels (clear of the tick labels / version numbers),
-    # whatever the width of a panel
+
     middle = 1 - (n + (n - 1) * hspace) / 2
     right.yaxis.set_label_coords(1, middle, transform=right.transAxes + ScaledTranslation(22 / 72, 0, fig.dpi_scale_trans))
     left.yaxis.set_label_coords(0, middle, transform=left.transAxes + ScaledTranslation(-14 / 72, 0, fig.dpi_scale_trans))
@@ -279,18 +271,18 @@ def plot_ridge(period):
     prefix = FILES[FILES_TO_PLOT[0]]["name"] if m == 1 else "ccdf_seq_" + "_".join(FILES_TO_PLOT)
     name = f"{prefix}_{NETWORK}_{SCENARIO}_{'_'.join(a.replace(' ', '') for a in algebras)}_{notif}period_{period}.pdf"
     out_path = OUTPUT_DIR / name
-    # fits the labels outside the panels inside the figure, which keeps its size; then the ridge's own spacing.
-    # tight_layout ignores labels moved with set_label_coords: the two side labels are pulled in by hand
+
     plt.tight_layout()
     fig.subplots_adjust(hspace=hspace, wspace=WSPACE)
     fig.canvas.draw()
-    pad = 2 / 72 * fig.dpi  # 2 pt between a label and the edge of the figure
+    pad = 2 / 72 * fig.dpi
     width = fig.bbox.width
     over_right = right.yaxis.label.get_window_extent().x1 + pad - fig.bbox.x1
     over_left = fig.bbox.x0 - (left.yaxis.label.get_window_extent().x0 - pad)
     fig.subplots_adjust(right=fig.subplotpars.right - max(0, over_right) / width,
                         left=fig.subplotpars.left + max(0, over_left) / width)
-    plt.savefig(out_path, format="pdf")  # no bbox_inches="tight": it would crop the figure below its width
+
+    plt.savefig(out_path, format="pdf")
     plt.show()
     print(f"\tsaved {out_path}\n")
 
