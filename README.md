@@ -1,5 +1,5 @@
 # AttrVecSim
-AttrVecSim is an attribute-vector routing protocol DES (discrete-event simulator), developed as part of the MSc dissertation *SyRuP: A Multipath Routing Protocol for the Path-Aware Network Architecture*, at Instituto Superior Técnico, Universidade de Lisboa (2026)
+AttrVecSim is a discrete-event simulator of attribute-vector routing protocols, developed as part of the MSc dissertation *SyRuP: A Multipath Routing Protocol for the Path-Aware Network Architecture*, at Instituto Superior Técnico, Universidade de Lisboa (2026)
 
 # Directory Structure
 This project follows the [Pitchfork](https://joholl.github.io/pitchfork-website/) layout for C++ projects, with merged header placement, as most of the simulator is templated, and therefore largely header-only. The project, with emphasis on its folder partitioning, is structured as follows.
