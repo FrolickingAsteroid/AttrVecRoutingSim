@@ -49,11 +49,6 @@ struct SeqAttr : std::tuple<int, A>
 		return std::get<1>(*this);
 	}
 
-	// bool empty() const
-	// {
-	// 	return std::get<1>(*this).empty();
-	// }
-
 	// ---------------------------------------------------------------------------- *
 	//
 	// Operators

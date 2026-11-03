@@ -16,7 +16,7 @@ struct Beacon
 	A      attr; // (attr, path)
 	double timeout;
 
-	static constexpr double expiration = 100; //
+	static constexpr double expiration = 100;
 
 	Beacon() = default;
 

@@ -12,8 +12,7 @@ template <class RA>
 class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::BGPAttribute<RA>>
 {
 	using BGPAttribute = Protocol::BGP::BGPAttribute<RA>;
-
-	using Base = SimulationCommon<typename RA::Attr, BGPAttribute>;
+	using Base         = SimulationCommon<typename RA::Attr, BGPAttribute>;
 
     public:
 	using Base::Base;
@@ -85,6 +84,7 @@ class BGPSimulation : public SimulationCommon<typename RA::Attr, Protocol::BGP::
 			proto.Run();
 		}
 
+		// record bgp state size for each node and destination
 		for (int x = 0; x < this->graph.V; ++x)
 		{
 			proto.data.ribSize[x] = static_cast<int>(proto.s[x].GetAttrTable().size());

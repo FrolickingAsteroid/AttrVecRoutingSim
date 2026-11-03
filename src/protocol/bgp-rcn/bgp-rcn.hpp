@@ -36,8 +36,6 @@ struct RCN : IProtocol<typename RA::Attr, RCNAttribute<RA>, RCNMsg<RA>>
 
 	void LinkFailure(int u, int v) override;
 
-	void NodeDown(int t);
-
 	void MsgReception(int u, int v, Msg received) override;
 
 	void process() override;

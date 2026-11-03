@@ -39,23 +39,6 @@ std::pair<std::vector<std::vector<std::pair<double, typename Base<RA>::Attr>>>,
 DelayDijkstra(const Graphs::Graph<typename Base<RA>::Attr> &graph, int dest);
 
 void printDelays(const std::vector<double> &results, double D);
-
-/*
-template <class A, class Ord, class Ext> void Compute_N(const std::string &filename, double Delta);
-
-template <class A, class Ord, class Ext>
-void Compute_N(const std::string &filename, double Delta, int t);
-
-template <class A, class Ord>
-std::pair<double, std::vector<double>>
-WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time);
-
-template <class A>
-std::vector<int>
-propagateN(const std::vector<double> &node_D, const Graphs::Graph<A> &graph, double Delta);
-
-void printDelays(std::vector<double> &results, double D);
-*/
 } // namespace utils::helpers
 
 #include "utils/helpers/helpers.tpp"

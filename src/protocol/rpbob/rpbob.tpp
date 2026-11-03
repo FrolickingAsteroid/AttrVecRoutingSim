@@ -111,13 +111,6 @@ void RPBOB<RA>::HandleMsg(int u, int v, Notification notif)
 {
 	(void)v;
 	auto f_link = get<1>(notif);
-	if ((u == 0) && data.log == true)
-	{
-		LOG_DEBUG << "from" << v;
-		LOG_DEBUG << "Time: " << cal.now();
-		LOG_DEBUG << "Notif for node " << u << ": " << f_link.first << ", " << f_link.second << "\n";
-	}
-
 	if (s[u].AddFailedLink(f_link.first, f_link.second))
 	{
 		if (auto removed = s[u].FailureNotif(f_link); !removed.empty())
@@ -155,13 +148,6 @@ void RPBOB<RA>::HandleMsg(int u, int v, RpbobAttr p)
 		{
 			converged();
 		}
-	}
-
-	if ((u == 59 || u == 60) && data.log == true)
-	{
-		LOG_DEBUG << "Time: " << cal.now();
-		LOG_DEBUG << "node: " << u << "\nextended: " << extended;
-		LOG_DEBUG << s[u] << "\n";
 	}
 }
 

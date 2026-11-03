@@ -28,7 +28,6 @@ class BCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::Beaco
 			auto [time, o] = utils::helpers::DelayDijkstra<RA>(this->graph, t);
 			if (this->cfg.scenario == config::Type::Normal)
 			{
-				// convergence_attr[t] = std::move(o);
 				this->recorder.recordDest(t, proto(t));
 			}
 		}
@@ -47,20 +46,17 @@ class BCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::Beaco
 		};
 	}
 
-	utils::stats::Data<BeaconingAttribute> proto(int t, std::optional<int> u = std::nullopt,
-						     std::optional<int> v = std::nullopt)
+	utils::stats::Data<BeaconingAttribute> proto(int t)
 	{
 		Protocol::Beaconing::BEACONING<RA> proto(this->graph);
 		SetupCallback(proto, t);
 
 		proto.DestinationAnnouncement(t, 0, *this->cfg.period, this->cfg.max);
 
-		// the last announcement is issued at (max - 1) * period and its beacons expire
-		// one expiration interval later; no propagation can send anything afterwards
-		const double horizon = (*this->cfg.max - 1) * *this->cfg.period + BeaconingAttribute::expiration;
-
 		// periodic propagation on every node,
 		// independent of destination announcement
+		// the last prop is issued at (max - 1) * period
+		const double horizon = (*this->cfg.max - 1) * *this->cfg.period + BeaconingAttribute::expiration;
 		for (int x = 0; x < this->graph.V; ++x)
 		{
 			if (x == t)
@@ -70,18 +66,8 @@ class BCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::Beaco
 			proto.SchedulePropagation(x, *this->cfg.dprop, horizon);
 		}
 
-		if (u && v)
-		{
-			proto.cal.schedule(100, [&]() {
-				proto.LinkFailure(*u, *v);
-			});
-			proto.Run();
-		}
-		else
-		{
-			proto.data.log = true;
-			proto.Run();
-		}
+		proto.data.log = true;
+		proto.Run();
 
 		return proto.data;
 	}

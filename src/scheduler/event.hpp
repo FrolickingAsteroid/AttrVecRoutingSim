@@ -30,7 +30,6 @@ struct EventCompare
 	{
 		// std::priority_queue is a max-heap.
 		// Return true when lhs has lower priority than rhs.
-
 		if (lhs.time != rhs.time)
 		{
 			return lhs.time > rhs.time;

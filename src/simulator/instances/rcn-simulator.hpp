@@ -67,7 +67,6 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 		}
 		else if (cutset)
 		{
-			// proto.Run();
 			for (const auto &[u, v] : *cutset)
 			{
 				proto.cal.schedule(100, [&]() {
@@ -82,6 +81,7 @@ class RCNSimulation : public SimulationCommon<typename RA::Attr, Protocol::RCN::
 			proto.Run();
 		}
 
+		// record state size for rcn for each node and destination
 		for (int x = 0; x < this->graph.V; ++x)
 		{
 			proto.data.ribSize[x] = static_cast<int>(proto.s[x].GetAttrTable().size());

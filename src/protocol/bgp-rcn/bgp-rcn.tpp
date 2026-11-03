@@ -25,27 +25,11 @@ void RCN<RA>::process()
 	}
 }
 
-template <class RA>
-void RCN<RA>::NodeDown(int t)
-{
-	for (auto &[r, edge] : graph.adjListIn[t])
-	{
-		if (s[r].succ == t)
-		{
-			s[r].RemoveNeighbor(t);
-			graph.deactivate(r, t);
-			if (s[r].ProcessBest())
-			{
-				rcn notif{t, ++s[r].t};
-
-				this->Send(r, Msg{s[r].GetElected(), notif});
-				data.recordChange(r, cal.now(), s[r].GetElected(r));
-			}
-		}
-	}
-	data.log = true;
-	data.setOffset(cal.now());
-}
+// ---------------------------------------------------------------------------- *
+//
+// Link Failure Handling
+//
+// ---------------------------------------------------------------------------- *
 
 template <class RA>
 void RCN<RA>::LinkFailure(int u, int v)
@@ -74,6 +58,12 @@ void RCN<RA>::LinkFailure(int u, int v)
 	}
 }
 
+// ---------------------------------------------------------------------------- *
+//
+// Message Processing
+//
+// ---------------------------------------------------------------------------- *
+
 template <class RA>
 void RCN<RA>::DestinationAnnouncement(int t)
 {
@@ -88,11 +78,6 @@ void RCN<RA>::MsgReception(int u, int v, Msg received)
 	{
 		return;
 	}
-	if ((data.log == true && (u == 13)))
-	{
-		LOG_DEBUG << "node:" << u;
-		LOG_DEBUG << "Time:" << cal.now();
-	}
 
 	RCNAttr lw(u, graph.edgeWeight(u, v).buildLinkAttr(u), s[u].t);
 	RCNAttr extended = lw + received.route;
@@ -102,8 +87,7 @@ void RCN<RA>::MsgReception(int u, int v, Msg received)
 
 	if (s[u].ProcessBest(v))
 	{
-		auto l = s[u];
-		//++s[u].t;
+		auto l    = s[u];
 		auto send = s[u].GetElected(u);
 
 		if (received.RCN.has_value())

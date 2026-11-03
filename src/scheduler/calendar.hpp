@@ -63,6 +63,8 @@ class Calendar
 	{
 		while (!q.empty())
 		{
+			// If events are scheduled in the same time instance
+			// process them in batch
 			const double snapshot = q.top().time;
 			while (!q.empty() && q.top().time == snapshot)
 			{

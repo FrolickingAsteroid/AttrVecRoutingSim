@@ -27,7 +27,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		for (int t : this->targets)
 		{
 			auto [time, o] = delayDijkstra(t);
-			conv_time      = 100; // 1.1 * ConvergenceTime(time);
+			conv_time      = 1.1 * ConvergenceTime(time);
 
 			if (!this->cfg.notif)
 			{
@@ -43,6 +43,8 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			{
 				for (const auto &[u, v] : this->bid_links)
 				{
+					// compute window size for subnetwork after
+					// removing affected link
 					this->graph.deactivate(u, v);
 					auto [opt_time, opt] = delayDijkstra(t);
 					this->graph.activate(u, v);
@@ -51,6 +53,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 
 					if (!this->cfg.notif)
 					{
+						// alter window of nodes whose window has expanded
 						utils::helpers::updateWindu<bAttr>(*this->cfg.period, wind, opt_time);
 					}
 
@@ -60,11 +63,8 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 			}
 			if (this->cfg.scenario == config::Type::Cutset)
 			{
-
-
 				for (const auto &cutset : this->cutsets)
 				{
-					//auto cutset = {std::pair{0, 59}, std::pair{60, 1}};
 					for (const auto &[u, v] : cutset)
 					{
 						this->graph.deactivate(u, v);
@@ -74,6 +74,8 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 					{
 						this->graph.activate(u, v);
 					}
+					// if the cut removes all paths towards the destination
+					// do not proceed with SyRuP sim
 					if (!this->cfg.notif && checkEmpty(opt))
 					{
 						continue;
@@ -132,6 +134,7 @@ class RpBOBSimulation : public SimulationCommon<typename RA::Base::Attr, Protoco
 		return max_delay;
 	}
 
+	// callback function that checks if nodes have stabilised
 	void SetupConv(Protocol::Rpbob::RPBOB<RA> &proto, int t)
 	{
 		proto.converged = [this, &proto, t]() {

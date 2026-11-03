@@ -70,20 +70,7 @@ void BEACONING<RA>::MsgReception(int u, int v, Bcn beacon)
 	typename RA::Attr edgeAttr(graph.edgeWeight(u, v).buildLinkAttr(u)); // (l_attr, u)
 	auto              extended = beacon + edgeAttr;                      // (l_attr (ext) r_attr, uP)
 
-	if (u == 7)
-	{
-		LOG_DEBUG << "Reception:";
-		LOG_DEBUG << "Time: " << cal.now();
-		LOG_DEBUG << "node: " << u;
-		LOG_DEBUG << "Extended: " << extended;
-		LOG_DEBUG << s[u];
-	}
 	s[u].Insert(extended);
-	if (u == 7)
-	{
-		LOG_DEBUG << "After:";
-		LOG_DEBUG << s[u] << "\n";
-	}
 
 	if (record)
 	{
@@ -98,8 +85,6 @@ void BEACONING<RA>::SchedulePropagation(int u, double d_prop, double horizon)
 		this->Propagate(u);
 	});
 
-	// past the horizon every beacon has expired,
-	// so a propagation event can no longer send anything
 	if (cal.now() + d_prop > horizon)
 	{
 		return;
@@ -116,14 +101,6 @@ void BEACONING<RA>::Propagate(int u)
 	// Assume that the registration event occurs at the same time
 	// as the prop event
 	auto selected = s[u].BeaconsToPropagate(cal.now());
-	if (u == 7)
-	{
-		LOG_DEBUG << "Propagation:";
-		LOG_DEBUG << "Time: " << cal.now();
-		LOG_DEBUG << "node: " << u;
-		LOG_DEBUG << s[u] << "\n";
-	}
-
 	if (selected.empty())
 		return;
 

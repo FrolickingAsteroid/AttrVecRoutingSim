@@ -16,7 +16,6 @@ import re
 import os
 
 # sized for LaTeX as in https://scipy-cookbook.readthedocs.io/items/Matplotlib_LaTeX_Examples.html:
-
 LINEWIDTH = 345.0
 
 SIDE_BY_SIDE = True

@@ -35,10 +35,9 @@ struct MsgStats
 
 struct SummaryStats
 {
-	// per-node
-	MsgStats term;    // per node termination time
+	MsgStats term;    // per node stab time
 	MsgStats changes; // per node attribute changes
-	MsgStats nodes;   // per node message count
+	MsgStats nodes;
 
 	int total_nodes = 0;
 	int total_msgs  = 0;
@@ -76,21 +75,22 @@ class Recorder
 
 		if (proto == "window")
 		{
-			wind_out = openFile(makeOutputPath(input, proto, map, "", scenario), append, windHeader(link_failure));
+			wind_out =
+			    openFile(makeOutputPath(input, proto, map, "", scenario), append, windHeader(link_failure));
 		}
 		else
 		{
-			convergence_out = openFile(makeOutputPath(input, proto, map, "convergence",scenario), append,
+			convergence_out = openFile(makeOutputPath(input, proto, map, "convergence", scenario), append,
 						   convergenceHeader(link_failure));
 
-			msglog_out =
-			    openFile(makeOutputPath(input, proto, map, "msglog",scenario), append, msgLogHeader(link_failure));
+			msglog_out = openFile(makeOutputPath(input, proto, map, "msglog", scenario), append,
+					      msgLogHeader(link_failure));
 		}
 
 		if (proto == "bgp" || proto == "rcn")
 		{
-			state_out =
-			    openFile(makeOutputPath(input, proto, map, "state", scenario), append, stateHeader(link_failure));
+			state_out = openFile(makeOutputPath(input, proto, map, "state", scenario), append,
+					     stateHeader(link_failure));
 		}
 	}
 

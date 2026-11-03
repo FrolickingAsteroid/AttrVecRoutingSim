@@ -15,7 +15,7 @@ namespace RoutingAlgebras
 
 // ---------------------------------------------------------------------------- *
 //
-// Primitive algebras
+// Primitive routing algebras
 //
 // ---------------------------------------------------------------------------- *
 
@@ -26,12 +26,11 @@ using WIDEST_SHORTEST = CompAlgebra<LexicographicOrder, SHORTEST, WIDEST>;
 
 // ---------------------------------------------------------------------------- *
 //
-// Path algebras
+// Path routing algebras
 //
 // ---------------------------------------------------------------------------- *
 
-// HOPS_SUFFIX compares hop count first, then colex order on
-// path suffixes
+// compares hop count first, then colex order on path suffixes
 using HOPS_SUFFIX = PrimAlgebra<Path<int>, Concatenation<int>, SuffixOrder<int>>;
 
 // all paths of equal length remain incomparable
@@ -47,7 +46,7 @@ using EXPLICIT_PATH = PrimAlgebra<Path<int>, Concatenation<int>, PathEquality<in
 using LEX_LENGTH_HOPS_SUFFIX = CompAlgebra<LexicographicOrder, SHORTEST, HOPS_SUFFIX>;
 
 // Product order on Widest shortest path algebra and lex on hop count and
-//  colex order on path suffixes
+// colex order on path suffixes
 using LEX_LENGTH_WIDTH_SUFFIX = CompAlgebra<ProductOrder, WIDEST_SHORTEST, HOPS_SUFFIX>;
 
 // Product order on widths and the lexicographic product on lengths, hops and suffix

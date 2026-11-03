@@ -35,10 +35,6 @@ struct BGP : IProtocol<typename RA::Attr, BGPAttribute<RA>>
 
 	void LinkFailure(int u, int v) override;
 
-	void NodeWithdraw(int u);
-
-	void NodeDown(int t);
-
 	void MsgReception(int u, int v, BGPAttr received) override;
 
 	void process() override;

@@ -51,7 +51,7 @@ bool CompareOpt(const std::vector<Msg> &l, const std::vector<A> &r)
 	for (const auto &l_ : l)
 	{
 		bool found = std::any_of(r.begin(), r.end(), [&](const A &r_) {
-			return l_.attr.getAttr() == r_; //
+			return l_.attr.getAttr() == r_;
 		});
 		if (!found)
 		{
@@ -70,7 +70,8 @@ std::vector<N> ComputeWindu(const double Delta, const std::vector<std::vector<st
 	{
 		if (Delta == 0 || node_paths.empty())
 		{
-			// N = 1; W = N + 1
+			// N = 1; W = N + 1,
+			// where N = ceil[(fastest - slowest)/Delta] + 1
 			Ns.push_back(1);
 			continue;
 		}
@@ -277,91 +278,5 @@ inline void printDelays(const std::vector<double> &results, const double D)
 
 	LOG_INFO << t << "\n";
 }
-
-/*
-template <class A, class Ord>
-std::pair<double, std::vector<double>>
-WorstDelay(const std::vector<std::vector<std::pair<double, A>>> &opt_time)
-{
-	Ord		    ord;
-	double		    D = 0.0;
-	std::vector<double> node_D(opt_time.size(), 0.0);
-
-	for (std::size_t u = 0; u < opt_time.size(); ++u) {
-		const auto &pairs = opt_time[u];
-		if (pairs.size() < 2)
-			continue;
-		for (const auto &[ti, ai] : pairs) {
-			for (const auto &[tj, aj] : pairs) {
-				if (ai == aj)
-					continue;
-				if (ord(ai, aj)) {
-					node_D[u] = std::max(node_D[u], ti -
-tj);
-				}
-			}
-		}
-		D = std::max(D, node_D[u]);
-	}
-	return { D, node_D };
-}
-*/
-
-/*
-template <class A, class Ord, class Ext>
-void Compute_N(const std::string &filename, double Delta, int t)
-{
-	LOG_INFO << ui::cyan("\nWorst delay per destination — " + filename + "
-(destination " + std::to_string(t) + ")\n\n"); auto graph	     =
-Graphs::Graph<A>::readGraph(filename); auto [opt_time, opt] = DelayDijkstra<A,
-Ord, Ext>(graph, t); auto [D, node_D]     = WorstDelay<A, Ord>(opt_time);
-
-	printDelays(node_D, D);
-
-	LOG_INFO << cyan(bold("\nLargest Window size N: ")) << ceil(D / Delta)
-<< "\n";
-
-	propagateN(node_D, graph, Delta);
-}
-
-
-template <class A>
-std::vector<int>
-propagateN(const std::vector<double> &node_D, const Graphs::Graph<A> &graph,
-double Delta)
-{
-	std::vector<int> node_N(graph.V);
-	for (int u = 0; u < graph.V; ++u)
-		node_N[u] = static_cast<int>(std::ceil(node_D[u] / Delta));
-
-	int max = std::max_element(node_N.begin(), node_N.end()) -
-node_N.begin();
-
-	using P = std::pair<int, int>;
-	std::priority_queue<P> pq;
-	pq.push({ node_N[max], max });
-
-	while (!pq.empty()) {
-		auto [N, v] = pq.top();
-		pq.pop();
-		for (auto &[u, edge] : graph.adjListIn[v]) {
-			if (node_N[u] < N) {
-				node_N[u] = N;
-				pq.push({ node_N[u], u });
-			}
-		}
-	}
-
-	LOG_DEBUG << "\n  --- N ---";
-	for (int u = 0; u < graph.V; ++u)
-		LOG_DEBUG << "  node_N[" << u << "] = " << node_N[u];
-
-	LOG_DEBUG << "\n";
-
-	return node_N;
-}
-
-
-*/
 } // namespace utils::helpers
 #endif

@@ -19,7 +19,7 @@ struct RPBOB : IProtocol<typename RA::Base::Attr, RPBOBAttribute<RA>,
 {
 	// Type Aliases
 	using RpbobAttr    = RPBOBAttribute<RA>;
-	using Notification = std::tuple<int, std::pair<int, int>>; //(n, bullet, uv), should be a subtype of RPBOBAttr
+	using Notification = std::tuple<int, std::pair<int, int>>; // TODO: (n, bullet, uv), should be a subtype of RPBOBAttr
 	using Msg          = std::variant<RpbobAttr, Notification>;
 
 	using Base = IProtocol<typename RA::Base::Attr, RpbobAttr, Msg>;

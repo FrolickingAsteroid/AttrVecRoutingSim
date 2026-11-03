@@ -9,7 +9,7 @@ namespace RoutingAlgebras
 template <typename Ord, typename Arg>
 auto check(Arg &&arg)
 {
-	// constexpr as to be checked at compile time
+	// constexpr has to be checked at compile time
 	if constexpr (requires { Ord::neutral(arg); })
 	{
 		return Ord::neutral(arg);

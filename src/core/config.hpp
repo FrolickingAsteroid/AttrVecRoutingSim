@@ -33,14 +33,11 @@ struct SimulationConfig
 	// append to existing file
 	bool append = false;
 
-	// RPBOB: run with notification
+	// SyRuP: run with notification
 	bool notif = false;
 
 	// simulation seed
-	//unsigned int seed;
-
-	unsigned int seed = 2535664635;
-	//   unsigned int seed = 2425713638;
+	unsigned int seed;
 
 	// optional args
 	std::optional<double> dprop  = std::nullopt;
@@ -51,8 +48,7 @@ struct SimulationConfig
 	// Type of simulation being run
 	Type scenario   = Normal;
 	int  u          = -1; // used by LinkFailure
-	int  v          = -1; // used by LinkFailure
-	int  withdrawal = -1; // used by Withdrawal
+	int  v          = -1;
 };
 } // namespace config
 #endif

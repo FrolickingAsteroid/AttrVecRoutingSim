@@ -19,8 +19,6 @@ struct BGPNodeState
 	// Minimum Route Advertisement Interval
 	double MRAI = 1;
 
-	// using Route = std::pair<path, int>; //(attribute, succ)
-
 	std::unordered_map<int, path> aTab;
 	path                          E;
 	path                          Av;

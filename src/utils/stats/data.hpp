@@ -56,8 +56,8 @@ struct Data
 	std::map<double, std::map<int, int>>    msgLog;
 
 	// per node state size at the end of the run (bgp / rcn)
-	std::vector<int> ribSize; // entries in the attribute table (one per neighbor)
-	std::vector<int> seqSize; // entries in the sequence number table (rcn only)
+	std::vector<int> ribSize;
+	std::vector<int> seqSize;
 };
 } // namespace utils::stats
 

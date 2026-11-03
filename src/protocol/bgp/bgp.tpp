@@ -30,6 +30,12 @@ void BGP<RA>::process()
 	}
 }
 
+// ---------------------------------------------------------------------------- *
+//
+// Link Failure Handling
+//
+// ---------------------------------------------------------------------------- *
+
 template <class RA>
 void BGP<RA>::LinkFailure(int u, int v)
 {
@@ -56,48 +62,11 @@ void BGP<RA>::LinkFailure(int u, int v)
 	}
 }
 
-template <class RA>
-void BGP<RA>::NodeWithdraw(int u)
-{
-	graph.deactivate(u);
-	data.log = true;
-	data.setOffset(cal.now());
-
-	LOG_DEBUG << "Time of Failure: " << cal.now() << "\n";
-
-	for (auto &[node, edge] : graph.adjListIn[u])
-	{
-		if (s[node].succ == u)
-		{
-			s[node].RemoveNeighbor(u);
-			if (s[node].ProcessBest())
-			{
-				this->Send(node, s[node].GetElected());
-				data.recordChange(node, cal.now(), s[node].GetElected());
-			}
-		}
-	}
-}
-
-template <class RA>
-void BGP<RA>::NodeDown(int t)
-{
-	for (auto &[r, edge] : graph.adjListIn[t])
-	{
-		if (s[r].succ == t)
-		{
-			s[r].RemoveNeighbor(t);
-			graph.deactivate(r, t);
-			if (s[r].ProcessBest())
-			{
-				this->Send(r, s[r].GetElected());
-				data.recordChange(r, cal.now(), s[r].GetElected());
-			}
-		}
-	}
-	data.log = true;
-	data.setOffset(cal.now());
-}
+// ---------------------------------------------------------------------------- *
+//
+// Message Processing
+//
+// ---------------------------------------------------------------------------- *
 
 template <class RA>
 void BGP<RA>::DestinationAnnouncement(int t)

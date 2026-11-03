@@ -48,7 +48,6 @@ inline std::filesystem::path makeOutputPath(const std::filesystem::path &input, 
 	return output_dir / name;
 }
 
-// Opens a file for writing.
 inline std::ofstream openFile(const std::filesystem::path &path, bool append, const std::string &header)
 {
 	bool write_header = !append || !std::filesystem::exists(path) || std::filesystem::file_size(path) == 0;

@@ -9,7 +9,7 @@ namespace RoutingAlgebras
 template <class Node>
 struct PathEquality
 {
-	// TODO: find a better way to represent these
+	// TODO: find a better way to represent the trivial path
 	static Path<Node> neutral(Node t)
 	{
 		return Path<Node>(t);

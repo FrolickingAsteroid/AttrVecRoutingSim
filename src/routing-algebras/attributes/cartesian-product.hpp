@@ -58,6 +58,11 @@ struct CartProdAttr : std::tuple<Attr...>
 	using Attrs = std::tuple<Attr...>;
 	using Attrs::Attrs;
 
+	// TODO: this most definitely must change in the future...
+	// it assumes path routing algebras are always the last element of the
+	// cartesian product, which is sorely not true.
+	// See https://adamczapla.github.io/posts/implementing-tuple-find-a-constexpr-compatible-algorithm-for-heterogeneous-containers/
+	// for a possible alternative
 	auto getPath() const
 	{
 		return PathFinder::FindPath<CartProdAttr>::get(*this);
