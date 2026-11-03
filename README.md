@@ -1,25 +1,27 @@
 # AttrVecSim
-An attribute-vector routing protocol discrete-event simulator developed as part of the MSc dissertation
-
+AttrVecSim is an attribute-vector routing protocol DES (discrete-event simulator), developed as part of the MSc dissertation *SyRuP: A Multipath Routing Protocol for the Path-Aware Network Architecture*, at Instituto Superior Técnico, Universidade de Lisboa (2026)
 
 # Directory Structure
+This project follows the [Pitchfork](https://joholl.github.io/pitchfork-website/) layout for C++ projects, with merged header placement, as most of the simulator is templated, and therefore largely header-only. The project, with emphasis on its folder partitioning, is structured as follows.
 
-- __AttrVecRoutingSim__
-  - [LICENSE](LICENSE)
-  - [README.md](README.md)
-  - [data](data)
-     - [datasets](data/datasets)
-     - [plots](data/plots)
-     - [topologies](data/topologies)
-  - [external/tabulate](external/tabulate.hpp)
-  - [src](src)
-     - [core](data/core)
-     - [graph](data/graph)
-     - [protocol](data/protocol)
-     - [routing-algebras](src/routing-algebras)
-     - [scheduler](src/scheduler)
-     - [simulator](src/simulator)
-     - [utils](src/utils)
-  - [tools](tools)
-     - [scripts](tools/scripts)
-     - [plotting](tools/plotting)
+```bash
+AttrVecSim/
+├── data/                   
+│   ├── datasets/           # simulator ready synthetic and inferred network datasets
+│   ├── plots/              # generated figures
+│   ├── output/             # results produced by the simulator
+│   └── topologies/         # Rocketfuel & small scale SCIERA topologies
+├── external/
+│   └── tabulate.hpp        # third-party library
+├── src/        
+│   ├── core/               # program entry point
+│   ├── graph/              # network model
+│   ├── protocol/           # Proto. implementation: SyRuP, SyRuP-LFN, SyRuP-W, BGP, BGP-RCN, beaconing
+│   ├── routing-algebras/   # routing algebra logic
+│   ├── scheduler/          # event scheduler driving the simulation
+│   ├── simulator/          # sets up and executes a single simulation run
+│   └── utils/              # helper functions, namely, UI and csv data recording
+└── tools/                  
+    ├── scripts/            # scripts to produce datasets and run simulations in batch
+    └── plotting/           # scripts to plot the results
+```
